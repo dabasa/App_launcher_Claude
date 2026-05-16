@@ -1,0 +1,57 @@
+<Window x:Class="AppLauncher.Views.LauncherWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:AppLauncher.Views.Controls"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        UseLayoutRounding="True"
+        SizeToContent="Manual">
+
+    <!--
+        右端吸着レイアウト（Ph.2）
+        列0: ハンドル 15px
+        列1: 透明ギャップ 8px
+        列2: ランチャーフレーム（残り幅）
+    -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="15"/>
+            <ColumnDefinition Width="8"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ハンドル：フレームの上下中央に配置 -->
+        <controls:HandleControl x:Name="Handle"
+                                Grid.Column="0"
+                                VerticalAlignment="Center"/>
+
+        <!-- ランチャーフレーム：角丸・黒枠2px -->
+        <Border x:Name="Frame"
+                Grid.Column="2"
+                CornerRadius="20"
+                BorderBrush="#FF000000"
+                BorderThickness="2"
+                ClipToBounds="True">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="8"/>    <!-- pageNameTopMargin -->
+                    <RowDefinition Height="Auto"/> <!-- PageNameControl -->
+                    <RowDefinition Height="8"/>    <!-- pageNameBottomMargin -->
+                    <RowDefinition Height="*"/>    <!-- TileGridControl -->
+                    <RowDefinition Height="8"/>    <!-- bottomBarTopMargin -->
+                    <RowDefinition Height="32"/>   <!-- BottomBarControl -->
+                    <RowDefinition Height="8"/>    <!-- bottomBarBottomMargin -->
+                </Grid.RowDefinitions>
+
+                <controls:PageNameControl Grid.Row="1" Margin="20,0"/>
+                <controls:TileGridControl Grid.Row="3" Margin="20,0"
+                                          DataContext="{Binding CurrentPage}"/>
+                <controls:BottomBarControl Grid.Row="5"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
