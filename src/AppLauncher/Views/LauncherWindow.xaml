@@ -24,6 +24,11 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
+        <!-- ピンモード枠（最背面。コードビハインドで色・太さを設定） -->
+        <Border x:Name="PinFrame"
+                Grid.ColumnSpan="3"
+                Visibility="Collapsed"/>
+
         <!-- ハンドル：フレームの上下中央に配置 -->
         <controls:HandleControl x:Name="Handle"
                                 Grid.Column="0"

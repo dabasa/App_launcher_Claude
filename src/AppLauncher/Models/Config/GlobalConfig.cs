@@ -10,4 +10,5 @@ public class GlobalConfig
     public string SnapPosition { get; set; } = "right";
     public int SnapMonitor { get; set; } = 1;
     public int StorageDelayMs { get; set; } = 1000;
+    public int AnimationDurationMs { get; set; } = 300;
 }

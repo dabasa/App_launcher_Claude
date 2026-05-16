@@ -14,6 +14,12 @@ public partial class LauncherViewModel : ObservableObject
     [ObservableProperty]
     private AppMode _mode = AppMode.Normal;
 
+    [ObservableProperty]
+    private bool _isPinned;
+
+    [ObservableProperty]
+    private bool _isStored;
+
     public List<PageViewModel> Pages { get; }
 
     public double PageNameFontSize { get; }
