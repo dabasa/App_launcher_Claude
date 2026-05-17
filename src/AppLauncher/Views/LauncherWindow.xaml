@@ -12,29 +12,24 @@
         SizeToContent="Manual">
 
     <!--
-        右端吸着レイアウト（Ph.2）
-        列0: ハンドル 15px
-        列1: 透明ギャップ 8px
+        右端吸着レイアウト
+        列0: ハンドル（HandleShortSide px、コードビハインドで設定）
+        列1: ハンドル〜フレーム間ギャップ（HandleFrameMargin px、コードビハインドで設定）
         列2: ランチャーフレーム（残り幅）
     -->
-    <Grid>
+    <Grid x:Name="RootGrid">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="15"/>
-            <ColumnDefinition Width="8"/>
-            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="20"/> <!-- handle -->
+            <ColumnDefinition Width="8"/>  <!-- gap -->
+            <ColumnDefinition Width="*"/>  <!-- frame -->
         </Grid.ColumnDefinitions>
-
-        <!-- ピンモード枠（最背面。コードビハインドで色・太さを設定） -->
-        <Border x:Name="PinFrame"
-                Grid.ColumnSpan="3"
-                Visibility="Collapsed"/>
 
         <!-- ハンドル：フレームの上下中央に配置 -->
         <controls:HandleControl x:Name="Handle"
                                 Grid.Column="0"
                                 VerticalAlignment="Center"/>
 
-        <!-- ランチャーフレーム：角丸・黒枠2px -->
+        <!-- ランチャーフレーム：角丸・黒枠2px（ピンモード時は枠を色変更・太く） -->
         <Border x:Name="Frame"
                 Grid.Column="2"
                 CornerRadius="20"
@@ -48,7 +43,7 @@
                     <RowDefinition Height="8"/>    <!-- pageNameBottomMargin -->
                     <RowDefinition Height="*"/>    <!-- TileGridControl -->
                     <RowDefinition Height="8"/>    <!-- bottomBarTopMargin -->
-                    <RowDefinition Height="32"/>   <!-- BottomBarControl -->
+                    <RowDefinition Height="Auto"/> <!-- BottomBarControl -->
                     <RowDefinition Height="8"/>    <!-- bottomBarBottomMargin -->
                 </Grid.RowDefinitions>
 

@@ -15,21 +15,25 @@ public partial class LauncherWindow : Window
 
     public void SetViewModel(LauncherViewModel vm)
     {
-        var bt = App.ConfigService.Current.Layout.FrameBorderThickness;
-        Frame.BorderThickness = new Thickness(bt);
+        var layout = App.ConfigService.Current.Layout;
+
+        RootGrid.ColumnDefinitions[0].Width = new GridLength(layout.HandleShortSide);
+        RootGrid.ColumnDefinitions[1].Width = new GridLength(layout.HandleFrameMargin);
+        Frame.CornerRadius = new CornerRadius(layout.FrameCornerRadius);
+
         DataContext = vm;
         ApplyPageColors(vm.CurrentPage);
-        ApplyPinFrame(vm);
+        ApplyPinBorder(vm);
 
         vm.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(LauncherViewModel.CurrentPage))
             {
                 ApplyPageColors(vm.CurrentPage);
-                ApplyPinFrame(vm);
+                ApplyPinBorder(vm);
             }
             if (e.PropertyName == nameof(LauncherViewModel.IsPinned))
-                ApplyPinFrame(vm);
+                ApplyPinBorder(vm);
         };
     }
 
@@ -43,30 +47,28 @@ public partial class LauncherWindow : Window
         Handle.SetAppearance(page.HandleColor, page.HandleOpacity);
     }
 
-    private void ApplyPinFrame(LauncherViewModel vm)
+    private void ApplyPinBorder(LauncherViewModel vm)
     {
+        var layout = App.ConfigService.Current.Layout;
+
         if (!vm.IsPinned)
         {
-            PinFrame.Visibility = Visibility.Collapsed;
+            Frame.BorderBrush     = new SolidColorBrush(Colors.Black);
+            Frame.BorderThickness = new Thickness(layout.FrameBorderThickness);
+            Handle.ResetBorder();
             return;
         }
 
-        var page   = vm.CurrentPage;
-        var layout = App.ConfigService.Current.Layout;
-        var color  = ColorPalette.GetColor(page.PinFrameColor);
+        var page  = vm.CurrentPage;
+        var color = ColorPalette.GetColor(page.PinFrameColor);
         double alpha = ColorPalette.OpacityToDouble(page.PinFrameOpacity);
-
-        PinFrame.BorderBrush = new SolidColorBrush(
+        int bt    = layout.PinBorderThickness;
+        var brush = new SolidColorBrush(
             Color.FromArgb((byte)(255 * alpha), color.R, color.G, color.B));
 
-        // 右端吸着：ハンドルは左側 → 左辺が WithHandle 幅、他は NoHandle 幅
-        PinFrame.BorderThickness = new Thickness(
-            layout.PinFrameWidthWithHandle,  // 左（ハンドルあり側）
-            layout.PinFrameWidthNoHandle,    // 上
-            layout.PinFrameWidthNoHandle,    // 右
-            layout.PinFrameWidthNoHandle);   // 下
-
-        PinFrame.Visibility = Visibility.Visible;
+        Frame.BorderBrush     = brush;
+        Frame.BorderThickness = new Thickness(bt);
+        Handle.SetPinBorder(brush, bt);
     }
 
     // ─── ピンモードのダブルクリック切り替え ───────────────────────────────
@@ -90,7 +92,7 @@ public partial class LauncherWindow : Window
         var dep = source as DependencyObject;
         while (dep != null)
         {
-            if (dep is TileControl or Button or RepeatButton) return true;
+            if (dep is TileControl or Button or RepeatButton or BottomBarControl) return true;
             dep = VisualTreeHelper.GetParent(dep);
         }
         return false;

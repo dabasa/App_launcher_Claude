@@ -18,11 +18,10 @@ public class LayoutConfig
     public int SettingsButtonMargin { get; set; } = 8;
     public int FrameCornerRadius { get; set; } = 20;
     public int FrameBorderThickness { get; set; } = 2;
+    public int PinBorderThickness { get; set; } = 8;
     public int HandleShortSide { get; set; } = 15;
     public int HandleLongSide { get; set; } = 100;
     public int HandleCornerRadius { get; set; } = 10;
     public int HandleFrameMargin { get; set; } = 8;
     public int ScreenEdgeDistance { get; set; } = 20;
-    public int PinFrameWidthNoHandle { get; set; } = 20;
-    public int PinFrameWidthWithHandle { get; set; } = 23;
 }

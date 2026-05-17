@@ -24,7 +24,7 @@
                     VerticalAlignment="Center"
                     Padding="10,4">
                 <TextBlock Text="D&amp;D専用"
-                           FontSize="21.333"
+                           FontSize="16"
                            Foreground="#F0F0F0"/>
             </Border>
         </Grid>

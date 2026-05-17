@@ -35,9 +35,9 @@ public static class WindowSizeCalculator
                         + bottomBarH
                         + layout.BottomBarBottomMargin;
 
-        // フレーム外形サイズ：上下左右の BorderThickness を加算する
-        // （BorderThickness 分だけ内部コンテンツ領域が縮小されるため補正）
-        int bt = layout.FrameBorderThickness;
+        // フレーム外形サイズ：ピンモード時に BorderThickness が PinBorderThickness まで増加するため
+        // 常に大きい方の値でサイズを確保し、どのモードでもタイルが見切れないようにする
+        int bt = Math.Max(layout.FrameBorderThickness, layout.PinBorderThickness);
         double width  = contentW + 2 * bt;
         double height = contentH + 2 * bt;
 

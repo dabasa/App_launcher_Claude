@@ -1,19 +1,75 @@
 <UserControl x:Class="AppLauncher.Views.Controls.BottomBarControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid>
-        <!-- ページインジケーター（中央） -->
-        <StackPanel x:Name="IndicatorPanel"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"/>
 
-        <!-- モード切替ボタン（右端） -->
-        <Border x:Name="ModeButton"
-                Width="32" Height="32"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Center"
-                Margin="0,0,20,0"
-                Cursor="Hand"/>
-    </Grid>
+    <!-- 行1（常時）＋ 行2（編集モード時のみ）の縦積み -->
+    <StackPanel Orientation="Vertical">
+
+        <!-- ═══ 行1 ═══════════════════════════════════════════════════ -->
+        <Grid Height="32">
+            <!-- ページインジケーター（中央） -->
+            <StackPanel x:Name="IndicatorPanel"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"/>
+
+            <!-- 右側ボタン群 -->
+            <StackPanel x:Name="RightButtons"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Margin="0,0,20,0">
+
+                <!-- ページ編集ボタン（Ph.8 実装予定・現在はプレースホルダー） -->
+                <Border x:Name="PageEditButton"
+                        Width="32" Height="32"
+                        Margin="0,0,8,0"
+                        Cursor="Hand"
+                        Visibility="Collapsed"/>
+
+                <!-- 全体設定ボタン（Ph.8 実装予定・現在はプレースホルダー） -->
+                <Border x:Name="GlobalSettingsButton"
+                        Width="32" Height="32"
+                        Margin="0,0,8,0"
+                        Cursor="Hand"
+                        Visibility="Collapsed"/>
+
+                <!-- モード切替ボタン -->
+                <Border x:Name="ModeButton"
+                        Width="32" Height="32"
+                        Cursor="Hand"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- ═══ 行2：ページ管理コントロール（編集モード時のみ表示） ════ -->
+        <Grid x:Name="PageMgmtRow"
+              Height="25"
+              Margin="0,8,0,0"
+              Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+
+                <Border x:Name="MoveLeftButton"
+                        Width="25" Height="25"
+                        Margin="0,0,8,0"
+                        Cursor="Hand"/>
+
+                <Border x:Name="AddPageButton"
+                        Width="25" Height="25"
+                        Margin="0,0,8,0"
+                        Cursor="Hand"/>
+
+                <Border x:Name="RemovePageButton"
+                        Width="25" Height="25"
+                        Margin="0,0,8,0"
+                        Cursor="Hand"/>
+
+                <Border x:Name="MoveRightButton"
+                        Width="25" Height="25"
+                        Cursor="Hand"/>
+            </StackPanel>
+        </Grid>
+
+    </StackPanel>
 </UserControl>

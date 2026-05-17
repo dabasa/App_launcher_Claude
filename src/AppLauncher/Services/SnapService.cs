@@ -1,8 +1,11 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using AppLauncher.Helpers;
+using AppLauncher.Models;
+using AppLauncher.ViewModels;
 using AppLauncher.Views;
 
 namespace AppLauncher.Services;
@@ -26,6 +29,9 @@ public class SnapService
     private bool _isAnimating;
     private int  _animGeneration; // Completed コールバックのキャンセル用世代カウンタ
 
+    // ─── フレーム高さ ─────────────────────────────────────────────────────
+    private double _baseFrameH; // 通常モード時のフレーム高さ
+
     public void Attach(LauncherWindow window)
     {
         _window = window;
@@ -36,6 +42,20 @@ public class SnapService
             new MouseButtonEventHandler(OnMouseUp), handledEventsToo: true);
         _window.MouseEnter += OnWindowMouseEnter;
         _window.MouseLeave += OnWindowMouseLeave;
+
+        App.LauncherViewModel?.PropertyChanged += OnViewModelPropertyChanged;
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(LauncherViewModel.Mode))
+            UpdateWindowHeight();
+    }
+
+    private void UpdateWindowHeight()
+    {
+        bool isEdit = App.LauncherViewModel?.Mode == AppMode.Edit;
+        _window.Height = _baseFrameH + (isEdit ? 33 : 0);
     }
 
     /// <summary>
@@ -49,10 +69,10 @@ public class SnapService
 
         var (frameW, frameH) = WindowSizeCalculator.Calculate(global, layout);
         double windowW = layout.HandleShortSide + layout.HandleFrameMargin + frameW;
-        double windowH = frameH;
 
-        _window.Width  = windowW;
-        _window.Height = windowH;
+        _window.Width = windowW;
+        _baseFrameH   = frameH;
+        UpdateWindowHeight();
 
         double screenW = SystemParameters.PrimaryScreenWidth;
         double screenH = SystemParameters.PrimaryScreenHeight;
@@ -65,7 +85,7 @@ public class SnapService
         _storedLeft = _normalLeft + frameW + layout.HandleFrameMargin;
 
         _window.Left = _normalLeft;
-        _window.Top  = (screenH - windowH) / 2;
+        _window.Top  = (screenH - _window.Height) / 2;
     }
 
     // ─── ドラッグ（縦方向のみ） ────────────────────────────────────────────
