@@ -1,5 +1,16 @@
 <UserControl x:Class="AppLauncher.Views.Controls.TileGridControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid x:Name="TileGrid"/>
+    <Grid>
+        <Grid x:Name="TileGrid" AllowDrop="True"/>
+
+        <!-- D&D / リサイズプレビュー用オーバーレイ（ヒットテスト無効） -->
+        <Canvas x:Name="OverlayCanvas" IsHitTestVisible="False">
+            <Rectangle x:Name="DragPreview"
+                       Visibility="Collapsed"
+                       StrokeThickness="2"
+                       StrokeDashArray="6,4"
+                       Fill="#33FFFFFF"/>
+        </Canvas>
+    </Grid>
 </UserControl>

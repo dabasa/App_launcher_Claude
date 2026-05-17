@@ -51,6 +51,37 @@
                 <controls:TileGridControl Grid.Row="3" Margin="20,0"
                                           DataContext="{Binding CurrentPage}"/>
                 <controls:BottomBarControl Grid.Row="5"/>
+
+                <!-- 削除確認ダイアログ（Frame 内全体に重なるオーバーレイ） -->
+                <Grid x:Name="DeleteConfirmOverlay"
+                      Grid.RowSpan="7"
+                      Visibility="Collapsed"
+                      Panel.ZIndex="100"
+                      Background="#80000000">
+                    <Border Width="300" Height="140"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Background="#FF8C9BAB" CornerRadius="10">
+                        <StackPanel VerticalAlignment="Center" Margin="20">
+                            <TextBlock Text="タイルを削除しますがよろしいですか？"
+                                       Foreground="White" TextWrapping="Wrap"
+                                       TextAlignment="Center" Margin="0,0,0,16"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Border x:Name="DeleteOkButton"
+                                        Width="80" Height="32" Margin="0,0,8,0"
+                                        Background="#FFE05252" CornerRadius="6" Cursor="Hand">
+                                    <TextBlock Text="OK" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <Border x:Name="DeleteCancelButton"
+                                        Width="80" Height="32"
+                                        Background="#FF6D7880" CornerRadius="6" Cursor="Hand">
+                                    <TextBlock Text="キャンセル" Foreground="White"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </Grid>
         </Border>
     </Grid>

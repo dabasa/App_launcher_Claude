@@ -54,8 +54,8 @@ public class SnapService
 
     private void UpdateWindowHeight()
     {
-        bool isEdit = App.LauncherViewModel?.Mode == AppMode.Edit;
-        _window.Height = _baseFrameH + (isEdit ? 33 : 0);
+        bool isExpanded = App.LauncherViewModel?.Mode is AppMode.Edit or AppMode.TileEdit;
+        _window.Height = _baseFrameH + (isExpanded ? 33 : 0);
     }
 
     /// <summary>
@@ -105,6 +105,10 @@ public class SnapService
         if (!_isDragging)
         {
             if (e.LeftButton != MouseButtonState.Pressed) return;
+            // 別の要素（TileGrid リサイズ等）がキャプチャ中はウィンドウドラッグを開始しない
+            var captured = Mouse.Captured;
+            if (captured != null && captured != _window) return;
+
             double deltaPhysical = Math.Abs(currentY - _dragStartMouseY);
             if (deltaPhysical < DragThresholdPhysical * GetDpiScaleY()) return;
 

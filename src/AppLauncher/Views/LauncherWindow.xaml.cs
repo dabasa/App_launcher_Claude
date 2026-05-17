@@ -25,6 +25,10 @@ public partial class LauncherWindow : Window
         ApplyPageColors(vm.CurrentPage);
         ApplyPinBorder(vm);
 
+        // 削除確認ダイアログボタン配線
+        DeleteOkButton.MouseLeftButtonUp     += (_, _) => vm.ConfirmDeleteTileCommand.Execute(null);
+        DeleteCancelButton.MouseLeftButtonUp += (_, _) => vm.CancelDeleteTileCommand.Execute(null);
+
         vm.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(LauncherViewModel.CurrentPage))
@@ -34,6 +38,9 @@ public partial class LauncherWindow : Window
             }
             if (e.PropertyName == nameof(LauncherViewModel.IsPinned))
                 ApplyPinBorder(vm);
+            if (e.PropertyName == nameof(LauncherViewModel.PendingDeleteTile))
+                DeleteConfirmOverlay.Visibility = vm.PendingDeleteTile != null
+                    ? Visibility.Visible : Visibility.Collapsed;
         };
     }
 
@@ -43,14 +50,12 @@ public partial class LauncherWindow : Window
         double bgAlpha = ColorPalette.OpacityToDouble(page.BackgroundOpacity);
         Frame.Background = new SolidColorBrush(
             Color.FromArgb((byte)(255 * bgAlpha), bgColor.R, bgColor.G, bgColor.B));
-
         Handle.SetAppearance(page.HandleColor, page.HandleOpacity);
     }
 
     private void ApplyPinBorder(LauncherViewModel vm)
     {
         var layout = App.ConfigService.Current.Layout;
-
         if (!vm.IsPinned)
         {
             Frame.BorderBrush     = new SolidColorBrush(Colors.Black);
@@ -58,20 +63,16 @@ public partial class LauncherWindow : Window
             Handle.ResetBorder();
             return;
         }
-
         var page  = vm.CurrentPage;
         var color = ColorPalette.GetColor(page.PinFrameColor);
         double alpha = ColorPalette.OpacityToDouble(page.PinFrameOpacity);
         int bt    = layout.PinBorderThickness;
         var brush = new SolidColorBrush(
             Color.FromArgb((byte)(255 * alpha), color.R, color.G, color.B));
-
         Frame.BorderBrush     = brush;
         Frame.BorderThickness = new Thickness(bt);
         Handle.SetPinBorder(brush, bt);
     }
-
-    // ─── ピンモードのダブルクリック切り替え ───────────────────────────────
 
     protected override void OnMouseDoubleClick(MouseButtonEventArgs e)
     {
@@ -79,14 +80,10 @@ public partial class LauncherWindow : Window
         var vm = App.LauncherViewModel;
         if (vm == null || vm.Mode != AppMode.Normal) return;
         if (IsInteractiveTarget(e.OriginalSource)) return;
-
         vm.IsPinned = !vm.IsPinned;
         e.Handled = true;
     }
 
-    /// <summary>
-    /// タイル・ボタン上のダブルクリックはピンモード切り替えに使わない。
-    /// </summary>
     private static bool IsInteractiveTarget(object source)
     {
         var dep = source as DependencyObject;

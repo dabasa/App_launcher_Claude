@@ -21,6 +21,12 @@ public partial class LauncherViewModel : ObservableObject
     [ObservableProperty]
     private bool _isStored;
 
+    [ObservableProperty]
+    private TileViewModel? _editingTile;
+
+    [ObservableProperty]
+    private TileViewModel? _pendingDeleteTile;
+
     private bool _pinnedBeforeEdit;
 
     public ObservableCollection<PageViewModel> Pages { get; }
@@ -57,6 +63,40 @@ public partial class LauncherViewModel : ObservableObject
             Mode     = AppMode.Normal;
             IsPinned = _pinnedBeforeEdit;
         }
+    }
+
+    [RelayCommand]
+    private void OpenTileEdit(TileViewModel tile)
+    {
+        EditingTile = tile;
+        Mode = AppMode.TileEdit;
+    }
+
+    [RelayCommand]
+    private void CloseTileEdit()
+    {
+        EditingTile = null;
+        Mode = AppMode.Edit;
+    }
+
+    [RelayCommand]
+    private void RequestDeleteTile(TileViewModel tile)
+    {
+        PendingDeleteTile = tile;
+    }
+
+    [RelayCommand]
+    private void ConfirmDeleteTile()
+    {
+        if (PendingDeleteTile == null) return;
+        CurrentPage.Tiles.Remove(PendingDeleteTile);
+        PendingDeleteTile = null;
+    }
+
+    [RelayCommand]
+    private void CancelDeleteTile()
+    {
+        PendingDeleteTile = null;
     }
 
     [RelayCommand]

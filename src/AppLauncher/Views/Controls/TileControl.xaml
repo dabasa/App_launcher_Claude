@@ -27,6 +27,34 @@
                            FontSize="16"
                            Foreground="#F0F0F0"/>
             </Border>
+
+            <!-- 編集モードオーバーレイ（編集モード中のマウスオーバーで表示） -->
+            <Grid x:Name="EditOverlay" Visibility="Collapsed">
+                <!-- 編集ボタン（左上） -->
+                <Border x:Name="EditButton"
+                        Width="22" Height="22"
+                        HorizontalAlignment="Left" VerticalAlignment="Top"
+                        Margin="4" CornerRadius="4" Cursor="Hand"
+                        Background="#CC333333">
+                    <TextBlock Text="✎" FontSize="11" Foreground="White"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <!-- 削除ボタン（右上） -->
+                <Border x:Name="DeleteButton"
+                        Width="22" Height="22"
+                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                        Margin="4" CornerRadius="4" Cursor="Hand"
+                        Background="#CCE05252">
+                    <TextBlock Text="✕" FontSize="11" Foreground="White"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <!-- リサイズハンドル（右下） -->
+                <Border x:Name="ResizeHandle"
+                        Width="16" Height="16"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                        Margin="4" CornerRadius="3" Cursor="SizeNWSE"
+                        Background="#CCF0F0F0"/>
+            </Grid>
         </Grid>
     </Border>
 </UserControl>
