@@ -82,7 +82,8 @@ public partial class TileControl : UserControl
 
     private void ArrangeImageAndText(string position, bool hasImage)
     {
-        // デフォルト：テキストが全領域を占有
+        // デフォルト：テキストが全領域を占有（"bottom" で変更した Row 0 を必ず * に戻す）
+        LayoutGrid.RowDefinitions[0].Height   = new GridLength(1, GridUnitType.Star);
         LayoutGrid.RowDefinitions[1].Height   = new GridLength(0);
         LayoutGrid.ColumnDefinitions[1].Width = new GridLength(0);
         Grid.SetRow(TitleText, 0);    Grid.SetRowSpan(TitleText, 2);
@@ -98,14 +99,27 @@ public partial class TileControl : UserControl
         switch (position)
         {
             case "top":
-            case "bottom":
-                LayoutGrid.RowDefinitions[1].Height   = GridLength.Auto;
-                LayoutGrid.ColumnDefinitions[1].Width  = new GridLength(0);
+                // Row 0 (*): 画像（制約あり）、Row 1 (Auto): テキスト（必要分）
+                LayoutGrid.RowDefinitions[1].Height  = GridLength.Auto;
+                LayoutGrid.ColumnDefinitions[1].Width = new GridLength(0);
                 Grid.SetColumnSpan(TileImage, 2);
                 Grid.SetColumnSpan(TitleText, 2);
-                bool imgTop = position == "top";
-                Grid.SetRow(TileImage, imgTop ? 0 : 1);
-                Grid.SetRow(TitleText, imgTop ? 1 : 0);
+                Grid.SetRow(TileImage, 0);
+                Grid.SetRow(TitleText, 1);
+                Grid.SetColumn(TileImage, 0);
+                Grid.SetColumn(TitleText, 0);
+                break;
+
+            case "bottom":
+                // Row 0 (Auto): テキスト（必要分）、Row 1 (*): 画像（制約あり）
+                // 画像を Auto 行に置くと自然サイズで測定されテキスト行が潰れるため逆にする
+                LayoutGrid.RowDefinitions[0].Height  = GridLength.Auto;
+                LayoutGrid.RowDefinitions[1].Height  = new GridLength(1, GridUnitType.Star);
+                LayoutGrid.ColumnDefinitions[1].Width = new GridLength(0);
+                Grid.SetColumnSpan(TileImage, 2);
+                Grid.SetColumnSpan(TitleText, 2);
+                Grid.SetRow(TitleText, 0);
+                Grid.SetRow(TileImage, 1);
                 Grid.SetColumn(TileImage, 0);
                 Grid.SetColumn(TitleText, 0);
                 break;

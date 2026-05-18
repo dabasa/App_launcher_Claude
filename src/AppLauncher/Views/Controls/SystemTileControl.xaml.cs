@@ -18,6 +18,8 @@ public partial class SystemTileControl : UserControl
     private Border?           _tileBorder;
     private DispatcherTimer?  _timer;
     private bool              _modeSubscribed;
+    private Point             _mouseDownPos;
+    private bool              _dragStarted;
 
     public event Action<TileViewModel>? EditRequested;
     public event Action<TileViewModel>? DeleteRequested;
@@ -111,6 +113,26 @@ public partial class SystemTileControl : UserControl
     {
         EditOverlay.Visibility = IsMouseOver && App.LauncherViewModel?.Mode == AppMode.Edit
             ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // ─── タイル移動 D&D ──────────────────────────────────────────────────
+    protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonDown(e);
+        _mouseDownPos = e.GetPosition(this);
+        _dragStarted  = false;
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+        if (e.LeftButton != MouseButtonState.Pressed) return;
+        if (App.LauncherViewModel?.Mode != AppMode.Edit) return;
+        if (_tile == null || _dragStarted) return;
+        if ((e.GetPosition(this) - _mouseDownPos).Length < 5.0) return;
+
+        _dragStarted = true;
+        DragDrop.DoDragDrop(this, _tile, DragDropEffects.Move);
     }
 
     // ─── クリック（クリック動作：表示更新） ───────────────────────────────

@@ -36,7 +36,7 @@
 
         <!-- ─── スクロール可能セクション群 ──────────────────────────── -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="12,4,12,4">
-            <StackPanel>
+            <StackPanel Margin="0,0,10,0">
 
                 <!-- ── 基本セクション ── -->
                 <Border x:Name="BasicHeader" Cursor="Hand" Padding="0,8,0,6"

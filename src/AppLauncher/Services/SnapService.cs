@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Animation;
@@ -35,7 +36,9 @@ public class SnapService
     public void Attach(LauncherWindow window)
     {
         _window = window;
-        _window.MouseLeftButtonDown += OnMouseDown;
+        // handledEventsToo: ScrollViewer 等が Handled にしても受け取り、ドラッグ開始位置を記録する
+        _window.AddHandler(UIElement.MouseLeftButtonDownEvent,
+            new MouseButtonEventHandler(OnMouseDown), handledEventsToo: true);
         _window.MouseMove           += OnMouseMove;
         // handledEventsToo: タイルが Handled にしても受け取る
         _window.AddHandler(UIElement.MouseLeftButtonUpEvent,
@@ -102,6 +105,14 @@ public class SnapService
     {
         double currentY = _window.PointToScreen(e.GetPosition(_window)).Y;
 
+        // ボタンが離されていれば（Handled により OnMouseUp が来なかった場合も含む）強制終了
+        if (_isDragging && e.LeftButton != MouseButtonState.Pressed)
+        {
+            _window.ReleaseMouseCapture();
+            _isDragging = false;
+            return;
+        }
+
         if (!_isDragging)
         {
             if (e.LeftButton != MouseButtonState.Pressed) return;
@@ -113,6 +124,16 @@ public class SnapService
             if (deltaPhysical < DragThresholdPhysical * GetDpiScaleY()) return;
 
             _isDragging      = true;
+            _window.CaptureMouse();
+            _dragStartMouseY = currentY;
+            _dragStartTop    = _window.Top;
+            return;
+        }
+
+        // ドラッグ中に別要素がキャプチャを奪った場合、基準位置を現在値にリセットして
+        // 位置が瞬間ワープするのを防ぐ
+        if (Mouse.Captured != _window)
+        {
             _window.CaptureMouse();
             _dragStartMouseY = currentY;
             _dragStartTop    = _window.Top;
@@ -147,6 +168,9 @@ public class SnapService
         var vm = App.LauncherViewModel;
         // アニメーション中・ピン中・収納済みのときはタイマーを起動しない
         if (vm == null || vm.IsPinned || vm.IsStored || _isAnimating) return;
+        // WebView2 等の HwndHost 上に入ると WPF の MouseLeave が誤発火するため
+        // 実際のカーソル位置を Win32 で取得してウィンドウ内なら無視する
+        if (IsMouseInWindowOrGap()) return;
         StartStorageTimer();
     }
 
@@ -177,13 +201,23 @@ public class SnapService
         AnimateToStored();
     }
 
+    // Win32 GetCursorPos: WPF のマウストラッキングが止まる HwndHost (WebView2 等) 上でも
+    // 実際のカーソル位置を取得できる。
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT pt);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int X; public int Y; }
+
     /// <summary>
     /// マウスがウィンドウ内または画面端との隙間（screenEdgeDistance 幅）にいるか判定する。
+    /// Win32 GetCursorPos を使用することで HwndHost 上のカーソルも正確に検出する。
     /// 右端吸着時、隙間はウィンドウの右側にある。
     /// </summary>
     private bool IsMouseInWindowOrGap()
     {
-        var pos   = Mouse.GetPosition(_window); // ウィンドウ相対の論理ピクセル
+        GetCursorPos(out var screenPt);
+        var pos   = _window.PointFromScreen(new Point(screenPt.X, screenPt.Y));
         double gapW = App.ConfigService.Current.Layout.ScreenEdgeDistance;
         return pos.X >= 0 && pos.X <= _window.Width + gapW
                && pos.Y >= 0 && pos.Y <= _window.Height;
