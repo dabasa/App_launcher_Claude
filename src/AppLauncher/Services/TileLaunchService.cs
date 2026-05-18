@@ -7,6 +7,12 @@ public static class TileLaunchService
 {
     public static void Launch(TileViewModel tile)
     {
+        if (tile.Type == "settings")
+        {
+            HandleSettingsTile(tile.Path);
+            return;
+        }
+
         try
         {
             switch (tile.Type)
@@ -26,6 +32,16 @@ public static class TileLaunchService
             }
         }
         catch (Exception) { /* 起動失敗は無視 */ }
+    }
+
+    private static void HandleSettingsTile(string path)
+    {
+        switch (path)
+        {
+            case "settings://globalSettings":
+                App.LauncherViewModel?.OpenGlobalSettingsCommand.Execute(null);
+                break;
+        }
     }
 
     private static void LaunchApp(TileViewModel tile)

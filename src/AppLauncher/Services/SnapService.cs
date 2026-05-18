@@ -17,7 +17,9 @@ public class SnapService
 
     // ─── ドラッグ ─────────────────────────────────────────────────────────
     private double _dragStartTop;
+    private double _dragStartLeft;
     private double _dragStartMouseY; // 物理ピクセル
+    private double _dragStartMouseX; // 物理ピクセル
     private bool _isDragging;
     private const double DragThresholdPhysical = 5.0;
 
@@ -28,19 +30,20 @@ public class SnapService
     // ─── タイマー・アニメーション ───────────────────────────────────────────
     private DispatcherTimer? _storageTimer;
     private bool _isAnimating;
-    private int  _animGeneration; // Completed コールバックのキャンセル用世代カウンタ
+    private int  _animGeneration;
 
     // ─── フレーム高さ ─────────────────────────────────────────────────────
-    private double _baseFrameH; // 通常モード時のフレーム高さ
+    private double _baseFrameH;
+
+    // ─── 吸着方向 ─────────────────────────────────────────────────────────
+    private string _direction = "right";
 
     public void Attach(LauncherWindow window)
     {
         _window = window;
-        // handledEventsToo: ScrollViewer 等が Handled にしても受け取り、ドラッグ開始位置を記録する
         _window.AddHandler(UIElement.MouseLeftButtonDownEvent,
             new MouseButtonEventHandler(OnMouseDown), handledEventsToo: true);
-        _window.MouseMove           += OnMouseMove;
-        // handledEventsToo: タイルが Handled にしても受け取る
+        _window.MouseMove += OnMouseMove;
         _window.AddHandler(UIElement.MouseLeftButtonUpEvent,
             new MouseButtonEventHandler(OnMouseUp), handledEventsToo: true);
         _window.MouseEnter += OnWindowMouseEnter;
@@ -61,51 +64,65 @@ public class SnapService
         _window.Height = _baseFrameH + (isExpanded ? 33 : 0);
     }
 
-    /// <summary>
-    /// 吸着位置を算出してウィンドウを配置する。右端吸着のみ対応（Ph.10 で全方向対応）。
-    /// </summary>
     public void ApplySnap()
     {
-        var config = App.ConfigService.Current;
-        var layout = config.Layout;
-        var global = config.Global;
+        var config  = App.ConfigService.Current;
+        var layout  = config.Layout;
+        var global  = config.Global;
+        _direction  = global.SnapPosition;
 
         var (frameW, frameH) = WindowSizeCalculator.Calculate(global, layout);
-        double windowW = layout.HandleShortSide + layout.HandleFrameMargin + frameW;
 
-        _window.Width = windowW;
-        _baseFrameH   = frameH;
+        var monitor = GetTargetMonitor(global.SnapMonitor);
+        double screenLeft = monitor.Left;
+        double screenTop  = monitor.Top;
+        double screenW    = monitor.Width;
+        double screenH    = monitor.Height;
+
+        _baseFrameH = frameH;
         UpdateWindowHeight();
 
-        double screenW = SystemParameters.PrimaryScreenWidth;
-        double screenH = SystemParameters.PrimaryScreenHeight;
+        switch (_direction)
+        {
+            case "left":
+                _window.Width  = layout.HandleShortSide + layout.HandleFrameMargin + frameW;
+                _normalLeft    = screenLeft + layout.ScreenEdgeDistance;
+                _storedLeft    = _normalLeft - frameW - layout.HandleFrameMargin;
+                _window.Left   = _normalLeft;
+                _window.Top    = screenTop + (screenH - _window.Height) / 2;
+                break;
 
-        // 通常位置：フレーム右端 = 画面右端 - screenEdgeDistance
-        _normalLeft = screenW - layout.ScreenEdgeDistance - frameW
-                      - layout.HandleFrameMargin - layout.HandleShortSide;
-
-        // 収納位置：フレーム全体が画面端外へ退避し、ハンドルのみ残る
-        _storedLeft = _normalLeft + frameW + layout.HandleFrameMargin;
-
-        _window.Left = _normalLeft;
-        _window.Top  = (screenH - _window.Height) / 2;
+            case "right":
+            default:
+                _window.Width  = layout.HandleShortSide + layout.HandleFrameMargin + frameW;
+                _normalLeft    = screenLeft + screenW - layout.ScreenEdgeDistance - frameW
+                                 - layout.HandleFrameMargin - layout.HandleShortSide;
+                _storedLeft    = _normalLeft + frameW + layout.HandleFrameMargin;
+                _window.Left   = _normalLeft;
+                _window.Top    = screenTop + (screenH - _window.Height) / 2;
+                break;
+        }
     }
 
-    // ─── ドラッグ（縦方向のみ） ────────────────────────────────────────────
+    // ─── ドラッグ（縦方向：right/left、横方向：top/bottom） ──────────────────
 
     private void OnMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (App.LauncherViewModel?.IsStored == true) return;
         _dragStartTop    = _window.Top;
-        _dragStartMouseY = _window.PointToScreen(e.GetPosition(_window)).Y;
+        _dragStartLeft   = _window.Left;
+        var screenPos    = _window.PointToScreen(e.GetPosition(_window));
+        _dragStartMouseY = screenPos.Y;
+        _dragStartMouseX = screenPos.X;
         _isDragging      = false;
     }
 
     private void OnMouseMove(object sender, MouseEventArgs e)
     {
-        double currentY = _window.PointToScreen(e.GetPosition(_window)).Y;
+        var screenPos  = _window.PointToScreen(e.GetPosition(_window));
+        double currentX = screenPos.X;
+        double currentY = screenPos.Y;
 
-        // ボタンが離されていれば（Handled により OnMouseUp が来なかった場合も含む）強制終了
         if (_isDragging && e.LeftButton != MouseButtonState.Pressed)
         {
             _window.ReleaseMouseCapture();
@@ -116,34 +133,49 @@ public class SnapService
         if (!_isDragging)
         {
             if (e.LeftButton != MouseButtonState.Pressed) return;
-            // 別の要素（TileGrid リサイズ等）がキャプチャ中はウィンドウドラッグを開始しない
             var captured = Mouse.Captured;
             if (captured != null && captured != _window) return;
 
-            double deltaPhysical = Math.Abs(currentY - _dragStartMouseY);
-            if (deltaPhysical < DragThresholdPhysical * GetDpiScaleY()) return;
+            double dpiX   = GetDpiScaleX();
+            double dpiY   = GetDpiScaleY();
+            double deltaX = Math.Abs(currentX - _dragStartMouseX);
+            double deltaY = Math.Abs(currentY - _dragStartMouseY);
+            double delta  = _direction is "top" or "bottom" ? deltaX : deltaY;
+            if (delta < DragThresholdPhysical * (_direction is "top" or "bottom" ? dpiX : dpiY)) return;
 
             _isDragging      = true;
             _window.CaptureMouse();
             _dragStartMouseY = currentY;
+            _dragStartMouseX = currentX;
             _dragStartTop    = _window.Top;
+            _dragStartLeft   = _window.Left;
             return;
         }
 
-        // ドラッグ中に別要素がキャプチャを奪った場合、基準位置を現在値にリセットして
-        // 位置が瞬間ワープするのを防ぐ
         if (Mouse.Captured != _window)
         {
             _window.CaptureMouse();
             _dragStartMouseY = currentY;
+            _dragStartMouseX = currentX;
             _dragStartTop    = _window.Top;
+            _dragStartLeft   = _window.Left;
             return;
         }
 
-        double dpiScale = GetDpiScaleY();
-        double newTop   = _dragStartTop + (currentY - _dragStartMouseY) / dpiScale;
-        double screenH  = SystemParameters.PrimaryScreenHeight;
-        _window.Top     = Math.Clamp(newTop, 0, screenH - _window.Height);
+        if (_direction is "top" or "bottom")
+        {
+            double dpiX    = GetDpiScaleX();
+            double newLeft = _dragStartLeft + (currentX - _dragStartMouseX) / dpiX;
+            double screenW = SystemParameters.PrimaryScreenWidth;
+            _window.Left   = Math.Clamp(newLeft, 0, screenW - _window.Width);
+        }
+        else
+        {
+            double dpiY   = GetDpiScaleY();
+            double newTop = _dragStartTop + (currentY - _dragStartMouseY) / dpiY;
+            double screenH = SystemParameters.PrimaryScreenHeight;
+            _window.Top    = Math.Clamp(newTop, 0, screenH - _window.Height);
+        }
     }
 
     private void OnMouseUp(object sender, MouseButtonEventArgs e)
@@ -158,7 +190,6 @@ public class SnapService
     {
         CancelStorageTimer();
         var vm = App.LauncherViewModel;
-        // 完全収納済みのときのみ展開（アニメーション途中は無視）
         if (vm?.IsStored == true)
             AnimateToNormal();
     }
@@ -166,10 +197,8 @@ public class SnapService
     private void OnWindowMouseLeave(object sender, MouseEventArgs e)
     {
         var vm = App.LauncherViewModel;
-        // アニメーション中・ピン中・収納済みのときはタイマーを起動しない
         if (vm == null || vm.IsPinned || vm.IsStored || _isAnimating) return;
-        // WebView2 等の HwndHost 上に入ると WPF の MouseLeave が誤発火するため
-        // 実際のカーソル位置を Win32 で取得してウィンドウ内なら無視する
+        if (vm.Mode is AppMode.Settings or AppMode.GlobalSettings) return;
         if (IsMouseInWindowOrGap()) return;
         StartStorageTimer();
     }
@@ -198,26 +227,32 @@ public class SnapService
         if (IsMouseInWindowOrGap()) return;
         var vm = App.LauncherViewModel;
         if (vm == null || vm.IsPinned || vm.IsStored) return;
+        if (vm.Mode is AppMode.Settings or AppMode.GlobalSettings) return;
         AnimateToStored();
     }
 
-    // Win32 GetCursorPos: WPF のマウストラッキングが止まる HwndHost (WebView2 等) 上でも
-    // 実際のカーソル位置を取得できる。
+    public void ForceExpand(Action? callback = null)
+    {
+        if (App.LauncherViewModel != null)
+            App.LauncherViewModel.IsStored = false;
+        AnimateLeft(_window.Left, _normalLeft, () =>
+        {
+            if (!IsMouseInWindowOrGap())
+                StartStorageTimer();
+            callback?.Invoke();
+        });
+    }
+
     [DllImport("user32.dll")]
     private static extern bool GetCursorPos(out POINT pt);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct POINT { public int X; public int Y; }
 
-    /// <summary>
-    /// マウスがウィンドウ内または画面端との隙間（screenEdgeDistance 幅）にいるか判定する。
-    /// Win32 GetCursorPos を使用することで HwndHost 上のカーソルも正確に検出する。
-    /// 右端吸着時、隙間はウィンドウの右側にある。
-    /// </summary>
     private bool IsMouseInWindowOrGap()
     {
         GetCursorPos(out var screenPt);
-        var pos   = _window.PointFromScreen(new Point(screenPt.X, screenPt.Y));
+        var pos  = _window.PointFromScreen(new Point(screenPt.X, screenPt.Y));
         double gapW = App.ConfigService.Current.Layout.ScreenEdgeDistance;
         return pos.X >= 0 && pos.X <= _window.Width + gapW
                && pos.Y >= 0 && pos.Y <= _window.Height;
@@ -238,16 +273,11 @@ public class SnapService
             App.LauncherViewModel.IsStored = false;
         AnimateLeft(_window.Left, _normalLeft, () =>
         {
-            // 展開完了後にマウスがウィンドウ外にいれば収納タイマーを再開
             if (!IsMouseInWindowOrGap())
                 StartStorageTimer();
         });
     }
 
-    /// <summary>
-    /// Window.LeftProperty を WPF DoubleAnimation で 1 秒かけてアニメーションする。
-    /// _animGeneration で Completed コールバックの二重呼び出しを防ぐ。
-    /// </summary>
     private void AnimateLeft(double from, double to, Action? onComplete)
     {
         StopAnimation();
@@ -261,7 +291,6 @@ public class SnapService
         };
         anim.Completed += (_, _) =>
         {
-            // 後から別アニメーションで上書きされた場合は無視
             if (_animGeneration != gen) return;
             _isAnimating = false;
             onComplete?.Invoke();
@@ -269,16 +298,60 @@ public class SnapService
         _window.BeginAnimation(Window.LeftProperty, anim);
     }
 
-    /// <summary>
-    /// 実行中のアニメーションを停止し、現在位置をローカル値として固定する。
-    /// </summary>
     private void StopAnimation()
     {
-        _animGeneration++; // 実行中の Completed コールバックを無効化
+        _animGeneration++;
         _isAnimating = false;
-        double pos = _window.Left; // HoldEnd 中はアニメーション値が返る
-        _window.BeginAnimation(Window.LeftProperty, null); // アニメーション解除
-        _window.Left = pos; // ローカル値として固定
+        double pos = _window.Left;
+        _window.BeginAnimation(Window.LeftProperty, null);
+        _window.Left = pos;
+    }
+
+    // ─── マルチモニター ────────────────────────────────────────────────────
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip,
+        MonitorEnumProc lpfnEnum, IntPtr dwData);
+
+    private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor,
+        ref RECT lprcMonitor, IntPtr dwData);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT { public int Left, Top, Right, Bottom; }
+
+    private record MonitorRect(double Left, double Top, double Width, double Height);
+
+    private MonitorRect GetTargetMonitor(int snapMonitor)
+    {
+        var monitors = new List<RECT>();
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr _, IntPtr _, ref RECT rc, IntPtr _) =>
+        {
+            monitors.Add(rc);
+            return true;
+        }, IntPtr.Zero);
+
+        if (monitors.Count == 0)
+        {
+            return new MonitorRect(0, 0,
+                SystemParameters.PrimaryScreenWidth,
+                SystemParameters.PrimaryScreenHeight);
+        }
+
+        int idx = Math.Clamp(snapMonitor - 1, 0, monitors.Count - 1);
+        var rc  = monitors[idx];
+        double dpiX = GetDpiScaleX();
+        double dpiY = GetDpiScaleY();
+        return new MonitorRect(
+            rc.Left   / dpiX,
+            rc.Top    / dpiY,
+            (rc.Right  - rc.Left) / dpiX,
+            (rc.Bottom - rc.Top)  / dpiY);
+    }
+
+    private double GetDpiScaleX()
+    {
+        var source = PresentationSource.FromVisual(_window);
+        return source?.CompositionTarget.TransformToDevice.M11 ?? 1.0;
     }
 
     private double GetDpiScaleY()

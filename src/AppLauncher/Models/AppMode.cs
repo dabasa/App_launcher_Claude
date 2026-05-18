@@ -1,3 +1,3 @@
 namespace AppLauncher.Models;
 
-public enum AppMode { Normal, Edit, TileEdit }
+public enum AppMode { Normal, Edit, TileEdit, Settings, GlobalSettings }

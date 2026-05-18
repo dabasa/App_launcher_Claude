@@ -63,17 +63,22 @@ public partial class BottomBarControl : UserControl
     {
         if (_vm == null) return;
 
-        bool isEdit = _vm.Mode == AppMode.Edit;
-        var layout  = App.ConfigService.Current.Layout;
+        bool isEdit     = _vm.Mode == AppMode.Edit;
+        bool isSettings = _vm.Mode is AppMode.Settings or AppMode.GlobalSettings;
+        var layout      = App.ConfigService.Current.Layout;
 
         // ─── モードボタン色 ───────────────────────────────────────────
-        var modeColor = isEdit
-            ? ColorPalette.GetColor("orange")
-            : ColorPalette.GetColor(_vm.CurrentPage.BackgroundColor);
+        System.Windows.Media.Color modeColor;
+        if (isEdit)
+            modeColor = ColorPalette.GetColor("orange");
+        else if (isSettings)
+            modeColor = ColorPalette.GetColor("teal");
+        else
+            modeColor = ColorPalette.GetColor(_vm.CurrentPage.BackgroundColor);
         ModeButton.Background   = new SolidColorBrush(modeColor);
         ModeButton.CornerRadius = new CornerRadius(layout.SettingsButtonCornerRadius);
 
-        // ─── 行2 表示切替 ────────────────────────────────────────────
+        // ─── 行2 は Edit モードのみ表示 ──────────────────────────────
         PageMgmtRow.Visibility = isEdit ? Visibility.Visible : Visibility.Collapsed;
 
         if (isEdit) UpdatePageMgmtButtons();
@@ -122,11 +127,17 @@ public partial class BottomBarControl : UserControl
         if (_vm == null) return;
         IndicatorPanel.Children.Clear();
 
-        for (int i = 0; i < _vm.Pages.Count; i++)
+        bool isSettings  = _vm.Mode is AppMode.Settings or AppMode.GlobalSettings;
+        var pages        = isSettings ? (IReadOnlyList<PageViewModel>)_vm.SettingsPages : _vm.Pages;
+        int currentIndex = isSettings ? _vm.SettingsPageIndex : _vm.CurrentPageIndex;
+
+        for (int i = 0; i < pages.Count; i++)
         {
-            var page      = _vm.Pages[i];
-            bool isCurrent = i == _vm.CurrentPageIndex;
-            var color     = ColorPalette.GetColor(page.BackgroundColor);
+            var page      = pages[i];
+            bool isCurrent = i == currentIndex;
+            var color     = isSettings
+                ? ColorPalette.GetColor("teal")
+                : ColorPalette.GetColor(page.BackgroundColor);
             var brush     = new SolidColorBrush(color);
             int pageIndex = i;
 
@@ -136,12 +147,17 @@ public partial class BottomBarControl : UserControl
                 Height     = 18,
                 Cursor     = Cursors.Hand,
                 Background = Brushes.Transparent,
-                Margin     = i < _vm.Pages.Count - 1
+                Margin     = i < pages.Count - 1
                     ? new Thickness(0, 0, 8, 0)
                     : new Thickness(0),
             };
             indicator.MouseLeftButtonUp += (_, _) =>
-                _vm.NavigateToPageCommand.Execute(pageIndex);
+            {
+                if (isSettings)
+                    _vm.NavigateToSettingsPageCommand.Execute(pageIndex);
+                else
+                    _vm.NavigateToPageCommand.Execute(pageIndex);
+            };
 
             if (isCurrent)
             {

@@ -49,7 +49,7 @@
 
                 <controls:PageNameControl Grid.Row="1" Margin="20,0"/>
                 <controls:TileGridControl Grid.Row="3" Margin="20,0"
-                                          DataContext="{Binding CurrentPage}"/>
+                                          DataContext="{Binding DisplayPage}"/>
                 <controls:BottomBarControl Grid.Row="5"/>
 
                 <!-- タイル詳細設定パネル（TileEdit モード時に Frame 内全体に表示） -->
@@ -57,6 +57,12 @@
                                           Grid.RowSpan="7"
                                           Visibility="Collapsed"
                                           Panel.ZIndex="50"/>
+
+                <!-- 全体設定パネル（GlobalSettings モード時に Frame 内全体に表示） -->
+                <controls:GlobalSettingsView x:Name="GlobalSettingsPanel"
+                                             Grid.RowSpan="7"
+                                             Visibility="Collapsed"
+                                             Panel.ZIndex="50"/>
 
                 <!-- 削除確認ダイアログ（Frame 内全体に重なるオーバーレイ） -->
                 <Grid x:Name="DeleteConfirmOverlay"

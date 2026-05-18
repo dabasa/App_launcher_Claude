@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -47,6 +48,11 @@ public partial class LauncherWindow : Window
                 TileEditPanel.Visibility = isTileEdit ? Visibility.Visible : Visibility.Collapsed;
                 if (isTileEdit)
                     TileEditPanel.ApplyUiElementColor();
+
+                bool isGlobalSettings = vm.Mode == AppMode.GlobalSettings;
+                GlobalSettingsPanel.Visibility = isGlobalSettings ? Visibility.Visible : Visibility.Collapsed;
+                if (isGlobalSettings)
+                    GlobalSettingsPanel.ApplyUiElementColor();
             }
         };
     }
@@ -89,6 +95,17 @@ public partial class LauncherWindow : Window
         if (IsInteractiveTarget(e.OriginalSource)) return;
         vm.IsPinned = !vm.IsPinned;
         e.Handled = true;
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (App.ConfigService.Current.Global.TaskTrayResident)
+        {
+            e.Cancel = true;
+            WindowState = WindowState.Minimized;
+            return;
+        }
+        base.OnClosing(e);
     }
 
     private static bool IsInteractiveTarget(object source)

@@ -10,6 +10,7 @@ public partial class LauncherViewModel : ObservableObject
 {
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CurrentPage))]
+    [NotifyPropertyChangedFor(nameof(DisplayPage))]
     private int _currentPageIndex;
 
     [ObservableProperty]
@@ -30,7 +31,29 @@ public partial class LauncherViewModel : ObservableObject
     [ObservableProperty]
     private TileEditViewModel? _editingTileVm;
 
+    [ObservableProperty]
+    private GlobalSettingsViewModel? _globalSettingsVm;
+
     private bool _pinnedBeforeEdit;
+
+    private int _settingsPageIndex;
+    public int SettingsPageIndex
+    {
+        get => _settingsPageIndex;
+        set
+        {
+            _settingsPageIndex = Math.Clamp(value, 0, Math.Max(0, SettingsPages.Count - 1));
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(DisplayPage));
+        }
+    }
+
+    private static readonly (string title, string path)[] SettingsTileDefs =
+    [
+        ("全体設定", "settings://globalSettings"),
+    ];
+
+    public List<PageViewModel> SettingsPages { get; } = [];
 
     public ObservableCollection<PageViewModel> Pages { get; }
 
@@ -38,11 +61,56 @@ public partial class LauncherViewModel : ObservableObject
 
     public PageViewModel CurrentPage => Pages[CurrentPageIndex];
 
+    public PageViewModel DisplayPage =>
+        Mode is AppMode.Settings or AppMode.GlobalSettings
+            ? SettingsPages[Math.Clamp(_settingsPageIndex, 0, Math.Max(0, SettingsPages.Count - 1))]
+            : CurrentPage;
+
     public LauncherViewModel(AppConfig config)
     {
         Pages = new ObservableCollection<PageViewModel>(
             config.Pages.Select(p => new PageViewModel(p)));
         PageNameFontSize = config.Global.PageNameFontSizePt * 4.0 / 3.0;
+        BuildSettingsPages();
+    }
+
+    partial void OnModeChanged(AppMode value)
+    {
+        OnPropertyChanged(nameof(DisplayPage));
+    }
+
+    private void BuildSettingsPages()
+    {
+        SettingsPages.Clear();
+        int cols = App.ConfigService.Current.Global.TileCountCols;
+        int rows = App.ConfigService.Current.Global.TileCountRows;
+        int tilesPerPage = cols * rows;
+
+        for (int start = 0; start < SettingsTileDefs.Length; start += tilesPerPage)
+        {
+            var pageConfig = new PageConfig { Name = "詳細設定" };
+            int end = Math.Min(start + tilesPerPage, SettingsTileDefs.Length);
+            for (int i = start; i < end; i++)
+            {
+                var (title, path) = SettingsTileDefs[i];
+                int localIdx = i - start;
+                pageConfig.Tiles.Add(new TileConfig
+                {
+                    Col        = localIdx % cols,
+                    Row        = localIdx / cols,
+                    ColSpan    = 1,
+                    RowSpan    = 1,
+                    Type       = "settings",
+                    Title      = title,
+                    Path       = path,
+                    Color      = "gray",
+                    Opacity    = 0,
+                    FontSizePt = 16,
+                    FontColor  = "white",
+                });
+            }
+            SettingsPages.Add(new PageViewModel(pageConfig));
+        }
     }
 
     [RelayCommand]
@@ -53,18 +121,29 @@ public partial class LauncherViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void NavigateToSettingsPage(int index)
+    {
+        SettingsPageIndex = index;
+    }
+
+    [RelayCommand]
     private void ToggleMode()
     {
-        if (Mode == AppMode.Normal)
+        switch (Mode)
         {
-            _pinnedBeforeEdit = IsPinned;
-            Mode     = AppMode.Edit;
-            IsPinned = true;
-        }
-        else
-        {
-            Mode     = AppMode.Normal;
-            IsPinned = _pinnedBeforeEdit;
+            case AppMode.Normal:
+                _pinnedBeforeEdit = IsPinned;
+                Mode     = AppMode.Edit;
+                IsPinned = true;
+                break;
+            case AppMode.Edit:
+                Mode     = AppMode.Settings;
+                IsPinned = true;
+                break;
+            case AppMode.Settings:
+                Mode     = AppMode.Normal;
+                IsPinned = _pinnedBeforeEdit;
+                break;
         }
     }
 
@@ -97,6 +176,32 @@ public partial class LauncherViewModel : ObservableObject
         EditingTile   = null;
         EditingTileVm = null;
         Mode = AppMode.Edit;
+    }
+
+    [RelayCommand]
+    private void OpenGlobalSettings()
+    {
+        GlobalSettingsVm = new GlobalSettingsViewModel();
+        Mode = AppMode.GlobalSettings;
+    }
+
+    [RelayCommand]
+    private void ConfirmGlobalSettings()
+    {
+        if (GlobalSettingsVm == null) return;
+        GlobalSettingsVm.ApplyToConfig();
+        App.ConfigService.Save();
+        GlobalSettingsVm = null;
+        BuildSettingsPages();
+        OnPropertyChanged(nameof(DisplayPage));
+        Mode = AppMode.Settings;
+    }
+
+    [RelayCommand]
+    private void CloseGlobalSettings()
+    {
+        GlobalSettingsVm = null;
+        Mode = AppMode.Settings;
     }
 
     private void SyncPagesToConfig()
