@@ -14,6 +14,30 @@ public partial class LauncherWindow : Window
 {
     public LauncherWindow() => InitializeComponent();
 
+    /// <summary>
+    /// 吸着方向に合わせてハンドルとフレームの列を入れ替える。
+    /// 左吸着：col0=フレーム(*)  col2=ハンドル(固定幅)
+    /// 右吸着：col0=ハンドル(固定幅)  col2=フレーム(*)
+    /// </summary>
+    public void ApplySnapLayout(string direction)
+    {
+        var layout = App.ConfigService.Current.Layout;
+        if (direction == "left")
+        {
+            RootGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+            RootGrid.ColumnDefinitions[2].Width = new GridLength(layout.HandleShortSide);
+            Grid.SetColumn(Frame,  0);
+            Grid.SetColumn(Handle, 2);
+        }
+        else
+        {
+            RootGrid.ColumnDefinitions[0].Width = new GridLength(layout.HandleShortSide);
+            RootGrid.ColumnDefinitions[2].Width = new GridLength(1, GridUnitType.Star);
+            Grid.SetColumn(Handle, 0);
+            Grid.SetColumn(Frame,  2);
+        }
+    }
+
     public void SetViewModel(LauncherViewModel vm)
     {
         var layout = App.ConfigService.Current.Layout;

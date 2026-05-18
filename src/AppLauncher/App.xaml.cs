@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using AppLauncher.Services;
 using AppLauncher.ViewModels;
 using AppLauncher.Views;
@@ -34,6 +35,12 @@ public partial class App : Application
         _trayIconService = new TrayIconService();
         _trayIconService.Attach(window);
 
+        // タスクトレイ右クリックメニューにモニター選択を動的追加
+        var trayIcon    = (Hardcodet.Wpf.TaskbarNotification.TaskbarIcon)Resources["TrayIcon"];
+        var monitorMenu = new MenuItem { Header = "モニター選択" };
+        trayIcon.ContextMenu.Items.Insert(1, monitorMenu);
+        trayIcon.ContextMenu.Opened += (_, _) => BuildMonitorMenu(monitorMenu);
+
         MainWindow = window;
     }
 
@@ -41,6 +48,35 @@ public partial class App : Application
     {
         _trayIconService?.Dispose();
         base.OnExit(e);
+    }
+
+    private static void BuildMonitorMenu(MenuItem parent)
+    {
+        parent.Items.Clear();
+        int count   = SnapService?.GetMonitorCount() ?? 1;
+        int current = ConfigService.Current.Global.SnapMonitor;
+        for (int i = 1; i <= count; i++)
+        {
+            int mon  = i;
+            var item = new MenuItem { Header = $"モニター {i}", IsChecked = i == current };
+            item.Click += (_, _) => SetSnapMonitor(mon);
+            parent.Items.Add(item);
+        }
+    }
+
+    private static void SetSnapMonitor(int monitor)
+    {
+        if (LauncherViewModel?.IsStored == true)
+            SnapService?.ForceExpand(() => ApplyNewMonitor(monitor));
+        else
+            ApplyNewMonitor(monitor);
+    }
+
+    private static void ApplyNewMonitor(int monitor)
+    {
+        ConfigService.Current.Global.SnapMonitor = monitor;
+        ConfigService.Save();
+        SnapService?.ApplySnap();
     }
 
     private void OnSnapRight (object s, RoutedEventArgs e) => ChangeSnap("right");

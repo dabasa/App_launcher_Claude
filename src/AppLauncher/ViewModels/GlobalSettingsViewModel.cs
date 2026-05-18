@@ -18,6 +18,9 @@ public partial class GlobalSettingsViewModel : ObservableObject
 
     public string[] SnapPositions { get; } = ["right", "left", "top", "bottom"];
 
+    public int   MaxMonitor       => App.SnapService?.GetMonitorCount() ?? 1;
+    public int[] SnapMonitorItems => Enumerable.Range(1, MaxMonitor).ToArray();
+
     public GlobalSettingsViewModel()
     {
         var g = App.ConfigService.Current.Global;

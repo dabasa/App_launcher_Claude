@@ -66,6 +66,12 @@
                           SelectedItem="{Binding SnapPosition}"
                           Width="120" HorizontalAlignment="Left"/>
 
+                <!-- 接続モニター -->
+                <TextBlock Text="接続モニター" Foreground="White" Margin="0,8,0,4"/>
+                <ComboBox ItemsSource="{Binding SnapMonitorItems}"
+                          SelectedItem="{Binding SnapMonitor}"
+                          Width="80" HorizontalAlignment="Left"/>
+
                 <!-- 収納待ち時間 -->
                 <TextBlock Text="収納待ち時間（ms）" Foreground="White" Margin="0,8,0,4"/>
                 <StackPanel Orientation="Horizontal">
