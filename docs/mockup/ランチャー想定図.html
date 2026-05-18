@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ランチャー想定図</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    background: #13131f;
+    color: #d0d0e0;
+    font-family: "Yu Gothic UI", "Meiryo UI", sans-serif;
+    margin: 0;
+    padding: 28px;
+    font-size: 13px;
+  }
+  h1 { color: #ffffff; font-size: 20px; margin: 0 0 4px; font-weight: 600; }
+  .subtitle { color: #7a7a9a; font-size: 12px; margin: 0 0 28px; }
+  .layout { display: flex; gap: 48px; align-items: flex-start; flex-wrap: wrap; }
+  .svg-wrap { flex-shrink: 0; }
+  .note { font-size: 11px; color: #555; margin-top: 8px; }
+
+  /* ─── Settings table ─── */
+  .settings { min-width: 340px; }
+  .settings table { width: 100%; border-collapse: collapse; }
+  .sec {
+    background: #1c1c35;
+    color: #7eb4f8;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .settings td { padding: 4px 10px; border-bottom: 1px solid #1e1e30; }
+  .lbl { color: #888; white-space: nowrap; width: 1%; font-size: 12px; }
+  .val { color: #dde8ff; font-family: "Consolas", "Courier New", monospace; font-size: 12px; }
+  .indent { padding-left: 18px !important; }
+</style>
+</head>
+<body>
+
+<h1>ランチャー想定図</h1>
+<p class="subtitle">モード：通常モード　　吸着：右端（中央）　　グリッド：縦 4 × 横 4</p>
+
+<div class="layout">
+
+  <!-- ════════════ SVG MOCKUP ════════════ -->
+  <!--
+    座標系メモ（SVG内ピクセル）
+    ハンドル左端   x = 80
+    ハンドル右端   x = 95    (幅15)
+    フレーム左端   x = 103   (ハンドル右端 + margin 8)
+    フレーム右端   x = 551   (103 + 448)
+    画面右端       x = 571   (551 + gap 20)
+    フレーム上端   y = 40
+    フレーム下端   y = 534   (40 + 494)
+    タイル開始y    y = 78    (40 + 38 [page_name_area])
+    ボトムバー上   y = 494   (78 + 408 [tile_area] + 8)
+    ボトムバー下   y = 526   (494 + 32)
+    ハンドル中心y  y = 287   (40 + 494/2)
+    ハンドル上端   y = 237   (287 - 50)
+    ハンドル下端   y = 337   (287 + 50)
+
+    タイル列x: [123, 227, 331, 435]  (103 + 20 + col×104)
+    タイル行y: [78, 182, 286, 390]   (78 + row×104)
+  -->
+  <div class="svg-wrap">
+  <svg width="496" height="448" viewBox="0 0 620 560"
+       xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- フレーム内クリップ -->
+      <clipPath id="fc">
+        <rect x="103" y="40" width="448" height="494" rx="20"/>
+      </clipPath>
+    </defs>
+
+    <!-- ── デスクトップ背景 ── -->
+    <rect width="620" height="560" fill="#1a1b2e"/>
+
+    <!-- ── 画面右端 ── -->
+    <rect x="571" y="0" width="49" height="560" fill="#0c0c18"/>
+    <line x1="571" y1="0" x2="571" y2="560" stroke="#2a2a3a" stroke-width="2"/>
+    <text x="584" y="300" fill="#333" font-size="10"
+          text-anchor="middle" transform="rotate(90,584,300)">画面右端</text>
+
+    <!-- ── ギャップ 20px 注釈 ── -->
+    <line x1="551" y1="287" x2="571" y2="287" stroke="#555" stroke-width="1" stroke-dasharray="3,2"/>
+    <line x1="551" y1="282" x2="551" y2="292" stroke="#555" stroke-width="1"/>
+    <line x1="571" y1="282" x2="571" y2="292" stroke="#555" stroke-width="1"/>
+    <text x="561" y="278" fill="#666" font-size="9" text-anchor="middle">20 px</text>
+
+    <!-- ════════════ LAUNCHER FRAME ════════════ -->
+    <rect x="103" y="40" width="448" height="494" rx="20"
+          fill="#8C9BAB" fill-opacity="0.70"
+          stroke="#000000" stroke-width="2"/>
+
+    <!-- ページ名エリア下境界線（薄い） -->
+    <line x1="103" y1="78" x2="551" y2="78" stroke="#000" stroke-opacity="0.12" stroke-width="1" clip-path="url(#fc)"/>
+
+    <!-- ページ名テキスト -->
+    <text x="327" y="59" text-anchor="middle" dominant-baseline="middle"
+          font-family="Yu Gothic UI, Meiryo UI, sans-serif"
+          font-size="16" fill="#ffffff" letter-spacing="1">ページ1</text>
+
+    <!-- ════════════ TILES ════════════ -->
+
+    <!-- Row0, Col0: Chrome 1×1 blue -->
+    <rect x="123" y="78" width="96" height="96" rx="20" fill="#4A90D9"/>
+    <text x="171" y="131" text-anchor="middle" dominant-baseline="middle"
+          font-size="12" fill="#F0F0F0">Chrome</text>
+
+    <!-- Row0, Col1: VSCode 1×1 green -->
+    <rect x="227" y="78" width="96" height="96" rx="20" fill="#4CAF72"/>
+    <text x="275" y="131" text-anchor="middle" dominant-baseline="middle"
+          font-size="12" fill="#F0F0F0">VSCode</text>
+
+    <!-- Row0, Col2-3: Slack 2×1 purple -->
+    <rect x="331" y="78" width="200" height="96" rx="20" fill="#9B6DD9"/>
+    <text x="431" y="131" text-anchor="middle" dominant-baseline="middle"
+          font-size="12" fill="#F0F0F0">Slack</text>
+    <!-- 2×1 バッジ -->
+    <rect x="497" y="83" width="24" height="13" rx="4" fill="#000" fill-opacity="0.25"/>
+    <text x="509" y="89" text-anchor="middle" dominant-baseline="middle"
+          font-size="8" fill="#fff" opacity="0.8">2×1</text>
+
+    <!-- Row1, Col0: Files 1×1 teal -->
+    <rect x="123" y="182" width="96" height="96" rx="20" fill="#2BB5A0"/>
+    <text x="171" y="235" text-anchor="middle" dominant-baseline="middle"
+          font-size="12" fill="#F0F0F0">Files</text>
+
+    <!-- Row1-2, Col1-2: Music 2×2 orange -->
+    <rect x="227" y="182" width="200" height="200" rx="20" fill="#E8843A"/>
+    <text x="327" y="282" text-anchor="middle" dominant-baseline="middle"
+          font-size="16" fill="#F0F0F0" font-weight="600">Music</text>
+    <!-- 2×2 バッジ -->
+    <rect x="393" y="187" width="24" height="13" rx="4" fill="#000" fill-opacity="0.25"/>
+    <text x="405" y="193" text-anchor="middle" dominant-baseline="middle"
+          font-size="8" fill="#fff" opacity="0.8">2×2</text>
+
+    <!-- Row1, Col3: CPU system 1×1 -->
+    <rect x="435" y="182" width="96" height="96" rx="20" fill="#5a6a78"/>
+    <text x="483" y="218" text-anchor="middle" dominant-baseline="middle"
+          font-size="10" fill="#b0c0d0">CPU</text>
+    <text x="483" y="240" text-anchor="middle" dominant-baseline="middle"
+          font-size="16" fill="#ffffff" font-weight="700">42%</text>
+    <!-- グラフ円弧 (使用率42%) -->
+    <circle cx="483" cy="256" r="10" fill="none" stroke="#3a4a58" stroke-width="3"/>
+    <path d="M483,246 A10,10 0 0,1 492.4,261.5" fill="none"
+          stroke="#7eb4f8" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- Row2, Col0: Mail 1×1 red -->
+    <rect x="123" y="286" width="96" height="96" rx="20" fill="#E05252"/>
+    <text x="171" y="339" text-anchor="middle" dominant-baseline="middle"
+          font-size="12" fill="#F0F0F0">Mail</text>
+
+    <!-- Row2, Col1-2: covered by Music 2×2 -->
+
+    <!-- Row2, Col3: Notes 1×1 yellow -->
+    <rect x="435" y="286" width="96" height="96" rx="20" fill="#F0C233"/>
+    <text x="483" y="339" text-anchor="middle" dominant-baseline="middle"
+          font-size="12" fill="#2D2D2D">Notes</text>
+
+    <!-- Row3, Col0: Photos 1×1 pink -->
+    <rect x="123" y="390" width="96" height="96" rx="20" fill="#E868A2"/>
+    <text x="171" y="443" text-anchor="middle" dominant-baseline="middle"
+          font-size="12" fill="#F0F0F0">Photos</text>
+
+    <!-- Row3, Col1: 空タイル -->
+    <rect x="227" y="390" width="96" height="96" rx="20"
+          fill="none" stroke="#8C9BAB" stroke-width="1.5"
+          stroke-dasharray="6,4" opacity="0.4"/>
+
+    <!-- Row3, Col2: 空タイル -->
+    <rect x="331" y="390" width="96" height="96" rx="20"
+          fill="none" stroke="#8C9BAB" stroke-width="1.5"
+          stroke-dasharray="6,4" opacity="0.4"/>
+
+    <!-- Row3, Col3: Tasks 1×1 teal -->
+    <rect x="435" y="390" width="96" height="96" rx="20" fill="#2BB5A0"/>
+    <text x="483" y="443" text-anchor="middle" dominant-baseline="middle"
+          font-size="12" fill="#F0F0F0">Tasks</text>
+
+    <!-- ════════════ BOTTOM BAR ════════════ -->
+    <!-- y=494〜526（高さ32px）、上下各8pxマージン -->
+
+    <!-- ページインジケーター（4ページ、現在1ページ目）-->
+    <!-- フレーム中心 x=327、4つ×間隔26px → 開始 cx=288 -->
+    <!-- インジケーター1：塗りつぶし（現在ページ） -->
+    <circle cx="288" cy="510" r="9" fill="#8C9BAB"/>
+    <circle cx="288" cy="510" r="3.5" fill="#F0F0F0"/>
+    <!-- インジケーター2〜4：外枠のみ -->
+    <circle cx="314" cy="510" r="9" fill="none" stroke="#8C9BAB" stroke-width="2"/>
+    <circle cx="340" cy="510" r="9" fill="none" stroke="#8C9BAB" stroke-width="2"/>
+    <circle cx="366" cy="510" r="9" fill="none" stroke="#8C9BAB" stroke-width="2"/>
+
+    <!-- モード切替ボタン（通常モード：ページ背景色） -->
+    <!-- right margin 20px from frame right: 551-20=531, button left: 531-32=499 -->
+    <rect x="499" y="494" width="32" height="32" rx="10" fill="#8C9BAB"/>
+    <!-- アイコン（ハンバーガー的な仮アイコン） -->
+    <rect x="507" y="502" width="16" height="2.5" rx="1" fill="#F0F0F0"/>
+    <rect x="507" y="509" width="16" height="2.5" rx="1" fill="#F0F0F0"/>
+    <rect x="507" y="516" width="16" height="2.5" rx="1" fill="#F0F0F0"/>
+
+    <!-- ════════════ HANDLE ════════════ -->
+    <!-- x=80〜95（幅15）、y=237〜337（高さ100）、中心y=287 -->
+    <rect x="80" y="237" width="15" height="100" rx="10"
+          fill="#8C9BAB" fill-opacity="0.80"/>
+
+    <!-- ════════════ DIMENSION ANNOTATIONS ════════════ -->
+
+    <!-- フレーム幅 448px -->
+    <line x1="103" y1="20" x2="551" y2="20" stroke="#444" stroke-width="1"/>
+    <line x1="103" y1="15" x2="103" y2="25" stroke="#444" stroke-width="1"/>
+    <line x1="551" y1="15" x2="551" y2="25" stroke="#444" stroke-width="1"/>
+    <text x="327" y="14" text-anchor="middle" dominant-baseline="auto"
+          fill="#666" font-size="10">448 px</text>
+
+    <!-- フレーム高さ 494px -->
+    <line x1="562" y1="40" x2="562" y2="534" stroke="#444" stroke-width="1"/>
+    <line x1="558" y1="40" x2="566" y2="40" stroke="#444" stroke-width="1"/>
+    <line x1="558" y1="534" x2="566" y2="534" stroke="#444" stroke-width="1"/>
+    <text x="567" y="287" dominant-baseline="middle"
+          fill="#666" font-size="10">494 px</text>
+
+    <!-- ハンドル高さ 100px -->
+    <line x1="68" y1="237" x2="68" y2="337" stroke="#444" stroke-width="1"/>
+    <line x1="64" y1="237" x2="72" y2="237" stroke="#444" stroke-width="1"/>
+    <line x1="64" y1="337" x2="72" y2="337" stroke="#444" stroke-width="1"/>
+    <text x="64" y="287" text-anchor="end" dominant-baseline="middle"
+          fill="#666" font-size="10">100 px</text>
+
+    <!-- ハンドル幅 15px -->
+    <text x="87" y="232" text-anchor="middle" fill="#666" font-size="9">15px</text>
+
+    <!-- ページ名エリア高さ 38px -->
+    <line x1="98" y1="40" x2="98" y2="78" stroke="#555" stroke-width="1" stroke-dasharray="2,2"/>
+    <text x="96" y="59" text-anchor="end" dominant-baseline="middle"
+          fill="#555" font-size="9">38px</text>
+
+    <!-- ボトムバー高さ 32px -->
+    <line x1="98" y1="494" x2="98" y2="526" stroke="#555" stroke-width="1" stroke-dasharray="2,2"/>
+    <text x="96" y="510" text-anchor="end" dominant-baseline="middle"
+          fill="#555" font-size="9">32px</text>
+
+    <!-- タイルサイズ 96px -->
+    <line x1="103" y1="175" x2="123" y2="175" stroke="#555" stroke-width="1" stroke-dasharray="2,2"/>
+    <line x1="103" y1="78" x2="123" y2="78" stroke="#555" stroke-width="1" stroke-dasharray="2,2"/>
+    <line x1="108" y1="78" x2="108" y2="175" stroke="#555" stroke-width="1"/>
+    <line x1="104" y1="78" x2="112" y2="78" stroke="#555" stroke-width="1"/>
+    <line x1="104" y1="175" x2="112" y2="175" stroke="#555" stroke-width="1"/>
+    <text x="106" y="131" text-anchor="end" dominant-baseline="middle"
+          fill="#555" font-size="9">96px</text>
+
+  </svg>
+  <p class="note">※ 縮小表示（実寸の約 80 %）　　グリッド座標は左上 (0,0) 基点</p>
+  </div>
+
+  <!-- ════════════ SETTINGS TABLE ════════════ -->
+  <div class="settings">
+    <table>
+
+      <tr><td colspan="2" class="sec">ウィンドウ</td></tr>
+      <tr><td class="lbl">フレームサイズ（算出値）</td><td class="val">448 × 494 px</td></tr>
+      <tr><td class="lbl indent">　算出式（幅）</td><td class="val">2×20 + 96×4 + 8×3</td></tr>
+      <tr><td class="lbl indent">　算出式（高さ）</td><td class="val">38 + 408 + 48</td></tr>
+      <tr><td class="lbl">フレーム角丸半径</td><td class="val">20 px</td></tr>
+      <tr><td class="lbl">フレーム外枠</td><td class="val">黒 #000000・2 px 実線</td></tr>
+      <tr><td class="lbl">吸着位置</td><td class="val">右端（画面右端の中央）</td></tr>
+      <tr><td class="lbl">画面端距離</td><td class="val">20 px（ハンドル外端〜画面端）</td></tr>
+
+      <tr><td colspan="2" class="sec">グリッド</td></tr>
+      <tr><td class="lbl">タイル配置数</td><td class="val">縦 4 × 横 4</td></tr>
+      <tr><td class="lbl">タイルサイズ（1×1）</td><td class="val">96 × 96 px</td></tr>
+      <tr><td class="lbl">タイル間マージン</td><td class="val">8 px</td></tr>
+      <tr><td class="lbl">タイル角丸半径</td><td class="val">20 px</td></tr>
+      <tr><td class="lbl">ホバー拡大率</td><td class="val">1.13 倍（底面基準）</td></tr>
+
+      <tr><td colspan="2" class="sec">ページ</td></tr>
+      <tr><td class="lbl">ページ名</td><td class="val">ページ1</td></tr>
+      <tr><td class="lbl">ページ名フォントサイズ</td><td class="val">16 pt → 表示高さ 22 px</td></tr>
+      <tr><td class="lbl">ページ名エリア高さ</td><td class="val">38 px（8 + 22 + 8）</td></tr>
+      <tr><td class="lbl">ページ背景色</td><td class="val">gray #8C9BAB</td></tr>
+      <tr><td class="lbl">ページ背景透過率</td><td class="val">30 %（図は70%不透明で表示）</td></tr>
+
+      <tr><td colspan="2" class="sec">ハンドル</td></tr>
+      <tr><td class="lbl">サイズ</td><td class="val">15 × 100 px（縦長）</td></tr>
+      <tr><td class="lbl">角丸半径</td><td class="val">10 px</td></tr>
+      <tr><td class="lbl">色</td><td class="val">gray #8C9BAB</td></tr>
+      <tr><td class="lbl">透過率</td><td class="val">20 %（図は80%不透明で表示）</td></tr>
+      <tr><td class="lbl">フレームとのマージン</td><td class="val">8 px</td></tr>
+      <tr><td class="lbl">配置位置</td><td class="val">フレーム左側・上下中央</td></tr>
+
+      <tr><td colspan="2" class="sec">ボトムバー（通常モード）</td></tr>
+      <tr><td class="lbl">高さ</td><td class="val">32 px</td></tr>
+      <tr><td class="lbl">上下マージン</td><td class="val">各 8 px</td></tr>
+      <tr><td class="lbl">インジケーター</td><td class="val">直径 18 px、間隔 26 px（中心間）</td></tr>
+      <tr><td class="lbl">現在ページ表示</td><td class="val">塗りつぶし + 中央ドット</td></tr>
+      <tr><td class="lbl">モード切替ボタン</td><td class="val">32 × 32 px・角丸 10 px・gray #8C9BAB</td></tr>
+      <tr><td class="lbl">ボタン右マージン</td><td class="val">20 px（フレーム右端から）</td></tr>
+
+      <tr><td colspan="2" class="sec">タイル配置（サンプル）</td></tr>
+      <tr><td class="lbl">(0,0) 1×1</td><td class="val">Chrome　blue #4A90D9</td></tr>
+      <tr><td class="lbl">(1,0) 1×1</td><td class="val">VSCode　green #4CAF72</td></tr>
+      <tr><td class="lbl">(2,0) 2×1</td><td class="val">Slack　purple #9B6DD9</td></tr>
+      <tr><td class="lbl">(0,1) 1×1</td><td class="val">Files　teal #2BB5A0</td></tr>
+      <tr><td class="lbl">(1,1) 2×2</td><td class="val">Music　orange #E8843A</td></tr>
+      <tr><td class="lbl">(3,1) 1×1</td><td class="val">CPU（system）#5a6a78</td></tr>
+      <tr><td class="lbl">(0,2) 1×1</td><td class="val">Mail　red #E05252</td></tr>
+      <tr><td class="lbl">(3,2) 1×1</td><td class="val">Notes　yellow #F0C233</td></tr>
+      <tr><td class="lbl">(0,3) 1×1</td><td class="val">Photos　pink #E868A2</td></tr>
+      <tr><td class="lbl">(1,3)(2,3)</td><td class="val">空（未配置）</td></tr>
+      <tr><td class="lbl">(3,3) 1×1</td><td class="val">Tasks　teal #2BB5A0</td></tr>
+
+    </table>
+  </div>
+
+</div>
+</body>
+</html>
