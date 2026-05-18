@@ -252,7 +252,12 @@ public partial class TileControl : UserControl
     {
         base.OnMouseLeftButtonUp(e);
         if (_tile == null) return;
-        if (App.LauncherViewModel?.Mode != AppMode.Normal) return;
+
+        var mode = App.LauncherViewModel?.Mode;
+        // 通常モード：全タイル起動可、設定モード：settings タイルのみ起動可
+        bool canLaunch = mode == AppMode.Normal
+                      || (mode == AppMode.Settings && _tile.Type == "settings");
+        if (!canLaunch) return;
 
         if ((e.GetPosition(this) - _mouseDownPos).Length < 5.0)
         {
@@ -274,7 +279,7 @@ public partial class TileControl : UserControl
             EditOverlay.Visibility = Visibility.Visible;
             return;
         }
-        if (mode != AppMode.Normal) return;
+        if (mode != AppMode.Normal && mode != AppMode.Settings) return;
 
         if (_tile.Args.Contains("{drop}"))
         {
