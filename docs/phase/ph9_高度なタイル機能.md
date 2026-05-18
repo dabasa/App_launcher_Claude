@@ -27,6 +27,8 @@
 | `Views/Controls/WebViewTileControl.xaml` | 新規：webview タイル UI |
 | `Views/Controls/WebViewTileControl.xaml.cs` | 新規：WebView2 制御・ページ間キャッシュ管理 |
 | `Views/Controls/TileGridControl.xaml.cs` | 変更：タイプ別 Control 生成・編集モードでのファイルドロップ |
+| `Services/SnapService.cs` | 修正：WebView2 HwndHost 対応のカーソル位置判定（Win32 GetCursorPos 採用）。ドラッグワープバグ修正（§12 参照） |
+| `Views/Controls/TileEditControl.xaml` | 修正：スクロールバー右マージン 10px 追加 |
 
 ---
 
@@ -517,7 +519,7 @@ using System.Windows.Threading;
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Loaded="OnLoaded" Unloaded="OnUnloaded">
-    <Grid>
+    <Grid Background="Transparent">
         <!-- テキスト表示 -->
         <StackPanel x:Name="TextPanel"
                     VerticalAlignment="Center" HorizontalAlignment="Center"
@@ -563,6 +565,9 @@ using System.Windows.Threading;
         </Canvas>
 
         <!-- 編集モードオーバーレイ（TileControl と同構造） -->
+        <!-- ※ 外側 Grid に Background="Transparent" を設定すること。          -->
+        <!--   Background 未設定の Grid はコンテンツ外領域でヒットテスト不可となり  -->
+        <!--   OnMouseLeave が誤発火してオーバーレイが消えるバグが発生する。         -->
         <Grid x:Name="EditOverlay" Visibility="Collapsed">
             <Border x:Name="EditButton"
                     Width="22" Height="22"
@@ -595,6 +600,7 @@ using System.Windows.Threading;
 ### 7. Views/Controls/SystemTileControl.xaml.cs（新規）
 
 ```csharp
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -609,9 +615,13 @@ namespace AppLauncher.Views.Controls;
 
 public partial class SystemTileControl : UserControl
 {
-    private TileViewModel?      _tile;
-    private SystemInfoConfig?   _si;
-    private DispatcherTimer?    _timer;
+    private TileViewModel?    _tile;
+    private SystemInfoConfig? _si;
+    private Border?           _tileBorder;   // TileGridControl から渡される外枠 Border
+    private DispatcherTimer?  _timer;
+    private bool              _modeSubscribed;
+    private Point             _mouseDownPos; // タイル移動 D&D 用
+    private bool              _dragStarted;
 
     public event Action<TileViewModel>? EditRequested;
     public event Action<TileViewModel>? DeleteRequested;
@@ -625,21 +635,23 @@ public partial class SystemTileControl : UserControl
         ResizeHandle.MouseLeftButtonDown += (_, e) => { if (_tile != null) { e.Handled = true; ResizeStarted?.Invoke(_tile, e); } };
     }
 
-    public void Apply(TileViewModel tile, int cornerRadius, Color pageBackgroundColor)
+    // tileBorder: TileGridControl が生成した角丸・背景付き外枠（アクセント切替で背景を変更する）
+    public void Apply(TileViewModel tile, int cornerRadius, Color pageBackgroundColor, Border tileBorder)
     {
-        _tile = tile;
-        _si   = tile.SystemInfo;
+        _tile       = tile;
+        _si         = tile.SystemInfo;
+        _tileBorder = tileBorder;
+
         if (_si == null) return;
 
-        // テキスト系スタイル設定
-        var mainBrush = ColorPalette.GetBrush(tile.FontColor);
-        MainText.Foreground        = mainBrush;
-        SubText.Foreground         = mainBrush;
+        var mainBrush = ColorPalette.GetBrush(_si.MainColor);
+        MainText.Foreground         = mainBrush;
+        SubText.Foreground          = mainBrush;
         CircleCenterText.Foreground = mainBrush;
-        CircleLabel.Foreground     = mainBrush;
-        MainText.FontSize          = tile.FontSizePt * 4.0 / 3.0;
-        SubText.FontSize           = Math.Max(10, tile.FontSizePt * 4.0 / 3.0 - 4);
-        CircleArc.Stroke           = ColorPalette.GetBrush(_si.MainColor);
+        CircleLabel.Foreground      = mainBrush;
+        MainText.FontSize           = tile.FontSizePt * 4.0 / 3.0;
+        SubText.FontSize            = Math.Max(10, tile.FontSizePt * 4.0 / 3.0 - 4);
+        CircleArc.Stroke            = mainBrush;
     }
 
     // ─── ライフサイクル ────────────────────────────────────────────────────
@@ -660,15 +672,13 @@ public partial class SystemTileControl : UserControl
     private void StartTimer()
     {
         if (_si == null) return;
-        int interval = Math.Clamp(_si.UpdateIntervalMs, 100, 3_600_000);
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(interval) };
+        int ms = Math.Clamp(_si.UpdateIntervalMs, 100, 3_600_000);
+        _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(ms) };
         _timer.Tick += (_, _) => FetchAndUpdate();
         _timer.Start();
     }
 
     // ─── 編集モードオーバーレイ ────────────────────────────────────────────
-    private bool _modeSubscribed;
-
     private void SubscribeMode()
     {
         if (_modeSubscribed || App.LauncherViewModel is not { } vm) return;
@@ -683,7 +693,7 @@ public partial class SystemTileControl : UserControl
         _modeSubscribed = false;
     }
 
-    private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(LauncherViewModel.Mode))
             UpdateEditOverlay();
@@ -703,16 +713,35 @@ public partial class SystemTileControl : UserControl
 
     private void UpdateEditOverlay()
     {
-        bool show = IsMouseOver && App.LauncherViewModel?.Mode == AppMode.Edit;
-        EditOverlay.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        EditOverlay.Visibility = IsMouseOver && App.LauncherViewModel?.Mode == AppMode.Edit
+            ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    // ─── クリック（system タイルはクリック動作「表示更新」のみ） ─────────────
+    // ─── タイル移動 D&D ──────────────────────────────────────────────────
+    protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonDown(e);
+        _mouseDownPos = e.GetPosition(this);
+        _dragStarted  = false;
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+        if (e.LeftButton != MouseButtonState.Pressed) return;
+        if (App.LauncherViewModel?.Mode != AppMode.Edit) return;
+        if (_tile == null || _dragStarted) return;
+        if ((e.GetPosition(this) - _mouseDownPos).Length < 5.0) return;
+
+        _dragStarted = true;
+        DragDrop.DoDragDrop(this, _tile, DragDropEffects.Move);
+    }
+
+    // ─── クリック（クリック動作：表示更新） ───────────────────────────────
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonUp(e);
         if (App.LauncherViewModel?.Mode != AppMode.Normal) return;
-        // clickAction == "refresh"
         FetchAndUpdate();
     }
 
@@ -727,40 +756,42 @@ public partial class SystemTileControl : UserControl
     private void Render(SystemData data)
     {
         if (_si == null || _tile == null) return;
+
         bool isCircle = _si.DisplayFormat == "circle" &&
                         _si.Category is "storage" or "usage";
 
-        // アクセント・背景アクセント適用
-        var mainBrush   = ColorPalette.GetBrush(
+        var mainBrush = ColorPalette.GetBrush(
             data.ThresholdExceeded ? _si.AccentColor : _si.MainColor);
-        var bgColor     = data.ThresholdExceeded
-            ? ColorPalette.GetColor(_si.BackgroundAccent)
-            : ColorPalette.GetColor(_tile.Color);
-        double bgAlpha  = ColorPalette.OpacityToDouble(_tile.Opacity);
-        var border = (Border)((Grid)Parent!).Children[0]; // TileBorder を取得できない場合は別途対応
-        // ※ TileBorder への参照は TileGridControl.Rebuild() で Apply() 呼び出し時に渡す設計とする
-        // （下記「8. TileGridControl の変更」参照）
 
-        CircleArc.Stroke = mainBrush;
+        // タイル背景アクセント
+        if (_tileBorder != null)
+        {
+            var bgColorName = data.ThresholdExceeded ? _si.BackgroundAccent : _tile.Color;
+            var bgColor     = ColorPalette.GetColor(bgColorName);
+            double alpha    = ColorPalette.OpacityToDouble(_tile.Opacity);
+            _tileBorder.Background = new SolidColorBrush(
+                Color.FromArgb((byte)(255 * alpha), bgColor.R, bgColor.G, bgColor.B));
+        }
 
         if (isCircle)
         {
             TextPanel.Visibility   = Visibility.Collapsed;
             CirclePanel.Visibility = Visibility.Visible;
 
-            // 円弧の長さを使用率から計算
-            // StrokeThickness=8、半径=26（Ellipse Width=60 の中心線）
+            // 円弧計算：Ellipse Width=60, StrokeThickness=8 → 中心線 radius=26
             const double strokeT = 8.0;
-            const double radius  = 26.0; // (60 / 2) - (strokeT / 2)
+            const double radius  = 26.0;
             double circumference = 2 * Math.PI * radius / strokeT;
-            double used          = Math.Clamp(data.Percentage / 100.0, 0, 1) * circumference;
+            double pct           = Math.Clamp(data.Percentage / 100.0, 0.0, 1.0);
+            double used          = pct * circumference;
             double unused        = circumference - used;
-            CircleArc.StrokeDashArray = new DoubleCollection([used, unused]);
-            CircleArc.Stroke          = mainBrush;
 
+            CircleArc.Stroke          = mainBrush;
+            CircleArc.StrokeDashArray = new DoubleCollection([used, unused]);
             CircleCenterText.Text     = $"{data.Percentage:F0}%";
             CircleCenterText.Foreground = mainBrush;
             CircleLabel.Text          = data.SubText;
+            CircleLabel.Foreground    = mainBrush;
         }
         else
         {
@@ -773,8 +804,6 @@ public partial class SystemTileControl : UserControl
     }
 }
 ```
-
-> **注意**：`Render()` 内でタイル背景色をアクセント色に切り替える処理は、`TileGridControl` 側で `SystemTileControl` に `Border` 参照を渡す、または `TileGridControl` がイベントを購読する形で実装する。本仕様では `TileGridControl.Rebuild()` 内で `Apply()` に `Border` を渡し、`SystemTileControl` が背景を直接操作する方式を採用する（後述 § 10 参照）。
 
 ---
 
@@ -1123,6 +1152,53 @@ private SystemTileControl CreateSystemControl(TileViewModel tile, int cornerRadi
 - [ ] `webview` タイルが指定 URL のページを表示する。ページを切り替えても再ロードされない
 - [ ] 編集モードで外部ファイル（`.exe` / `.lnk` / 画像等）を空スロットへドロップすると自動設定でタイルが作成される
 - [ ] `dotnet build` がエラーなく成功する
+
+---
+
+### 12. SnapService ドラッグワープバグの修正
+
+#### 概要
+
+タイル編集パネルのセクションヘッダー付近でウィンドウが瞬間ワープする問題
+
+**現象**
+
+- タイル編集モード（TileEdit）でパネルをスクロールしながらドラッグすると、ウィンドウが一瞬元の位置へ跳び戻る（ワープ）することがある。
+
+**原因**
+
+- `SnapService` の `OnMouseDown` が通常の `+=` で登録されていたため、`ScrollViewer` 内のセクションヘッダー等が `MouseLeftButtonDown` を `Handled` にするとイベントが届かず、ドラッグ開始位置の記録が更新されない。
+- その結果 `_dragStartTop` / `_dragStartMouseY` が前回の値のまま残り、次の `MouseMove` で大きなズレとなって現れる。
+
+**修正（3 段階）**
+
+1. `OnMouseDown` を `AddHandler` + `handledEventsToo: true` で登録し、`Handled` なイベントも受け取る。
+2. `OnMouseMove` の冒頭で、ボタンが離されているのに `_isDragging = true` のままの状態を検知して強制リセットする（`handledEventsToo` により `OnMouseUp` が来なかった場合のフォールバック）。
+3. ドラッグ中に別要素がキャプチャを奪った場合、キャプチャを取り返すとともに基準位置をリセットして瞬間ワープを防ぐ。
+
+```csharp
+// Attach() の変更
+// was: _window.MouseLeftButtonDown += OnMouseDown;
+_window.AddHandler(UIElement.MouseLeftButtonDownEvent,
+    new MouseButtonEventHandler(OnMouseDown), handledEventsToo: true);
+
+// OnMouseMove 冒頭に追加
+if (_isDragging && e.LeftButton != MouseButtonState.Pressed)
+{
+    _window.ReleaseMouseCapture();
+    _isDragging = false;
+    return;
+}
+
+// OnMouseMove の _isDragging ブランチ内（キャプチャ取り直し）に追加
+if (Mouse.Captured != _window)
+{
+    _window.CaptureMouse();
+    _dragStartMouseY = currentY;
+    _dragStartTop    = _window.Top;
+    return;
+}
+```
 
 ---
 

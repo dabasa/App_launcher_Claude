@@ -96,6 +96,12 @@ double dpiScaleY = PresentationSource.FromVisual(window)
 double newTop = dragStartTop + (currentPhysicalY - startPhysicalY) / dpiScaleY;
 ```
 
+**実装上の注意（SnapService.cs）**
+
+- `OnMouseDown` は `+=` ではなく `AddHandler` + `handledEventsToo: true` で登録する。ScrollViewer 内のセクションヘッダー等が `MouseLeftButtonDown` を `Handled` にした場合でもドラッグ開始位置を必ず更新するため。
+- `OnMouseMove` の冒頭で `_isDragging && e.LeftButton != Pressed` を検知して強制リセットする（ハンドルされたイベントで `OnMouseUp` が来なかった場合のフォールバック）。
+- ドラッグ中に別要素がマウスキャプチャを奪った場合、すぐにキャプチャを取り戻しつつ基準位置をリセットする（ワープ防止）。
+
 ---
 
 ## 完了条件
