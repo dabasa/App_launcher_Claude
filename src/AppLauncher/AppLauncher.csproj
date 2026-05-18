@@ -27,4 +27,9 @@
     <PackageReference Include="System.Management" Version="9.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- タスクトレイアイコン -->
+    <Resource Include="..\resources\icons\app.ico" Link="resources/icons/app.ico"/>
+  </ItemGroup>
+
 </Project>
