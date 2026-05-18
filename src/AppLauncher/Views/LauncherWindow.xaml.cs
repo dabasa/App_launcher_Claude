@@ -41,6 +41,13 @@ public partial class LauncherWindow : Window
             if (e.PropertyName == nameof(LauncherViewModel.PendingDeleteTile))
                 DeleteConfirmOverlay.Visibility = vm.PendingDeleteTile != null
                     ? Visibility.Visible : Visibility.Collapsed;
+            if (e.PropertyName == nameof(LauncherViewModel.Mode))
+            {
+                bool isTileEdit = vm.Mode == AppMode.TileEdit;
+                TileEditPanel.Visibility = isTileEdit ? Visibility.Visible : Visibility.Collapsed;
+                if (isTileEdit)
+                    TileEditPanel.ApplyUiElementColor();
+            }
         };
     }
 

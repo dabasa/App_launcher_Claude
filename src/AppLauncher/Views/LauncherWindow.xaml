@@ -52,6 +52,12 @@
                                           DataContext="{Binding CurrentPage}"/>
                 <controls:BottomBarControl Grid.Row="5"/>
 
+                <!-- タイル詳細設定パネル（TileEdit モード時に Frame 内全体に表示） -->
+                <controls:TileEditControl x:Name="TileEditPanel"
+                                          Grid.RowSpan="7"
+                                          Visibility="Collapsed"
+                                          Panel.ZIndex="50"/>
+
                 <!-- 削除確認ダイアログ（Frame 内全体に重なるオーバーレイ） -->
                 <Grid x:Name="DeleteConfirmOverlay"
                       Grid.RowSpan="7"

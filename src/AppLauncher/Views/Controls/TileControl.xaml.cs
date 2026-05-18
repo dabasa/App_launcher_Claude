@@ -1,8 +1,11 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using AppLauncher.Models;
 using AppLauncher.Services;
 using AppLauncher.ViewModels;
@@ -16,6 +19,12 @@ public partial class TileControl : UserControl
     private Point _mouseDownPos;
     private bool _dragStarted;
 
+    // GIF 再生用
+    private GifBitmapDecoder? _gifDecoder;
+    private int               _gifFrameIndex;
+    private DispatcherTimer?  _gifTimer;
+    private string            _imagePath = "";
+
     public event Action<TileViewModel>? EditRequested;
     public event Action<TileViewModel>? DeleteRequested;
     public event Action<TileViewModel, MouseButtonEventArgs>? ResizeStarted;
@@ -26,6 +35,11 @@ public partial class TileControl : UserControl
         EditButton.MouseLeftButtonUp     += OnEditButtonClick;
         DeleteButton.MouseLeftButtonUp   += OnDeleteButtonClick;
         ResizeHandle.MouseLeftButtonDown += OnResizeHandleMouseDown;
+
+        AllowDrop = true;
+        Drop      += OnFileDrop;
+        Loaded    += OnLoaded;
+        Unloaded  += OnUnloaded;
     }
 
     public void Apply(TileViewModel tile, int cornerRadius, Color pageBackgroundColor)
@@ -39,14 +53,148 @@ public partial class TileControl : UserControl
             Color.FromArgb((byte)(255 * alpha), bgColor.R, bgColor.G, bgColor.B));
         TileBorder.CornerRadius = new CornerRadius(cornerRadius);
 
-        TitleText.Text     = tile.Title;
-        TitleText.FontSize = tile.FontSizePt * 4.0 / 3.0;
+        TitleText.Text       = tile.Title;
+        TitleText.FontSize   = tile.FontSizePt * 4.0 / 3.0;
         TitleText.Foreground = new SolidColorBrush(ColorPalette.GetColor(tile.FontColor));
         if (!string.IsNullOrEmpty(tile.FontName))
             TitleText.FontFamily = new FontFamily(tile.FontName);
+
+        // 画像表示・レイアウト設定
+        _imagePath = tile.ImagePath ?? "";
+        SetupImageAndLayout(tile);
     }
 
-    // ─── ボタン・ハンドル ─────────────────────────────────────────────
+    // ─── 画像レイアウト ────────────────────────────────────────────────────
+    private void SetupImageAndLayout(TileViewModel tile)
+    {
+        bool hasImage = !string.IsNullOrEmpty(tile.ImagePath);
+        TileImage.Visibility = hasImage ? Visibility.Visible : Visibility.Collapsed;
+
+        if (hasImage)
+        {
+            TileImage.Opacity = tile.ImageTransparent
+                ? ColorPalette.OpacityToDouble(tile.Opacity)
+                : 1.0;
+        }
+
+        ArrangeImageAndText(tile.ImagePosition ?? "top", hasImage);
+    }
+
+    private void ArrangeImageAndText(string position, bool hasImage)
+    {
+        // デフォルト：テキストが全領域を占有
+        LayoutGrid.RowDefinitions[1].Height   = new GridLength(0);
+        LayoutGrid.ColumnDefinitions[1].Width = new GridLength(0);
+        Grid.SetRow(TitleText, 0);    Grid.SetRowSpan(TitleText, 2);
+        Grid.SetColumn(TitleText, 0); Grid.SetColumnSpan(TitleText, 2);
+        Grid.SetRow(TileImage, 0);    Grid.SetRowSpan(TileImage, 1);
+        Grid.SetColumn(TileImage, 0); Grid.SetColumnSpan(TileImage, 1);
+
+        if (!hasImage) return;
+
+        Grid.SetRowSpan(TitleText, 1);
+        Grid.SetColumnSpan(TitleText, 1);
+
+        switch (position)
+        {
+            case "top":
+            case "bottom":
+                LayoutGrid.RowDefinitions[1].Height   = GridLength.Auto;
+                LayoutGrid.ColumnDefinitions[1].Width  = new GridLength(0);
+                Grid.SetColumnSpan(TileImage, 2);
+                Grid.SetColumnSpan(TitleText, 2);
+                bool imgTop = position == "top";
+                Grid.SetRow(TileImage, imgTop ? 0 : 1);
+                Grid.SetRow(TitleText, imgTop ? 1 : 0);
+                Grid.SetColumn(TileImage, 0);
+                Grid.SetColumn(TitleText, 0);
+                break;
+
+            case "left":
+            case "right":
+                LayoutGrid.RowDefinitions[1].Height   = new GridLength(0);
+                LayoutGrid.ColumnDefinitions[0].Width  = new GridLength(1, GridUnitType.Star);
+                LayoutGrid.ColumnDefinitions[1].Width  = new GridLength(1, GridUnitType.Star);
+                Grid.SetRowSpan(TileImage, 2);
+                Grid.SetRowSpan(TitleText, 2);
+                bool imgLeft = position == "left";
+                Grid.SetColumn(TileImage, imgLeft ? 0 : 1);
+                Grid.SetColumn(TitleText, imgLeft ? 1 : 0);
+                Grid.SetRow(TileImage, 0);
+                Grid.SetRow(TitleText, 0);
+                break;
+        }
+    }
+
+    // ─── GIF タイマー ─────────────────────────────────────────────────────
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrEmpty(_imagePath)) return;
+
+        string ext = Path.GetExtension(_imagePath).ToLowerInvariant();
+        if (ext == ".gif")
+        {
+            StartGif(_imagePath);
+        }
+        else
+        {
+            try { TileImage.Source = new BitmapImage(new Uri(_imagePath, UriKind.Absolute)); }
+            catch { TileImage.Source = null; }
+        }
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e) => StopGif();
+
+    private void StartGif(string path)
+    {
+        try
+        {
+            _gifDecoder = new GifBitmapDecoder(
+                new Uri(path, UriKind.Absolute),
+                BitmapCreateOptions.PreservePixelFormat,
+                BitmapCacheOption.OnLoad);
+            if (_gifDecoder.Frames.Count == 0) return;
+
+            _gifFrameIndex   = 0;
+            TileImage.Source = _gifDecoder.Frames[0];
+
+            if (_gifDecoder.Frames.Count > 1)
+            {
+                _gifTimer = new DispatcherTimer(DispatcherPriority.Render)
+                {
+                    Interval = TimeSpan.FromMilliseconds(100),
+                };
+                _gifTimer.Tick += (_, _) =>
+                {
+                    if (_gifDecoder == null) return;
+                    _gifFrameIndex   = (_gifFrameIndex + 1) % _gifDecoder.Frames.Count;
+                    TileImage.Source = _gifDecoder.Frames[_gifFrameIndex];
+                };
+                _gifTimer.Start();
+            }
+        }
+        catch { }
+    }
+
+    private void StopGif()
+    {
+        _gifTimer?.Stop();
+        _gifTimer   = null;
+        _gifDecoder = null;
+    }
+
+    // ─── D&D ファイルドロップ（通常モード・D&D 専用タイルのみ） ─────────────
+    private void OnFileDrop(object sender, DragEventArgs e)
+    {
+        if (_tile == null) return;
+        if (App.LauncherViewModel?.Mode != AppMode.Normal) return;
+        if (!_tile.Args.Contains("{drop}")) return;
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+        var paths = (string[])e.Data.GetData(DataFormats.FileDrop)!;
+        TileLaunchService.LaunchWithDrop(_tile, paths);
+    }
+
+    // ─── ボタン・ハンドル ─────────────────────────────────────────────────
     private void OnEditButtonClick(object sender, MouseButtonEventArgs e)
     {
         e.Handled = true;
@@ -66,7 +214,7 @@ public partial class TileControl : UserControl
         ResizeStarted?.Invoke(_tile, e);
     }
 
-    // ─── マウスボタン ─────────────────────────────────────────────────
+    // ─── マウスボタン ─────────────────────────────────────────────────────
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonDown(e);
@@ -99,7 +247,7 @@ public partial class TileControl : UserControl
         }
     }
 
-    // ─── ホバー ───────────────────────────────────────────────────────
+    // ─── ホバー ───────────────────────────────────────────────────────────
     protected override void OnMouseEnter(MouseEventArgs e)
     {
         base.OnMouseEnter(e);

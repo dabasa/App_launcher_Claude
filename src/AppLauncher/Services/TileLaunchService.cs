@@ -41,4 +41,24 @@ public static class TileLaunchService
             psi.WorkingDirectory = Environment.ExpandEnvironmentVariables(tile.WorkDir);
         Process.Start(psi);
     }
+
+    public static void LaunchWithDrop(TileViewModel tile, string[] paths)
+    {
+        if (string.IsNullOrEmpty(tile.Path)) return;
+        try
+        {
+            string dropArg = string.Join(" ", paths.Select(p => $"\"{p}\""));
+            string args    = tile.Args.Replace("{drop}", dropArg);
+            var psi = new ProcessStartInfo
+            {
+                FileName        = Environment.ExpandEnvironmentVariables(tile.Path),
+                Arguments       = args,
+                UseShellExecute = true,
+            };
+            if (!string.IsNullOrEmpty(tile.WorkDir))
+                psi.WorkingDirectory = Environment.ExpandEnvironmentVariables(tile.WorkDir);
+            Process.Start(psi);
+        }
+        catch (Exception) { }
+    }
 }

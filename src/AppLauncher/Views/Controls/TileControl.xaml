@@ -9,12 +9,24 @@
 
     <Border x:Name="TileBorder" CornerRadius="20">
         <Grid>
-            <!-- タイルタイトル -->
-            <TextBlock x:Name="TitleText"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       TextWrapping="Wrap"
-                       TextAlignment="Center"/>
+            <!-- 画像・テキストレイアウト（ImagePosition に応じてコードビハインドで配置） -->
+            <Grid x:Name="LayoutGrid">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="0"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="0"/>
+                </Grid.ColumnDefinitions>
+
+                <Image x:Name="TileImage" Grid.Row="0" Grid.Column="0"
+                       Stretch="Uniform" Margin="8" Visibility="Collapsed"/>
+
+                <TextBlock x:Name="TitleText" Grid.Row="0" Grid.Column="0"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           TextWrapping="Wrap" TextAlignment="Center" Padding="8"/>
+            </Grid>
 
             <!-- D&D 専用オーバーレイ（通常は非表示） -->
             <Border x:Name="DndOverlay"

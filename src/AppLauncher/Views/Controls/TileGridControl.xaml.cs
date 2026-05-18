@@ -6,6 +6,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using AppLauncher.Models;
+using AppLauncher.Models.Config;
+using AppLauncher.Services;
 using AppLauncher.ViewModels;
 
 namespace AppLauncher.Views.Controls;
@@ -15,6 +17,9 @@ public partial class TileGridControl : UserControl
     private TileViewModel? _resizingTile;
     private bool _modeSubscribed;
 
+    // webview タイルはページ切替でも破棄しないためキャッシュする
+    private static readonly Dictionary<(PageViewModel, int, int), WebViewTileControl> _webviewCache = [];
+
     public TileGridControl()
     {
         InitializeComponent();
@@ -23,6 +28,7 @@ public partial class TileGridControl : UserControl
         TileGrid.DragOver  += OnTileGridDragOver;
         TileGrid.DragLeave += (_, _) => HidePreview();
         TileGrid.Drop      += OnTileGridDrop;
+        TileGrid.Drop      += OnTileGridFileDrop;
         TileGrid.MouseMove += OnTileGridMouseMove;
         TileGrid.MouseLeftButtonUp += OnTileGridMouseLeftButtonUp;
     }
@@ -131,20 +137,75 @@ public partial class TileGridControl : UserControl
             }
         }
 
-        // タイル配置
+        // タイル配置（タイプに応じてコントロールを分岐）
         foreach (var tile in page.Tiles)
         {
-            var control = new TileControl();
-            control.Apply(tile, cornerRadius, bgColor);
-            control.EditRequested   += OnTileEditRequested;
-            control.DeleteRequested += OnTileDeleteRequested;
-            control.ResizeStarted   += OnTileResizeStarted;
-            Grid.SetColumn(control, tile.Col * 2);
-            Grid.SetRow(control, tile.Row * 2);
-            Grid.SetColumnSpan(control, tile.ColSpan * 2 - 1);
-            Grid.SetRowSpan(control, tile.RowSpan * 2 - 1);
-            TileGrid.Children.Add(control);
+            FrameworkElement element = tile.Type switch
+            {
+                "system"  => CreateSystemElement(tile, cornerRadius, bgColor),
+                "webview" => GetOrCreateWebViewControl(page, tile),
+                _         => CreateTileControl(tile, cornerRadius, bgColor),
+            };
+
+            Grid.SetColumn(element, tile.Col * 2);
+            Grid.SetRow(element, tile.Row * 2);
+            Grid.SetColumnSpan(element, tile.ColSpan * 2 - 1);
+            Grid.SetRowSpan(element, tile.RowSpan * 2 - 1);
+            TileGrid.Children.Add(element);
         }
+    }
+
+    // ─── タイル Control 生成 ───────────────────────────────────────────
+
+    private TileControl CreateTileControl(TileViewModel tile, int cornerRadius, Color bgColor)
+    {
+        var ctrl = new TileControl();
+        ctrl.Apply(tile, cornerRadius, bgColor);
+        ctrl.EditRequested   += OnTileEditRequested;
+        ctrl.DeleteRequested += OnTileDeleteRequested;
+        ctrl.ResizeStarted   += OnTileResizeStarted;
+        return ctrl;
+    }
+
+    // system タイル：角丸 Border を外枠として生成し、その中に SystemTileControl を配置
+    private Border CreateSystemElement(TileViewModel tile, int cornerRadius, Color bgColor)
+    {
+        var tileColor = ColorPalette.GetColor(tile.Color);
+        double alpha  = ColorPalette.OpacityToDouble(tile.Opacity);
+        var border = new Border
+        {
+            CornerRadius = new CornerRadius(cornerRadius),
+            Background   = new SolidColorBrush(
+                Color.FromArgb((byte)(255 * alpha), tileColor.R, tileColor.G, tileColor.B)),
+            ClipToBounds = true,
+        };
+
+        var ctrl = new SystemTileControl();
+        ctrl.Apply(tile, cornerRadius, bgColor, border);
+        ctrl.EditRequested   += OnTileEditRequested;
+        ctrl.DeleteRequested += OnTileDeleteRequested;
+        ctrl.ResizeStarted   += OnTileResizeStarted;
+        border.Child = ctrl;
+        return border;
+    }
+
+    private WebViewTileControl GetOrCreateWebViewControl(PageViewModel page, TileViewModel tile)
+    {
+        var key = (page, tile.Col, tile.Row);
+        if (!_webviewCache.TryGetValue(key, out var ctrl))
+        {
+            ctrl = new WebViewTileControl();
+            _webviewCache[key] = ctrl;
+        }
+        // イベントを毎回再配線（Rebuild のたびに呼ばれるため重複を避けて一旦解除してから再登録）
+        ctrl.EditRequested   -= OnTileEditRequested;
+        ctrl.DeleteRequested -= OnTileDeleteRequested;
+        ctrl.ResizeStarted   -= OnTileResizeStarted;
+        ctrl.EditRequested   += OnTileEditRequested;
+        ctrl.DeleteRequested += OnTileDeleteRequested;
+        ctrl.ResizeStarted   += OnTileResizeStarted;
+        ctrl.Apply(tile);
+        return ctrl;
     }
 
     // ─── タイル操作 ───────────────────────────────────────────────────
@@ -207,7 +268,7 @@ public partial class TileGridControl : UserControl
         return (cs, rs);
     }
 
-    // ─── D&D ──────────────────────────────────────────────────────────
+    // ─── D&D（タイル移動）────────────────────────────────────────────
 
     private void OnTileGridDragOver(object sender, DragEventArgs e)
     {
@@ -255,6 +316,63 @@ public partial class TileGridControl : UserControl
         drag.Col = col;
         drag.Row = row;
         Rebuild();
+    }
+
+    // ─── 編集モードでの外部ファイルドロップ → タイル自動作成 ────────────
+
+    private void OnTileGridFileDrop(object sender, DragEventArgs e)
+    {
+        if (DataContext is not PageViewModel page) return;
+        if (App.LauncherViewModel?.Mode != AppMode.Edit) return;
+        if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+
+        var paths = (string[])e.Data.GetData(DataFormats.FileDrop)!;
+        if (paths.Length == 0) return;
+
+        var pos        = e.GetPosition(TileGrid);
+        var (col, row) = PositionToCell(pos);
+        if (!CanPlace(col, row, 1, 1)) return;
+
+        page.Tiles.Add(CreateTileFromFile(paths[0], col, row));
+    }
+
+    private static TileViewModel CreateTileFromFile(string path, int col, int row)
+    {
+        string ext   = System.IO.Path.GetExtension(path).ToLowerInvariant();
+        string title = System.IO.Path.GetFileNameWithoutExtension(path);
+
+        // .lnk ショートカット解決
+        if (ext == ".lnk")
+        {
+            try
+            {
+                var shellType = Type.GetTypeFromProgID("WScript.Shell");
+                if (shellType != null)
+                {
+                    dynamic shell    = Activator.CreateInstance(shellType)!;
+                    dynamic shortcut = shell.CreateShortcut(path);
+                    string target    = (string)shortcut.TargetPath;
+                    if (!string.IsNullOrEmpty(target)) path = target;
+                    ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+                }
+            }
+            catch { }
+        }
+
+        bool isImage = ext is ".png" or ".jpg" or ".jpeg" or ".gif" or ".ico" or ".bmp";
+
+        return new TileViewModel(new TileConfig
+        {
+            Col      = col,    Row      = row,
+            ColSpan  = 1,      RowSpan  = 1,
+            Type     = "app",
+            Title    = title,
+            Path     = isImage ? "" : path,
+            Color    = "blue", Opacity  = 20,
+            FontSizePt  = 16,  FontColor = "white",
+            ImagePath    = isImage ? path : "",
+            ImagePosition = "top",
+        });
     }
 
     // ─── 競合チェック ─────────────────────────────────────────────────

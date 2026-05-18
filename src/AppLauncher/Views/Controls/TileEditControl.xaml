@@ -1,0 +1,414 @@
+<UserControl x:Class="AppLauncher.Views.Controls.TileEditControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Loaded="OnLoaded">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ─── ヘッダー：プレビュー + モード名 ──────────────────────── -->
+        <Grid Grid.Row="0" Margin="12,12,12,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Width="200" Height="96" CornerRadius="8"
+                    Background="{Binding EditingTileVm.PreviewBackground}">
+                <TextBlock Text="{Binding EditingTileVm.Title}"
+                           Foreground="{Binding EditingTileVm.PreviewForeground}"
+                           FontSize="{Binding EditingTileVm.PreviewFontSize}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           TextWrapping="Wrap" TextAlignment="Center" Padding="8"/>
+            </Border>
+
+            <TextBlock Grid.Column="1" Text="タイル編集"
+                       Foreground="#F0F0F0" FontSize="15" FontWeight="SemiBold"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Grid>
+
+        <!-- ─── スクロール可能セクション群 ──────────────────────────── -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="12,4,12,4">
+            <StackPanel>
+
+                <!-- ── 基本セクション ── -->
+                <Border x:Name="BasicHeader" Cursor="Hand" Padding="0,8,0,6"
+                        BorderThickness="0,0,0,1" Margin="0,8,0,0">
+                    <TextBlock x:Name="BasicArrow" Text="▲ 基本"
+                               Foreground="#F0F0F0" FontWeight="SemiBold"/>
+                </Border>
+                <StackPanel x:Name="BasicContent" Margin="0,6,0,0">
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="タイトル" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding EditingTileVm.Title, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="#30FFFFFF" Foreground="#F0F0F0"
+                                 BorderThickness="0,0,0,1" BorderBrush="#60F0F0F0" Padding="4,2"/>
+                    </Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="種類" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="TypeCombo" Grid.Column="1"
+                                  SelectedValue="{Binding EditingTileVm.Type, UpdateSourceTrigger=PropertyChanged}"
+                                  SelectedValuePath="Value"/>
+                    </Grid>
+                </StackPanel>
+
+                <!-- ── 起動セクション（system 以外） ── -->
+                <StackPanel Visibility="{Binding EditingTileVm.HasPath, Converter={StaticResource BoolToVis}}">
+                    <Border x:Name="LaunchHeader" Cursor="Hand" Padding="0,8,0,6"
+                            BorderThickness="0,0,0,1" Margin="0,8,0,0">
+                        <TextBlock x:Name="LaunchArrow" Text="▲ 起動"
+                                   Foreground="#F0F0F0" FontWeight="SemiBold"/>
+                    </Border>
+                    <StackPanel x:Name="LaunchContent" Margin="0,6,0,0">
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="パス/URL" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding EditingTileVm.Path, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#30FFFFFF" Foreground="#F0F0F0"
+                                     BorderThickness="0,0,0,1" BorderBrush="#60F0F0F0" Padding="4,2"/>
+                            <Border x:Name="BrowsePathButton" Grid.Column="2"
+                                    Width="36" Height="22" Margin="4,0,0,0"
+                                    CornerRadius="4" Cursor="Hand"
+                                    Visibility="{Binding EditingTileVm.IsApp, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="参照" Foreground="White"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11"/>
+                            </Border>
+                        </Grid>
+                        <Grid Margin="0,4"
+                              Visibility="{Binding EditingTileVm.HasArgs, Converter={StaticResource BoolToVis}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="引数" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding EditingTileVm.Args, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#30FFFFFF" Foreground="#F0F0F0"
+                                     BorderThickness="0,0,0,1" BorderBrush="#60F0F0F0" Padding="4,2"/>
+                        </Grid>
+                        <Grid Margin="0,4"
+                              Visibility="{Binding EditingTileVm.HasWorkDir, Converter={StaticResource BoolToVis}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="作業フォルダ" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding EditingTileVm.WorkDir, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#30FFFFFF" Foreground="#F0F0F0"
+                                     BorderThickness="0,0,0,1" BorderBrush="#60F0F0F0" Padding="4,2"/>
+                            <Border x:Name="BrowseWorkDirButton" Grid.Column="2"
+                                    Width="36" Height="22" Margin="4,0,0,0"
+                                    CornerRadius="4" Cursor="Hand">
+                                <TextBlock Text="参照" Foreground="White"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11"/>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ── システム情報セクション（system のみ） ── -->
+                <StackPanel Visibility="{Binding EditingTileVm.HasSystemInfo, Converter={StaticResource BoolToVis}}">
+                    <Border x:Name="SystemHeader" Cursor="Hand" Padding="0,8,0,6"
+                            BorderThickness="0,0,0,1" Margin="0,8,0,0">
+                        <TextBlock x:Name="SystemArrow" Text="▲ システム情報"
+                                   Foreground="#F0F0F0" FontWeight="SemiBold"/>
+                    </Border>
+                    <StackPanel x:Name="SystemContent" Margin="0,6,0,0">
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="カテゴリ" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="SiCategoryCombo" Grid.Column="1"
+                                      SelectedValue="{Binding EditingTileVm.SiCategory, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Value"/>
+                        </Grid>
+                        <Grid Margin="0,4"
+                              Visibility="{Binding EditingTileVm.SiHasDeviceType, Converter={StaticResource BoolToVis}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="デバイス種別" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="SiDeviceTypeCombo" Grid.Column="1"
+                                      SelectedValue="{Binding EditingTileVm.SiDeviceType, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Value"/>
+                        </Grid>
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="対象" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding EditingTileVm.SiTarget, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#30FFFFFF" Foreground="#F0F0F0"
+                                     BorderThickness="0,0,0,1" BorderBrush="#60F0F0F0" Padding="4,2"/>
+                        </Grid>
+                        <Grid Margin="0,4"
+                              Visibility="{Binding EditingTileVm.SiHasCircleFormat, Converter={StaticResource BoolToVis}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="表示形式" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="SiDisplayFormatCombo" Grid.Column="1"
+                                      SelectedValue="{Binding EditingTileVm.SiDisplayFormat, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Value"/>
+                        </Grid>
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="メインカラー" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="SiMainColorCombo" Grid.Column="1"
+                                      SelectedValue="{Binding EditingTileVm.SiMainColor, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Name">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Width="14" Height="14" Margin="0,0,6,0" CornerRadius="2" Background="{Binding Brush}"/>
+                                            <TextBlock Text="{Binding Name}" Foreground="#2D2D2D"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </Grid>
+                        <Grid Margin="0,4"
+                              Visibility="{Binding EditingTileVm.SiHasAccent, Converter={StaticResource BoolToVis}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="アクセント" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="SiAccentColorCombo" Grid.Column="1"
+                                      SelectedValue="{Binding EditingTileVm.SiAccentColor, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Name">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Width="14" Height="14" Margin="0,0,6,0" CornerRadius="2" Background="{Binding Brush}"/>
+                                            <TextBlock Text="{Binding Name}" Foreground="#2D2D2D"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </Grid>
+                        <Grid Margin="0,4"
+                              Visibility="{Binding EditingTileVm.SiHasAccent, Converter={StaticResource BoolToVis}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="背景アクセント" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="SiBgAccentColorCombo" Grid.Column="1"
+                                      SelectedValue="{Binding EditingTileVm.SiBackgroundAccent, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Name">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Width="14" Height="14" Margin="0,0,6,0" CornerRadius="2" Background="{Binding Brush}"/>
+                                            <TextBlock Text="{Binding Name}" Foreground="#2D2D2D"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </Grid>
+                        <Grid Margin="0,4"
+                              Visibility="{Binding EditingTileVm.SiHasAccent, Converter={StaticResource BoolToVis}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="基準値" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding EditingTileVm.SiThreshold, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#30FFFFFF" Foreground="#F0F0F0"
+                                     BorderThickness="0,0,0,1" BorderBrush="#60F0F0F0" Padding="4,2"/>
+                            <TextBlock Grid.Column="2" Text="%" Foreground="#F0F0F0"
+                                       VerticalAlignment="Center" Margin="4,0,0,0"/>
+                        </Grid>
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="更新間隔" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding EditingTileVm.SiUpdateIntervalMs, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#30FFFFFF" Foreground="#F0F0F0"
+                                     BorderThickness="0,0,0,1" BorderBrush="#60F0F0F0" Padding="4,2"/>
+                            <TextBlock Grid.Column="2" Text="ms" Foreground="#F0F0F0"
+                                       VerticalAlignment="Center" Margin="4,0,0,0"/>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- ── 見た目セクション ── -->
+                <Border x:Name="AppearanceHeader" Cursor="Hand" Padding="0,8,0,6"
+                        BorderThickness="0,0,0,1" Margin="0,8,0,0">
+                    <TextBlock x:Name="AppearanceArrow" Text="▲ 見た目"
+                               Foreground="#F0F0F0" FontWeight="SemiBold"/>
+                </Border>
+                <StackPanel x:Name="AppearanceContent" Margin="0,6,0,0">
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="カラー" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="TileColorCombo" Grid.Column="1"
+                                  SelectedValue="{Binding EditingTileVm.Color, UpdateSourceTrigger=PropertyChanged}"
+                                  SelectedValuePath="Name">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="14" Height="14" Margin="0,0,6,0" CornerRadius="2" Background="{Binding Brush}"/>
+                                        <TextBlock Text="{Binding Name}" Foreground="#2D2D2D"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="44"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="透過率" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                        <Slider Grid.Column="1"
+                                Value="{Binding EditingTileVm.Opacity, UpdateSourceTrigger=PropertyChanged}"
+                                Minimum="0" Maximum="90" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2" Foreground="#F0F0F0"
+                                   VerticalAlignment="Center" Margin="4,0,0,0">
+                            <Run Text="{Binding EditingTileVm.Opacity, Mode=OneWay}"/><Run Text="%"/>
+                        </TextBlock>
+                    </Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="フォント名" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="FontNameCombo" Grid.Column="1"
+                                  SelectedValue="{Binding EditingTileVm.FontName, UpdateSourceTrigger=PropertyChanged}"/>
+                    </Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="フォントサイズ" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding EditingTileVm.FontSizePt, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="#30FFFFFF" Foreground="#F0F0F0"
+                                 BorderThickness="0,0,0,1" BorderBrush="#60F0F0F0" Padding="4,2"/>
+                        <TextBlock Grid.Column="2" Text="pt" Foreground="#F0F0F0"
+                                   VerticalAlignment="Center" Margin="4,0,0,0"/>
+                    </Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="フォントカラー" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="FontColorCombo" Grid.Column="1"
+                                  SelectedValue="{Binding EditingTileVm.FontColor, UpdateSourceTrigger=PropertyChanged}"
+                                  SelectedValuePath="Name">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="14" Height="14" Margin="0,0,6,0" CornerRadius="2" Background="{Binding Brush}"/>
+                                        <TextBlock Text="{Binding Name}" Foreground="#2D2D2D"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="画像/アイコン" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding EditingTileVm.ImagePath, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="#30FFFFFF" Foreground="#F0F0F0"
+                                 BorderThickness="0,0,0,1" BorderBrush="#60F0F0F0" Padding="4,2"/>
+                        <Border x:Name="BrowseImageButton" Grid.Column="2"
+                                Width="36" Height="22" Margin="4,0,0,0"
+                                CornerRadius="4" Cursor="Hand">
+                            <TextBlock Text="参照" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="11"/>
+                        </Border>
+                    </Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="表示位置" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="ImagePositionCombo" Grid.Column="1"
+                                  SelectedValue="{Binding EditingTileVm.ImagePosition, UpdateSourceTrigger=PropertyChanged}"
+                                  SelectedValuePath="Value"/>
+                    </Grid>
+                    <Grid Margin="0,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="画像透過" Foreground="#F0F0F0" VerticalAlignment="Center"/>
+                        <CheckBox Grid.Column="1"
+                                  IsChecked="{Binding EditingTileVm.ImageTransparent, UpdateSourceTrigger=PropertyChanged}"
+                                  VerticalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+
+                <Rectangle Height="12"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ─── OK / キャンセルボタン ─────────────────────────────────── -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="12,4,12,12">
+            <Border x:Name="CancelButton" Width="80" Height="32" CornerRadius="6" Cursor="Hand">
+                <TextBlock Text="キャンセル" Foreground="White"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+            </Border>
+            <Border x:Name="OkButton" Width="80" Height="32" CornerRadius="6" Cursor="Hand" Margin="8,0,0,0">
+                <TextBlock Text="OK" Foreground="White"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+            </Border>
+        </StackPanel>
+    </Grid>
+</UserControl>

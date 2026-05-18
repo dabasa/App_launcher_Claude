@@ -27,6 +27,9 @@ public partial class LauncherViewModel : ObservableObject
     [ObservableProperty]
     private TileViewModel? _pendingDeleteTile;
 
+    [ObservableProperty]
+    private TileEditViewModel? _editingTileVm;
+
     private bool _pinnedBeforeEdit;
 
     public ObservableCollection<PageViewModel> Pages { get; }
@@ -68,15 +71,47 @@ public partial class LauncherViewModel : ObservableObject
     [RelayCommand]
     private void OpenTileEdit(TileViewModel tile)
     {
-        EditingTile = tile;
+        EditingTile   = tile;
+        EditingTileVm = new TileEditViewModel(tile);
         Mode = AppMode.TileEdit;
+    }
+
+    [RelayCommand]
+    private void ConfirmTileEdit()
+    {
+        if (EditingTileVm == null || EditingTile == null) return;
+        var newConfig = EditingTileVm.ToConfig();
+        int idx = CurrentPage.Tiles.IndexOf(EditingTile);
+        EditingTile   = null;
+        EditingTileVm = null;
+        if (idx >= 0)
+            CurrentPage.Tiles[idx] = new TileViewModel(newConfig);
+        SyncPagesToConfig();
+        App.ConfigService.Save();
+        Mode = AppMode.Edit;
     }
 
     [RelayCommand]
     private void CloseTileEdit()
     {
-        EditingTile = null;
+        EditingTile   = null;
+        EditingTileVm = null;
         Mode = AppMode.Edit;
+    }
+
+    private void SyncPagesToConfig()
+    {
+        App.ConfigService.Current.Pages = Pages.Select(p => new PageConfig
+        {
+            Name              = p.Name,
+            BackgroundColor   = p.BackgroundColor,
+            BackgroundOpacity = p.BackgroundOpacity,
+            HandleColor       = p.HandleColor,
+            HandleOpacity     = p.HandleOpacity,
+            PinFrameColor     = p.PinFrameColor,
+            PinFrameOpacity   = p.PinFrameOpacity,
+            Tiles = p.Tiles.Select(t => t.ToConfig()).ToList(),
+        }).ToList();
     }
 
     [RelayCommand]
