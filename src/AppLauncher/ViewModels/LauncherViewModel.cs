@@ -32,9 +32,27 @@ public partial class LauncherViewModel : ObservableObject
     private TileEditViewModel? _editingTileVm;
 
     [ObservableProperty]
+    private PageEditViewModel? _pageEditVm;
+
+    [ObservableProperty]
     private GlobalSettingsViewModel? _globalSettingsVm;
 
-    private bool _pinnedBeforeEdit;
+    partial void OnGlobalSettingsVmChanged(GlobalSettingsViewModel? oldValue, GlobalSettingsViewModel? newValue)
+    {
+        if (oldValue != null)
+            oldValue.PropertyChanged -= OnGlobalSettingsVmPropertyChanged;
+        if (newValue != null)
+            newValue.PropertyChanged += OnGlobalSettingsVmPropertyChanged;
+    }
+
+    private void OnGlobalSettingsVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(GlobalSettingsViewModel.PageNameFontSizePt))
+            OnPropertyChanged(nameof(PageNameFontSize));
+    }
+
+    private bool    _pinnedBeforeEdit;
+    private AppMode _modeBeforeGlobalSettings = AppMode.Settings;
 
     private int _settingsPageIndex;
     public int SettingsPageIndex
@@ -57,7 +75,10 @@ public partial class LauncherViewModel : ObservableObject
 
     public ObservableCollection<PageViewModel> Pages { get; }
 
-    public double PageNameFontSize { get; }
+    public double PageNameFontSize =>
+        (Mode == AppMode.GlobalSettings && GlobalSettingsVm != null)
+            ? GlobalSettingsVm.PageNameFontSizePt * 4.0 / 3.0
+            : App.ConfigService.Current.Global.PageNameFontSizePt * 4.0 / 3.0;
 
     public PageViewModel CurrentPage => Pages[CurrentPageIndex];
 
@@ -70,13 +91,13 @@ public partial class LauncherViewModel : ObservableObject
     {
         Pages = new ObservableCollection<PageViewModel>(
             config.Pages.Select(p => new PageViewModel(p)));
-        PageNameFontSize = config.Global.PageNameFontSizePt * 4.0 / 3.0;
         BuildSettingsPages();
     }
 
     partial void OnModeChanged(AppMode value)
     {
         OnPropertyChanged(nameof(DisplayPage));
+        OnPropertyChanged(nameof(PageNameFontSize));
     }
 
     private void BuildSettingsPages()
@@ -179,8 +200,38 @@ public partial class LauncherViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void OpenPageEdit()
+    {
+        PageEditVm = new PageEditViewModel(CurrentPage);
+        Mode = AppMode.PageEdit;
+    }
+
+    [RelayCommand]
+    private void ConfirmPageEdit()
+    {
+        if (PageEditVm == null) return;
+        int idx = CurrentPageIndex;
+        var newConfig = PageEditVm.ToConfig(Pages[idx].Name, Pages[idx].Tiles);
+        PageEditVm = null;
+        Pages[idx] = new PageViewModel(newConfig);
+        OnPropertyChanged(nameof(CurrentPage));
+        OnPropertyChanged(nameof(DisplayPage));
+        SyncPagesToConfig();
+        App.ConfigService.Save();
+        Mode = AppMode.Edit;
+    }
+
+    [RelayCommand]
+    private void ClosePageEdit()
+    {
+        PageEditVm = null;
+        Mode = AppMode.Edit;
+    }
+
+    [RelayCommand]
     private void OpenGlobalSettings()
     {
+        _modeBeforeGlobalSettings = Mode;
         GlobalSettingsVm = new GlobalSettingsViewModel();
         Mode = AppMode.GlobalSettings;
     }
@@ -194,14 +245,15 @@ public partial class LauncherViewModel : ObservableObject
         GlobalSettingsVm = null;
         BuildSettingsPages();
         OnPropertyChanged(nameof(DisplayPage));
-        Mode = AppMode.Settings;
+        OnPropertyChanged(nameof(PageNameFontSize));
+        Mode = _modeBeforeGlobalSettings;
     }
 
     [RelayCommand]
     private void CloseGlobalSettings()
     {
         GlobalSettingsVm = null;
-        Mode = AppMode.Settings;
+        Mode = _modeBeforeGlobalSettings;
     }
 
     private void SyncPagesToConfig()

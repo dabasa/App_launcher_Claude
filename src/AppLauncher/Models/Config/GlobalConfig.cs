@@ -9,6 +9,9 @@ public class GlobalConfig
     public int PageNameFontSizePt { get; set; } = 16;
     public string SnapPosition { get; set; } = "right";
     public int SnapMonitor { get; set; } = 1;
-    public int StorageDelayMs { get; set; } = 1000;
+    public int StorageDelayMs { get; set; } = 100;
     public int AnimationDurationMs { get; set; } = 300;
+    public bool AlwaysOnTop { get; set; } = true;
+    public double? SavedWindowTop  { get; set; } = null;
+    public double? SavedWindowLeft { get; set; } = null;
 }

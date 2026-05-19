@@ -1,8 +1,10 @@
 using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using AppLauncher.Models;
 using AppLauncher.Models.Config;
@@ -20,6 +22,12 @@ public partial class SystemTileControl : UserControl
     private bool              _modeSubscribed;
     private Point             _mouseDownPos;
     private bool              _dragStarted;
+
+    // 画像・GIF 再生用
+    private string            _imagePath = "";
+    private GifBitmapDecoder? _gifDecoder;
+    private int               _gifFrameIndex;
+    private DispatcherTimer?  _gifTimer;
 
     public event Action<TileViewModel>? EditRequested;
     public event Action<TileViewModel>? DeleteRequested;
@@ -50,11 +58,149 @@ public partial class SystemTileControl : UserControl
         MainText.FontSize           = tile.FontSizePt * 4.0 / 3.0;
         SubText.FontSize            = Math.Max(10, tile.FontSizePt * 4.0 / 3.0 - 4);
         CircleArc.Stroke            = mainBrush;
+
+        // 画像設定
+        _imagePath = tile.ImagePath ?? "";
+        SetupImageAndLayout(tile);
+    }
+
+    // ─── 画像レイアウト ────────────────────────────────────────────────────
+    private void SetupImageAndLayout(TileViewModel tile)
+    {
+        bool hasImage = !string.IsNullOrEmpty(tile.ImagePath);
+        TileImage.Visibility = hasImage ? Visibility.Visible : Visibility.Collapsed;
+
+        if (hasImage)
+        {
+            TileImage.Opacity = tile.ImageTransparent
+                ? ColorPalette.OpacityToDouble(tile.Opacity)
+                : 1.0;
+        }
+
+        ArrangeImageAndContent(tile.ImagePosition ?? "top", hasImage);
+    }
+
+    private void ArrangeImageAndContent(string position, bool hasImage)
+    {
+        // デフォルト：ContentGrid が全領域を占有
+        LayoutGrid.RowDefinitions[0].Height    = new GridLength(1, GridUnitType.Star);
+        LayoutGrid.RowDefinitions[1].Height    = new GridLength(0);
+        LayoutGrid.ColumnDefinitions[1].Width  = new GridLength(0);
+        Grid.SetRow(ContentGrid, 0);    Grid.SetRowSpan(ContentGrid, 2);
+        Grid.SetColumn(ContentGrid, 0); Grid.SetColumnSpan(ContentGrid, 2);
+        Grid.SetRow(TileImage, 0);    Grid.SetRowSpan(TileImage, 1);
+        Grid.SetColumn(TileImage, 0); Grid.SetColumnSpan(TileImage, 1);
+
+        if (!hasImage) return;
+
+        Grid.SetRowSpan(ContentGrid, 1);
+        Grid.SetColumnSpan(ContentGrid, 1);
+
+        switch (position)
+        {
+            case "top":
+                LayoutGrid.RowDefinitions[1].Height    = GridLength.Auto;
+                LayoutGrid.ColumnDefinitions[1].Width  = new GridLength(0);
+                Grid.SetColumnSpan(TileImage, 2);
+                Grid.SetColumnSpan(ContentGrid, 2);
+                Grid.SetRow(TileImage, 0);
+                Grid.SetRow(ContentGrid, 1);
+                Grid.SetColumn(TileImage, 0);
+                Grid.SetColumn(ContentGrid, 0);
+                break;
+
+            case "bottom":
+                LayoutGrid.RowDefinitions[0].Height    = GridLength.Auto;
+                LayoutGrid.RowDefinitions[1].Height    = new GridLength(1, GridUnitType.Star);
+                LayoutGrid.ColumnDefinitions[1].Width  = new GridLength(0);
+                Grid.SetColumnSpan(TileImage, 2);
+                Grid.SetColumnSpan(ContentGrid, 2);
+                Grid.SetRow(ContentGrid, 0);
+                Grid.SetRow(TileImage, 1);
+                Grid.SetColumn(TileImage, 0);
+                Grid.SetColumn(ContentGrid, 0);
+                break;
+
+            case "left":
+            case "right":
+                LayoutGrid.RowDefinitions[1].Height    = new GridLength(0);
+                LayoutGrid.ColumnDefinitions[0].Width  = new GridLength(1, GridUnitType.Star);
+                LayoutGrid.ColumnDefinitions[1].Width  = new GridLength(1, GridUnitType.Star);
+                Grid.SetRowSpan(TileImage, 2);
+                Grid.SetRowSpan(ContentGrid, 2);
+                bool imgLeft = position == "left";
+                Grid.SetColumn(TileImage, imgLeft ? 0 : 1);
+                Grid.SetColumn(ContentGrid, imgLeft ? 1 : 0);
+                Grid.SetRow(TileImage, 0);
+                Grid.SetRow(ContentGrid, 0);
+                break;
+
+            case "center":
+                // 画像が全体を覆い、ContentGrid (Panel.ZIndex=1) が前面
+                Grid.SetRowSpan(TileImage, 2);
+                Grid.SetColumnSpan(TileImage, 2);
+                Grid.SetRowSpan(ContentGrid, 2);
+                Grid.SetColumnSpan(ContentGrid, 2);
+                Grid.SetRow(TileImage, 0);    Grid.SetColumn(TileImage, 0);
+                Grid.SetRow(ContentGrid, 0);  Grid.SetColumn(ContentGrid, 0);
+                break;
+        }
+    }
+
+    // ─── GIF タイマー ─────────────────────────────────────────────────────
+    private void StartGif(string path)
+    {
+        try
+        {
+            _gifDecoder = new GifBitmapDecoder(
+                new Uri(path, UriKind.Absolute),
+                BitmapCreateOptions.PreservePixelFormat,
+                BitmapCacheOption.OnLoad);
+            if (_gifDecoder.Frames.Count == 0) return;
+
+            _gifFrameIndex   = 0;
+            TileImage.Source = _gifDecoder.Frames[0];
+
+            if (_gifDecoder.Frames.Count > 1)
+            {
+                _gifTimer = new DispatcherTimer(DispatcherPriority.Render)
+                {
+                    Interval = TimeSpan.FromMilliseconds(100),
+                };
+                _gifTimer.Tick += (_, _) =>
+                {
+                    if (_gifDecoder == null) return;
+                    _gifFrameIndex   = (_gifFrameIndex + 1) % _gifDecoder.Frames.Count;
+                    TileImage.Source = _gifDecoder.Frames[_gifFrameIndex];
+                };
+                _gifTimer.Start();
+            }
+        }
+        catch { }
+    }
+
+    private void StopGif()
+    {
+        _gifTimer?.Stop();
+        _gifTimer   = null;
+        _gifDecoder = null;
     }
 
     // ─── ライフサイクル ────────────────────────────────────────────────────
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        if (!string.IsNullOrEmpty(_imagePath))
+        {
+            string ext = Path.GetExtension(_imagePath).ToLowerInvariant();
+            if (ext == ".gif")
+                StartGif(_imagePath);
+            else
+            {
+                try { TileImage.Source = new BitmapImage(new Uri(_imagePath, UriKind.Absolute)); }
+                catch { TileImage.Source = null; }
+            }
+        }
+
         FetchAndUpdate();
         StartTimer();
         SubscribeMode();
@@ -62,6 +208,7 @@ public partial class SystemTileControl : UserControl
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        StopGif();
         _timer?.Stop();
         _timer = null;
         UnsubscribeMode();

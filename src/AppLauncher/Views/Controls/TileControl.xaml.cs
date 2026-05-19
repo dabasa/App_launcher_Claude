@@ -137,6 +137,16 @@ public partial class TileControl : UserControl
                 Grid.SetRow(TileImage, 0);
                 Grid.SetRow(TitleText, 0);
                 break;
+
+            case "center":
+                // 画像とテキストを同一領域に重ねる。TitleText の Panel.ZIndex=1 でテキストが前面
+                Grid.SetRowSpan(TileImage, 2);
+                Grid.SetColumnSpan(TileImage, 2);
+                Grid.SetRowSpan(TitleText, 2);
+                Grid.SetColumnSpan(TitleText, 2);
+                Grid.SetRow(TileImage, 0);    Grid.SetColumn(TileImage, 0);
+                Grid.SetRow(TitleText, 0);    Grid.SetColumn(TitleText, 0);
+                break;
         }
     }
 
@@ -229,6 +239,12 @@ public partial class TileControl : UserControl
     }
 
     // ─── マウスボタン ─────────────────────────────────────────────────────
+    protected override void OnMouseDoubleClick(MouseButtonEventArgs e)
+    {
+        base.OnMouseDoubleClick(e);
+        e.Handled = true;
+    }
+
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonDown(e);

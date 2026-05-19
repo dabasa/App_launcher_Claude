@@ -12,26 +12,42 @@
         SizeToContent="Manual">
 
     <!--
-        右端吸着レイアウト
-        列0: ハンドル（HandleShortSide px、コードビハインドで設定）
-        列1: ハンドル〜フレーム間ギャップ（HandleFrameMargin px、コードビハインドで設定）
-        列2: ランチャーフレーム（残り幅）
+        吸着方向に応じてコードビハインドで列・行を切り替え
+        左右吸着: 列0=ハンドル or フレーム, 列1=ギャップ, 列2=フレーム or ハンドル
+        上下吸着: 行0=フレーム or ハンドル, 行1=ギャップ, 行2=ハンドル or フレーム
     -->
     <Grid x:Name="RootGrid">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="20"/> <!-- handle -->
+            <ColumnDefinition Width="20"/> <!-- handle (right/left snap) / full width (top/bottom snap) -->
             <ColumnDefinition Width="8"/>  <!-- gap -->
             <ColumnDefinition Width="*"/>  <!-- frame -->
         </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>  <!-- frame (top snap) / full height (left/right snap) -->
+            <RowDefinition Height="0"/>  <!-- gap (top/bottom snap) -->
+            <RowDefinition Height="0"/>  <!-- handle (top snap) -->
+        </Grid.RowDefinitions>
 
-        <!-- ハンドル：フレームの上下中央に配置 -->
+        <!--
+            ハンドルとフレームの間の透明ギャップ（HandleFrameMargin 分）は
+            AllowsTransparency=True ウィンドウでは alpha=0 となりクリックスルーになる。
+            OS がギャップへのマウス侵入を「ウィンドウ離脱」と誤認して WM_MOUSELEAVE を
+            早期発行し、その後ウィンドウ外への離脱を検知できなくなる問題を防ぐため、
+            ウィンドウ全体を alpha=1（視認不能）で覆い完全なクリックスルーを防ぐ。
+        -->
+        <Rectangle Grid.ColumnSpan="3" Grid.RowSpan="3"
+                   Panel.ZIndex="-1"
+                   Fill="#01000000"
+                   IsHitTestVisible="False"/>
+
+        <!-- ハンドル -->
         <controls:HandleControl x:Name="Handle"
-                                Grid.Column="0"
+                                Grid.Column="0" Grid.Row="0"
                                 VerticalAlignment="Center"/>
 
         <!-- ランチャーフレーム：角丸・黒枠2px（ピンモード時は枠を色変更・太く） -->
         <Border x:Name="Frame"
-                Grid.Column="2"
+                Grid.Column="2" Grid.Row="0"
                 CornerRadius="20"
                 BorderBrush="#FF000000"
                 BorderThickness="2"
@@ -57,6 +73,12 @@
                                           Grid.RowSpan="7"
                                           Visibility="Collapsed"
                                           Panel.ZIndex="50"/>
+
+                <!-- ページ設定パネル（PageEdit モード時に Frame 内全体に表示） -->
+                <controls:PageEditView x:Name="PageEditPanel"
+                                       Grid.RowSpan="7"
+                                       Visibility="Collapsed"
+                                       Panel.ZIndex="50"/>
 
                 <!-- 全体設定パネル（GlobalSettings モード時に Frame 内全体に表示） -->
                 <controls:GlobalSettingsView x:Name="GlobalSettingsPanel"

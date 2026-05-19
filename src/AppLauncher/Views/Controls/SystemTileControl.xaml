@@ -3,49 +3,67 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Loaded="OnLoaded" Unloaded="OnUnloaded">
     <Grid Background="Transparent">
-        <!-- テキスト表示 -->
-        <StackPanel x:Name="TextPanel"
-                    VerticalAlignment="Center" HorizontalAlignment="Center"
-                    Margin="8">
-            <TextBlock x:Name="MainText"
-                       FontWeight="SemiBold"
-                       TextAlignment="Center" TextWrapping="Wrap"/>
-            <TextBlock x:Name="SubText"
-                       Opacity="0.75"
-                       TextAlignment="Center" TextWrapping="Wrap" Margin="0,2,0,0"/>
-        </StackPanel>
+        <!-- 画像・コンテンツレイアウト（ImagePosition に応じてコードビハインドで配置） -->
+        <Grid x:Name="LayoutGrid">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="0"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="0"/>
+            </Grid.ColumnDefinitions>
 
-        <!-- 円形グラフ表示 -->
-        <Canvas x:Name="CirclePanel" Visibility="Collapsed"
-                HorizontalAlignment="Center" VerticalAlignment="Center"
-                Width="80" Height="80">
-            <!-- 背景リング -->
-            <Ellipse Canvas.Left="10" Canvas.Top="10"
-                     Width="60" Height="60"
-                     StrokeThickness="8" Fill="Transparent"
-                     Stroke="#30F0F0F0"/>
-            <!-- 値アーク（-90 度回転で 12 時から開始） -->
-            <Ellipse x:Name="CircleArc"
-                     Canvas.Left="10" Canvas.Top="10"
-                     Width="60" Height="60"
-                     StrokeThickness="8" Fill="Transparent"
-                     StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                     RenderTransformOrigin="0.5,0.5">
-                <Ellipse.RenderTransform>
-                    <RotateTransform Angle="-90"/>
-                </Ellipse.RenderTransform>
-            </Ellipse>
-            <!-- 中央テキスト（使用率 %） -->
-            <TextBlock x:Name="CircleCenterText"
-                       Canvas.Left="0" Canvas.Top="26"
-                       Width="80" TextAlignment="Center"
-                       FontSize="14" FontWeight="SemiBold"/>
-            <!-- 下部ラベル（デバイス名等） -->
-            <TextBlock x:Name="CircleLabel"
-                       Canvas.Left="0" Canvas.Top="62"
-                       Width="80" TextAlignment="Center"
-                       FontSize="10" Opacity="0.8"/>
-        </Canvas>
+            <Image x:Name="TileImage" Grid.Row="0" Grid.Column="0"
+                   Stretch="Uniform" Margin="8" Visibility="Collapsed"/>
+
+            <!-- システム情報コンテンツ（画像より前面） -->
+            <Grid x:Name="ContentGrid" Grid.Row="0" Grid.Column="0" Panel.ZIndex="1">
+                <!-- テキスト表示 -->
+                <StackPanel x:Name="TextPanel"
+                            VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Margin="8">
+                    <TextBlock x:Name="MainText"
+                               FontWeight="SemiBold"
+                               TextAlignment="Center" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="SubText"
+                               Opacity="0.75"
+                               TextAlignment="Center" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                </StackPanel>
+
+                <!-- 円形グラフ表示 -->
+                <Canvas x:Name="CirclePanel" Visibility="Collapsed"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Width="80" Height="80">
+                    <!-- 背景リング -->
+                    <Ellipse Canvas.Left="10" Canvas.Top="10"
+                             Width="60" Height="60"
+                             StrokeThickness="8" Fill="Transparent"
+                             Stroke="#30F0F0F0"/>
+                    <!-- 値アーク（-90 度回転で 12 時から開始） -->
+                    <Ellipse x:Name="CircleArc"
+                             Canvas.Left="10" Canvas.Top="10"
+                             Width="60" Height="60"
+                             StrokeThickness="8" Fill="Transparent"
+                             StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                             RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform>
+                            <RotateTransform Angle="-90"/>
+                        </Ellipse.RenderTransform>
+                    </Ellipse>
+                    <!-- 中央テキスト（使用率 %） -->
+                    <TextBlock x:Name="CircleCenterText"
+                               Canvas.Left="0" Canvas.Top="26"
+                               Width="80" TextAlignment="Center"
+                               FontSize="14" FontWeight="SemiBold"/>
+                    <!-- 下部ラベル（デバイス名等） -->
+                    <TextBlock x:Name="CircleLabel"
+                               Canvas.Left="0" Canvas.Top="62"
+                               Width="80" TextAlignment="Center"
+                               FontSize="10" Opacity="0.8"/>
+                </Canvas>
+            </Grid>
+        </Grid>
 
         <!-- 編集モードオーバーレイ -->
         <Grid x:Name="EditOverlay" Visibility="Collapsed">

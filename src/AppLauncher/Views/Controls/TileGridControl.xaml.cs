@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using AppLauncher.Helpers;
 using AppLauncher.Models;
 using AppLauncher.Models.Config;
 using AppLauncher.Services;
@@ -338,10 +339,13 @@ public partial class TileGridControl : UserControl
 
     private static TileViewModel CreateTileFromFile(string path, int col, int row)
     {
-        string ext   = System.IO.Path.GetExtension(path).ToLowerInvariant();
-        string title = System.IO.Path.GetFileNameWithoutExtension(path);
+        string ext      = System.IO.Path.GetExtension(path).ToLowerInvariant();
+        string title    = System.IO.Path.GetFileNameWithoutExtension(path);
+        string args     = "";
+        string workDir  = "";
+        string iconPath = "";
 
-        // .lnk ショートカット解決
+        // .lnk ショートカット解決（引数・作業フォルダ・アイコンも取得）
         if (ext == ".lnk")
         {
             try
@@ -351,15 +355,49 @@ public partial class TileGridControl : UserControl
                 {
                     dynamic shell    = Activator.CreateInstance(shellType)!;
                     dynamic shortcut = shell.CreateShortcut(path);
-                    string target    = (string)shortcut.TargetPath;
-                    if (!string.IsNullOrEmpty(target)) path = target;
-                    ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+
+                    string target  = (string)shortcut.TargetPath;
+                    string lnkArgs = (string)shortcut.Arguments;
+                    string lnkWork = (string)shortcut.WorkingDirectory;
+                    string lnkIcon = (string)shortcut.IconLocation; // "filepath,index" 形式
+
+                    if (!string.IsNullOrEmpty(target))
+                    {
+                        path = target;
+                        ext  = System.IO.Path.GetExtension(path).ToLowerInvariant();
+                    }
+                    if (!string.IsNullOrEmpty(lnkArgs)) args    = lnkArgs;
+                    if (!string.IsNullOrEmpty(lnkWork)) workDir = lnkWork;
+
+                    // ショートカット指定のアイコンが単独の .ico / .png ファイルであれば直接使用
+                    if (!string.IsNullOrEmpty(lnkIcon))
+                    {
+                        string iconFile = lnkIcon.Split(',')[0].Trim();
+                        string iconExt  = System.IO.Path.GetExtension(iconFile).ToLowerInvariant();
+                        if (System.IO.File.Exists(iconFile) && iconExt is ".ico" or ".png")
+                            iconPath = iconFile;
+                    }
                 }
             }
             catch { }
         }
 
         bool isImage = ext is ".png" or ".jpg" or ".jpeg" or ".gif" or ".ico" or ".bmp";
+
+        if (!isImage)
+        {
+            // 作業フォルダ：未設定の場合はファイルの親ディレクトリ
+            if (string.IsNullOrEmpty(workDir))
+                workDir = System.IO.Path.GetDirectoryName(path) ?? "";
+
+            // アイコン未取得の場合：ファイルから抽出して PNG として保存
+            if (string.IsNullOrEmpty(iconPath) && System.IO.File.Exists(path))
+            {
+                string iconDir = System.IO.Path.Combine(
+                    AppDomain.CurrentDomain.BaseDirectory, "config", "icons");
+                iconPath = IconExtractHelper.ExtractAndSave(path, iconDir) ?? "";
+            }
+        }
 
         return new TileViewModel(new TileConfig
         {
@@ -368,9 +406,11 @@ public partial class TileGridControl : UserControl
             Type     = "app",
             Title    = title,
             Path     = isImage ? "" : path,
+            Args     = args,
+            WorkDir  = workDir,
             Color    = "blue", Opacity  = 20,
-            FontSizePt  = 16,  FontColor = "white",
-            ImagePath    = isImage ? path : "",
+            FontSizePt   = 16, FontColor = "white",
+            ImagePath    = isImage ? path : iconPath,
             ImagePosition = "top",
         });
     }

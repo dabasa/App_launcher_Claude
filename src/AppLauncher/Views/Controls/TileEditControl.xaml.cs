@@ -53,6 +53,7 @@ public partial class TileEditControl : UserControl
         new("bottom", "下"),
         new("left",   "左"),
         new("right",  "右"),
+        new("center", "中心"),
     ];
 
     public TileEditControl()

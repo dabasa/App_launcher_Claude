@@ -9,11 +9,13 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- ヘッダー -->
+        <!-- ヘッダー：フォントサイズをスライダーに連動してプレビュー -->
         <TextBlock Grid.Row="0"
-                   Text="全体設定" FontSize="14" FontWeight="Bold"
-                   Foreground="White" HorizontalAlignment="Right"
-                   Margin="0,12,16,8"/>
+                   Text="全体設定"
+                   FontSize="{Binding GlobalSettingsVm.PageNameFontSizePx}"
+                   FontWeight="Bold"
+                   Foreground="White" HorizontalAlignment="Center"
+                   Margin="0,12,0,8"/>
 
         <!-- 設定フォーム -->
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,10,0">
@@ -25,6 +27,10 @@
 
                 <!-- Windows 起動時の自動起動 -->
                 <CheckBox Content="Windows 起動時に自動起動" IsChecked="{Binding StartWithWindows}"
+                          Foreground="White" Margin="0,4,0,4"/>
+
+                <!-- 常に前面に表示 -->
+                <CheckBox Content="常に前面に表示する" IsChecked="{Binding AlwaysOnTop}"
                           Foreground="White" Margin="0,4,0,8"/>
 
                 <!-- タイル配置数 -->
@@ -69,8 +75,8 @@
                 <!-- 接続モニター -->
                 <TextBlock Text="接続モニター" Foreground="White" Margin="0,8,0,4"/>
                 <ComboBox ItemsSource="{Binding SnapMonitorItems}"
-                          SelectedItem="{Binding SnapMonitor}"
-                          Width="80" HorizontalAlignment="Left"/>
+                          SelectedIndex="{Binding SnapMonitorIndex}"
+                          Width="220" HorizontalAlignment="Left"/>
 
                 <!-- 収納待ち時間 -->
                 <TextBlock Text="収納待ち時間（ms）" Foreground="White" Margin="0,8,0,4"/>

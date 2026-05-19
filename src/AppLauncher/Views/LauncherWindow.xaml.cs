@@ -15,26 +15,84 @@ public partial class LauncherWindow : Window
     public LauncherWindow() => InitializeComponent();
 
     /// <summary>
-    /// 吸着方向に合わせてハンドルとフレームの列を入れ替える。
-    /// 左吸着：col0=フレーム(*)  col2=ハンドル(固定幅)
-    /// 右吸着：col0=ハンドル(固定幅)  col2=フレーム(*)
+    /// 吸着方向に合わせてハンドルとフレームの列・行を入れ替える。
+    /// 左右吸着: 列ベースレイアウト
+    /// 上下吸着: 行ベースレイアウト
     /// </summary>
     public void ApplySnapLayout(string direction)
     {
         var layout = App.ConfigService.Current.Layout;
-        if (direction == "left")
+
+        switch (direction)
         {
-            RootGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
-            RootGrid.ColumnDefinitions[2].Width = new GridLength(layout.HandleShortSide);
-            Grid.SetColumn(Frame,  0);
-            Grid.SetColumn(Handle, 2);
-        }
-        else
-        {
-            RootGrid.ColumnDefinitions[0].Width = new GridLength(layout.HandleShortSide);
-            RootGrid.ColumnDefinitions[2].Width = new GridLength(1, GridUnitType.Star);
-            Grid.SetColumn(Handle, 0);
-            Grid.SetColumn(Frame,  2);
+            case "left":
+                // col0=frame(*), col1=gap, col2=handle(fixed) / row0=*(full height)
+                RootGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+                RootGrid.ColumnDefinitions[1].Width = new GridLength(layout.HandleFrameMargin);
+                RootGrid.ColumnDefinitions[2].Width = new GridLength(layout.HandleShortSide);
+                RootGrid.RowDefinitions[0].Height   = new GridLength(1, GridUnitType.Star);
+                RootGrid.RowDefinitions[1].Height   = new GridLength(0);
+                RootGrid.RowDefinitions[2].Height   = new GridLength(0);
+                Grid.SetColumn(Frame,  0); Grid.SetColumnSpan(Frame,  1);
+                Grid.SetColumn(Handle, 2); Grid.SetColumnSpan(Handle, 1);
+                Grid.SetRow(Frame,  0); Grid.SetRowSpan(Frame,  1);
+                Grid.SetRow(Handle, 0); Grid.SetRowSpan(Handle, 1);
+                Handle.VerticalAlignment   = VerticalAlignment.Center;
+                Handle.HorizontalAlignment = HorizontalAlignment.Stretch;
+                Handle.SetOrientation(horizontal: false);
+                break;
+
+            case "top":
+                // row0=frame(*), row1=gap, row2=handle(fixed) / col0=*(full width)
+                RootGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+                RootGrid.ColumnDefinitions[1].Width = new GridLength(0);
+                RootGrid.ColumnDefinitions[2].Width = new GridLength(0);
+                RootGrid.RowDefinitions[0].Height   = new GridLength(1, GridUnitType.Star);
+                RootGrid.RowDefinitions[1].Height   = new GridLength(layout.HandleFrameMargin);
+                RootGrid.RowDefinitions[2].Height   = new GridLength(layout.HandleShortSide);
+                Grid.SetColumn(Frame,  0); Grid.SetColumnSpan(Frame,  3);
+                Grid.SetColumn(Handle, 0); Grid.SetColumnSpan(Handle, 3);
+                Grid.SetRow(Frame,  0); Grid.SetRowSpan(Frame,  1);
+                Grid.SetRow(Handle, 2); Grid.SetRowSpan(Handle, 1);
+                Handle.VerticalAlignment   = VerticalAlignment.Stretch;
+                Handle.HorizontalAlignment = HorizontalAlignment.Center;
+                Handle.SetOrientation(horizontal: true);
+                break;
+
+            case "bottom":
+                // row0=handle(fixed), row1=gap, row2=frame(*) / col0=*(full width)
+                RootGrid.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+                RootGrid.ColumnDefinitions[1].Width = new GridLength(0);
+                RootGrid.ColumnDefinitions[2].Width = new GridLength(0);
+                RootGrid.RowDefinitions[0].Height   = new GridLength(layout.HandleShortSide);
+                RootGrid.RowDefinitions[1].Height   = new GridLength(layout.HandleFrameMargin);
+                RootGrid.RowDefinitions[2].Height   = new GridLength(1, GridUnitType.Star);
+                Grid.SetColumn(Frame,  0); Grid.SetColumnSpan(Frame,  3);
+                Grid.SetColumn(Handle, 0); Grid.SetColumnSpan(Handle, 3);
+                Grid.SetRow(Frame,  2); Grid.SetRowSpan(Frame,  1);
+                Grid.SetRow(Handle, 0); Grid.SetRowSpan(Handle, 1);
+                Handle.VerticalAlignment   = VerticalAlignment.Stretch;
+                Handle.HorizontalAlignment = HorizontalAlignment.Center;
+                Handle.SetOrientation(horizontal: true);
+                break;
+
+            case "right":
+            default:
+                // col0=handle(fixed), col1=gap, col2=frame(*) / row0=*(full height)
+                RootGrid.ColumnDefinitions[0].Width = new GridLength(layout.HandleShortSide);
+                RootGrid.ColumnDefinitions[1].Width = new GridLength(layout.HandleFrameMargin);
+                RootGrid.ColumnDefinitions[2].Width = new GridLength(1, GridUnitType.Star);
+                RootGrid.RowDefinitions[0].Height   = new GridLength(1, GridUnitType.Star);
+                RootGrid.RowDefinitions[1].Height   = new GridLength(0);
+                RootGrid.RowDefinitions[2].Height   = new GridLength(0);
+                Grid.SetColumn(Handle, 0); Grid.SetColumnSpan(Handle, 1);
+                Grid.SetColumn(Frame,  2); Grid.SetColumnSpan(Frame,  1);
+                Grid.SetRow(Handle, 0); Grid.SetRowSpan(Handle, 1);
+                Grid.SetRow(Frame,  0); Grid.SetRowSpan(Frame,  1);
+                Handle.VerticalAlignment   = VerticalAlignment.Center;
+                Handle.HorizontalAlignment = HorizontalAlignment.Stretch;
+                Handle.SetOrientation(horizontal: false);
+                break;
         }
     }
 
@@ -45,6 +103,8 @@ public partial class LauncherWindow : Window
         RootGrid.ColumnDefinitions[0].Width = new GridLength(layout.HandleShortSide);
         RootGrid.ColumnDefinitions[1].Width = new GridLength(layout.HandleFrameMargin);
         Frame.CornerRadius = new CornerRadius(layout.FrameCornerRadius);
+
+        Topmost = App.ConfigService.Current.Global.AlwaysOnTop;
 
         DataContext = vm;
         ApplyPageColors(vm.CurrentPage);
@@ -72,6 +132,11 @@ public partial class LauncherWindow : Window
                 TileEditPanel.Visibility = isTileEdit ? Visibility.Visible : Visibility.Collapsed;
                 if (isTileEdit)
                     TileEditPanel.ApplyUiElementColor();
+
+                bool isPageEdit = vm.Mode == AppMode.PageEdit;
+                PageEditPanel.Visibility = isPageEdit ? Visibility.Visible : Visibility.Collapsed;
+                if (isPageEdit)
+                    PageEditPanel.ApplyUiElementColor();
 
                 bool isGlobalSettings = vm.Mode == AppMode.GlobalSettings;
                 GlobalSettingsPanel.Visibility = isGlobalSettings ? Visibility.Visible : Visibility.Collapsed;
@@ -114,10 +179,25 @@ public partial class LauncherWindow : Window
     protected override void OnMouseDoubleClick(MouseButtonEventArgs e)
     {
         base.OnMouseDoubleClick(e);
+        if (e.Handled) return; // TileControl 等が処理済みの場合はスキップ
         var vm = App.LauncherViewModel;
         if (vm == null || vm.Mode != AppMode.Normal) return;
         if (IsInteractiveTarget(e.OriginalSource)) return;
         vm.IsPinned = !vm.IsPinned;
+        e.Handled = true;
+    }
+
+    protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
+    {
+        base.OnMouseRightButtonUp(e);
+        if (IsInteractiveTarget(e.OriginalSource)) return;
+
+        var trayIcon = (Hardcodet.Wpf.TaskbarNotification.TaskbarIcon)App.Current.Resources["TrayIcon"];
+        var menu = trayIcon.ContextMenu;
+        if (menu == null) return;
+        menu.PlacementTarget = this;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+        menu.IsOpen = true;
         e.Handled = true;
     }
 

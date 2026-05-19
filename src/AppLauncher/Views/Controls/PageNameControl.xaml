@@ -4,7 +4,7 @@
     <Grid>
         <!-- 通常表示：TextBlock -->
         <TextBlock x:Name="TextLabel"
-                   Text="{Binding CurrentPage.Name}"
+                   Text="{Binding DisplayPage.Name}"
                    FontSize="{Binding PageNameFontSize}"
                    Foreground="#F0F0F0"
                    HorizontalAlignment="Center"

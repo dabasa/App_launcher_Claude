@@ -24,6 +24,7 @@
                        Stretch="Uniform" Margin="8" Visibility="Collapsed"/>
 
                 <TextBlock x:Name="TitleText" Grid.Row="0" Grid.Column="0"
+                           Panel.ZIndex="1"
                            HorizontalAlignment="Center" VerticalAlignment="Center"
                            TextWrapping="Wrap" TextAlignment="Center" Padding="8"/>
             </Grid>

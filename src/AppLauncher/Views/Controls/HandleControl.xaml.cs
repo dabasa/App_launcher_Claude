@@ -15,6 +15,23 @@ public partial class HandleControl : UserControl
         Height = layout.HandleLongSide;
     }
 
+    public void SetOrientation(bool horizontal)
+    {
+        var layout = App.ConfigService.Current.Layout;
+        if (horizontal)
+        {
+            Width  = layout.HandleLongSide;
+            Height = layout.HandleShortSide;
+            HandleBorder.CornerRadius = new CornerRadius(layout.HandleShortSide / 2.0);
+        }
+        else
+        {
+            Width  = layout.HandleShortSide;
+            Height = layout.HandleLongSide;
+            HandleBorder.CornerRadius = new CornerRadius(layout.HandleCornerRadius);
+        }
+    }
+
     public void SetAppearance(string colorName, int transparencyPercent)
     {
         var color = ColorPalette.GetColor(colorName);
