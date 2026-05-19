@@ -31,8 +31,8 @@
         <!-- ─── 行0：プレビュー（左）＋ モード名ラベル（右） ──────────────── -->
         <Grid Grid.Row="0" Margin="16,12,16,8">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <!-- プレビュータイル（2×1 = 200×96 px） -->
@@ -40,7 +40,7 @@
                     Grid.Column="0"
                     Width="200" Height="96"
                     CornerRadius="10"
-                    HorizontalAlignment="Left">
+                    BorderBrush="Black" BorderThickness="1">
                 <TextBlock x:Name="PreviewName"
                            Foreground="White"
                            FontSize="16"
@@ -52,12 +52,12 @@
 
             <!-- モード名ラベル -->
             <TextBlock Grid.Column="1"
-                       Text="ページ設定"
+                       Text="ページ編集"
                        FontSize="14"
                        FontWeight="Bold"
                        Foreground="White"
-                       VerticalAlignment="Top"
-                       HorizontalAlignment="Right"/>
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
         </Grid>
 
         <!-- ─── 行1：設定フォーム ──────────────────────────────────────────── -->

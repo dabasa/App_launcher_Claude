@@ -399,6 +399,7 @@ public partial class TileGridControl : UserControl
             }
         }
 
+        string finalImagePath = isImage ? path : iconPath;
         return new TileViewModel(new TileConfig
         {
             Col      = col,    Row      = row,
@@ -409,8 +410,9 @@ public partial class TileGridControl : UserControl
             Args     = args,
             WorkDir  = workDir,
             Color    = "blue", Opacity  = 20,
-            FontSizePt   = 16, FontColor = "white",
-            ImagePath    = isImage ? path : iconPath,
+            FontSizePt   = string.IsNullOrEmpty(finalImagePath) ? 16 : 8,
+            FontColor    = "white",
+            ImagePath    = finalImagePath,
             ImagePosition = "top",
         });
     }

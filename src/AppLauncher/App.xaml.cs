@@ -46,6 +46,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        LauncherViewModel?.ForceSave();
         _trayIconService?.Dispose();
         base.OnExit(e);
     }

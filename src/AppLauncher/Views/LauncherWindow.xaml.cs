@@ -197,6 +197,21 @@ public partial class LauncherWindow : Window
         if (menu == null) return;
         menu.PlacementTarget = this;
         menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+        RoutedEventHandler? onClosed = null;
+        onClosed = (_, _) =>
+        {
+            menu.Closed -= onClosed;
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, new Action(() =>
+            {
+                // ContextMenu が Mouse.Capture(menu, SubTree) を設定したまま残すことがある
+                // → キャプチャを解放してから Frame のヒットテストを確実に有効化する
+                Mouse.Capture(null);
+                Keyboard.ClearFocus();
+                Frame.IsHitTestVisible = true;
+                Activate();
+            }));
+        };
+        menu.Closed += onClosed;
         menu.IsOpen = true;
         e.Handled = true;
     }

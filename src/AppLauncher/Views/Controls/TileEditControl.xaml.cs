@@ -1,9 +1,13 @@
+using System.ComponentModel;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using AppLauncher.Helpers;
 using AppLauncher.Models;
+using AppLauncher.ViewModels;
 
 namespace AppLauncher.Views.Controls;
 
@@ -56,9 +60,12 @@ public partial class TileEditControl : UserControl
         new("center", "中心"),
     ];
 
+    private TileEditViewModel? _subscribedTileVm;
+
     public TileEditControl()
     {
         InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
 
         TypeCombo.ItemsSource       = TileTypes;
         TypeCombo.DisplayMemberPath = nameof(ValueItem.Display);
@@ -98,7 +105,135 @@ public partial class TileEditControl : UserControl
         CancelButton.MouseLeftButtonUp += (_, _) => App.LauncherViewModel?.CloseTileEditCommand.Execute(null);
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e) => ApplyUiElementColor();
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        ApplyUiElementColor();
+        if (DataContext is LauncherViewModel vm)
+            SubscribeToTileVm(vm.EditingTileVm);
+    }
+
+    private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.OldValue is LauncherViewModel oldVm)
+            oldVm.PropertyChanged -= OnLauncherVmPropertyChanged;
+        if (e.NewValue is LauncherViewModel newVm)
+        {
+            newVm.PropertyChanged += OnLauncherVmPropertyChanged;
+            SubscribeToTileVm(newVm.EditingTileVm);
+        }
+    }
+
+    private void OnLauncherVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(LauncherViewModel.EditingTileVm) && sender is LauncherViewModel vm)
+            SubscribeToTileVm(vm.EditingTileVm);
+    }
+
+    private void SubscribeToTileVm(TileEditViewModel? vm)
+    {
+        if (_subscribedTileVm != null)
+            _subscribedTileVm.PropertyChanged -= OnTileVmPropertyChanged;
+        _subscribedTileVm = vm;
+        if (vm != null)
+        {
+            vm.PropertyChanged += OnTileVmPropertyChanged;
+            UpdatePreviewImage();
+        }
+    }
+
+    private void OnTileVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(TileEditViewModel.ImagePath)
+                           or nameof(TileEditViewModel.ImagePosition)
+                           or nameof(TileEditViewModel.ImageTransparent))
+            UpdatePreviewImage();
+    }
+
+    private void UpdatePreviewImage()
+    {
+        var vm = _subscribedTileVm;
+        if (vm == null || PreviewImage == null) return;
+
+        string? path = vm.ImagePath;
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            PreviewImage.Visibility = Visibility.Collapsed;
+            ArrangePreviewImageAndText("top");
+            return;
+        }
+
+        try
+        {
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.UriSource   = new Uri(path, UriKind.Absolute);
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.EndInit();
+            PreviewImage.Source     = bmp;
+            PreviewImage.Opacity    = vm.ImageTransparent ? 0.4 : 1.0;
+            PreviewImage.Visibility = Visibility.Visible;
+        }
+        catch
+        {
+            PreviewImage.Visibility = Visibility.Collapsed;
+        }
+
+        ArrangePreviewImageAndText(vm.ImagePosition ?? "top");
+    }
+
+    private void ArrangePreviewImageAndText(string position)
+    {
+        Grid.SetRowSpan(PreviewImage, 1);
+        Grid.SetColumnSpan(PreviewImage, 1);
+        Grid.SetRowSpan(PreviewText, 1);
+        Grid.SetColumnSpan(PreviewText, 1);
+
+        switch (position)
+        {
+            case "bottom":
+                PreviewRow0.Height = new GridLength(1, GridUnitType.Star);
+                PreviewRow1.Height = new GridLength(2, GridUnitType.Star);
+                PreviewCol0.Width  = new GridLength(1, GridUnitType.Star);
+                PreviewCol1.Width  = new GridLength(0);
+                Grid.SetRow(PreviewImage, 1); Grid.SetColumn(PreviewImage, 0);
+                Grid.SetRow(PreviewText,  0); Grid.SetColumn(PreviewText,  0);
+                break;
+            case "left":
+                PreviewRow0.Height = new GridLength(1, GridUnitType.Star);
+                PreviewRow1.Height = new GridLength(0);
+                PreviewCol0.Width  = new GridLength(1, GridUnitType.Star);
+                PreviewCol1.Width  = new GridLength(1, GridUnitType.Star);
+                Grid.SetRow(PreviewImage, 0); Grid.SetColumn(PreviewImage, 0);
+                Grid.SetRow(PreviewText,  0); Grid.SetColumn(PreviewText,  1);
+                break;
+            case "right":
+                PreviewRow0.Height = new GridLength(1, GridUnitType.Star);
+                PreviewRow1.Height = new GridLength(0);
+                PreviewCol0.Width  = new GridLength(1, GridUnitType.Star);
+                PreviewCol1.Width  = new GridLength(1, GridUnitType.Star);
+                Grid.SetRow(PreviewImage, 0); Grid.SetColumn(PreviewImage, 1);
+                Grid.SetRow(PreviewText,  0); Grid.SetColumn(PreviewText,  0);
+                break;
+            case "center":
+                PreviewRow0.Height = new GridLength(1, GridUnitType.Star);
+                PreviewRow1.Height = new GridLength(0);
+                PreviewCol0.Width  = new GridLength(1, GridUnitType.Star);
+                PreviewCol1.Width  = new GridLength(0);
+                Grid.SetRowSpan(PreviewImage, 2); Grid.SetColumnSpan(PreviewImage, 2);
+                Grid.SetRowSpan(PreviewText,  2); Grid.SetColumnSpan(PreviewText,  2);
+                Grid.SetRow(PreviewImage, 0); Grid.SetColumn(PreviewImage, 0);
+                Grid.SetRow(PreviewText,  0); Grid.SetColumn(PreviewText,  0);
+                break;
+            default: // "top"
+                PreviewRow0.Height = new GridLength(2, GridUnitType.Star);
+                PreviewRow1.Height = new GridLength(1, GridUnitType.Star);
+                PreviewCol0.Width  = new GridLength(1, GridUnitType.Star);
+                PreviewCol1.Width  = new GridLength(0);
+                Grid.SetRow(PreviewImage, 0); Grid.SetColumn(PreviewImage, 0);
+                Grid.SetRow(PreviewText,  1); Grid.SetColumn(PreviewText,  0);
+                break;
+        }
+    }
 
     public void ApplyUiElementColor()
     {

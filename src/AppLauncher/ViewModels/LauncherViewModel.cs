@@ -53,6 +53,7 @@ public partial class LauncherViewModel : ObservableObject
 
     private bool    _pinnedBeforeEdit;
     private AppMode _modeBeforeGlobalSettings = AppMode.Settings;
+    private AppMode _previousMode             = AppMode.Normal;
 
     private int _settingsPageIndex;
     public int SettingsPageIndex
@@ -96,8 +97,22 @@ public partial class LauncherViewModel : ObservableObject
 
     partial void OnModeChanged(AppMode value)
     {
+        // Edit モードから TileEdit/PageEdit 以外（=編集完了）へ遷移したとき保存
+        if (_previousMode == AppMode.Edit &&
+            value != AppMode.TileEdit && value != AppMode.PageEdit)
+        {
+            SyncPagesToConfig();
+            App.ConfigService.Save();
+        }
+        _previousMode = value;
         OnPropertyChanged(nameof(DisplayPage));
         OnPropertyChanged(nameof(PageNameFontSize));
+    }
+
+    public void ForceSave()
+    {
+        SyncPagesToConfig();
+        App.ConfigService.Save();
     }
 
     private void BuildSettingsPages()
@@ -283,6 +298,8 @@ public partial class LauncherViewModel : ObservableObject
         if (PendingDeleteTile == null) return;
         CurrentPage.Tiles.Remove(PendingDeleteTile);
         PendingDeleteTile = null;
+        SyncPagesToConfig();
+        App.ConfigService.Save();
     }
 
     [RelayCommand]
@@ -309,6 +326,8 @@ public partial class LauncherViewModel : ObservableObject
         int insertAt = CurrentPageIndex + 1;
         Pages.Insert(insertAt, new PageViewModel(cfg));
         CurrentPageIndex = insertAt;
+        SyncPagesToConfig();
+        App.ConfigService.Save();
     }
 
     [RelayCommand]
@@ -319,6 +338,8 @@ public partial class LauncherViewModel : ObservableObject
         int removed = CurrentPageIndex;
         CurrentPageIndex = removed > 0 ? removed - 1 : 0;
         Pages.RemoveAt(removed);
+        SyncPagesToConfig();
+        App.ConfigService.Save();
     }
 
     [RelayCommand]
@@ -328,6 +349,8 @@ public partial class LauncherViewModel : ObservableObject
         int i = CurrentPageIndex;
         (Pages[i], Pages[i - 1]) = (Pages[i - 1], Pages[i]);
         CurrentPageIndex = i - 1;
+        SyncPagesToConfig();
+        App.ConfigService.Save();
     }
 
     [RelayCommand]
@@ -337,5 +360,7 @@ public partial class LauncherViewModel : ObservableObject
         int i = CurrentPageIndex;
         (Pages[i], Pages[i + 1]) = (Pages[i + 1], Pages[i]);
         CurrentPageIndex = i + 1;
+        SyncPagesToConfig();
+        App.ConfigService.Save();
     }
 }

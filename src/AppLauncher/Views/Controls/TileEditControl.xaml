@@ -21,12 +21,29 @@
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Width="200" Height="96" CornerRadius="8"
-                    Background="{Binding EditingTileVm.PreviewBackground}">
-                <TextBlock Text="{Binding EditingTileVm.Title}"
-                           Foreground="{Binding EditingTileVm.PreviewForeground}"
-                           FontSize="{Binding EditingTileVm.PreviewFontSize}"
-                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                           TextWrapping="Wrap" TextAlignment="Center" Padding="8"/>
+                    Background="{Binding EditingTileVm.PreviewBackground}"
+                    BorderBrush="Black" BorderThickness="1"
+                    ClipToBounds="True">
+                <Grid x:Name="PreviewGrid">
+                    <Grid.RowDefinitions>
+                        <RowDefinition x:Name="PreviewRow0" Height="2*"/>
+                        <RowDefinition x:Name="PreviewRow1" Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition x:Name="PreviewCol0" Width="*"/>
+                        <ColumnDefinition x:Name="PreviewCol1" Width="0"/>
+                    </Grid.ColumnDefinitions>
+                    <Image x:Name="PreviewImage" Grid.Row="0" Grid.Column="0"
+                           Stretch="Uniform" Margin="4" Visibility="Collapsed"/>
+                    <TextBlock x:Name="PreviewText"
+                               Grid.Row="1" Grid.Column="0"
+                               Text="{Binding EditingTileVm.Title}"
+                               Foreground="{Binding EditingTileVm.PreviewForeground}"
+                               FontSize="{Binding EditingTileVm.PreviewFontSize}"
+                               Panel.ZIndex="1"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               TextWrapping="Wrap" TextAlignment="Center" Padding="4"/>
+                </Grid>
             </Border>
 
             <TextBlock Grid.Column="1" Text="タイル編集"
