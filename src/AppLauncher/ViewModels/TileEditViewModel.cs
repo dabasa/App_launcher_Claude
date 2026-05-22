@@ -52,9 +52,12 @@ public partial class TileEditViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(SiHasDeviceType))]
     [NotifyPropertyChangedFor(nameof(SiHasAccent))]
     [NotifyPropertyChangedFor(nameof(SiHasCircleFormat))]
+    [NotifyPropertyChangedFor(nameof(SiHasTarget))]
     private string _siCategory;
 
-    [ObservableProperty] private string _siDeviceType;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SiHasTarget))]
+    private string _siDeviceType;
     [ObservableProperty] private string _siTarget;
     [ObservableProperty] private string _siDisplayFormat;
     [ObservableProperty] private string _siMainColor;
@@ -79,7 +82,8 @@ public partial class TileEditViewModel : ObservableObject
     public bool HasSystemInfo => Type == "system";
     public bool SiHasDeviceType   => SiCategory == "usage";
     public bool SiHasAccent       => SiCategory is "storage" or "usage";
-    public bool SiHasCircleFormat => SiCategory is "storage" or "usage";
+    public bool SiHasCircleFormat => SiCategory == "storage" || (SiCategory == "usage" && SiDeviceType != "lan");
+    public bool SiHasTarget       => SiCategory == "storage" || (SiCategory == "usage" && SiDeviceType is "lan" or "gpu");
 
     // ─── プレビュー用計算プロパティ ────────────────────────────────────────
     public SolidColorBrush PreviewBackground

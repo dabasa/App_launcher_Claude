@@ -61,6 +61,15 @@
                     <TextBlock Text="✕" FontSize="11" Foreground="White"
                                HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Border>
+                <!-- コピーボタン（左下） -->
+                <Border x:Name="CopyButton"
+                        Width="22" Height="22"
+                        HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                        Margin="4" CornerRadius="4" Cursor="Hand"
+                        Background="#CC4499CC">
+                    <TextBlock Text="⊕" FontSize="13" Foreground="White"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
                 <!-- リサイズハンドル（右下） -->
                 <Border x:Name="ResizeHandle"
                         Width="16" Height="16"

@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using AppLauncher.Helpers;
 using AppLauncher.Models;
+using AppLauncher.Services;
 using AppLauncher.ViewModels;
 
 namespace AppLauncher.Views.Controls;
@@ -138,6 +139,7 @@ public partial class TileEditControl : UserControl
         {
             vm.PropertyChanged += OnTileVmPropertyChanged;
             UpdatePreviewImage();
+            UpdateSiTargetCombo();
         }
     }
 
@@ -147,6 +149,27 @@ public partial class TileEditControl : UserControl
                            or nameof(TileEditViewModel.ImagePosition)
                            or nameof(TileEditViewModel.ImageTransparent))
             UpdatePreviewImage();
+
+        if (e.PropertyName is nameof(TileEditViewModel.SiCategory)
+                           or nameof(TileEditViewModel.SiDeviceType))
+            UpdateSiTargetCombo();
+    }
+
+    private void UpdateSiTargetCombo()
+    {
+        var vm = _subscribedTileVm;
+        if (vm == null) return;
+
+        IEnumerable<string>? items = null;
+        if (vm.SiCategory == "storage")
+            items = SystemInfoService.GetDriveTargets();
+        else if (vm.SiCategory == "usage" && vm.SiDeviceType == "lan")
+            items = SystemInfoService.GetLanTargets();
+        else if (vm.SiCategory == "usage" && vm.SiDeviceType == "gpu")
+            items = SystemInfoService.GetGpuTargets();
+
+        if (items != null)
+            SiTargetCombo.ItemsSource = items.ToList();
     }
 
     private void UpdatePreviewImage()

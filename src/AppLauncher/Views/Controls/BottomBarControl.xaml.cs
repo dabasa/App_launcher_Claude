@@ -4,7 +4,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using AppLauncher.Models;
 using AppLauncher.ViewModels;
 
@@ -13,6 +15,15 @@ namespace AppLauncher.Views.Controls;
 public partial class BottomBarControl : UserControl
 {
     private LauncherViewModel? _vm;
+    private DispatcherTimer?   _dragSwitchTimer;
+    private int                _dragSwitchTargetIndex;
+
+    private static readonly BitmapImage ImgNormal   = LoadImage("mode01chg.png");
+    private static readonly BitmapImage ImgEdit      = LoadImage("mode02chg.png");
+    private static readonly BitmapImage ImgSettings  = LoadImage("mode03chg.png");
+
+    private static BitmapImage LoadImage(string fileName)
+        => new(new Uri($"pack://application:,,,/resources/image/{fileName}"));
 
     public BottomBarControl()
     {
@@ -69,7 +80,7 @@ public partial class BottomBarControl : UserControl
         bool isSettings = _vm.Mode is AppMode.Settings or AppMode.GlobalSettings;
         var layout      = App.ConfigService.Current.Layout;
 
-        // ─── モードボタン色 ───────────────────────────────────────────
+        // ─── モードボタン背景色 ＋ 画像切替 ──────────────────────────
         System.Windows.Media.Color modeColor;
         if (isEdit)
             modeColor = ColorPalette.GetColor("orange");
@@ -79,6 +90,7 @@ public partial class BottomBarControl : UserControl
             modeColor = ColorPalette.GetColor(_vm.CurrentPage.BackgroundColor);
         ModeButton.Background   = new SolidColorBrush(modeColor);
         ModeButton.CornerRadius = new CornerRadius(layout.SettingsButtonCornerRadius);
+        ModeButtonImage.Source  = isEdit ? ImgEdit : isSettings ? ImgSettings : ImgNormal;
 
         // ─── ページ編集ボタンは Edit モードのみ表示 ─────────────────
         PageEditButton.Visibility = isEdit ? Visibility.Visible : Visibility.Collapsed;
@@ -130,6 +142,26 @@ public partial class BottomBarControl : UserControl
         btn.IsHitTestVisible = active;
     }
 
+    private void StartDragSwitchTimer(int pageIndex)
+    {
+        StopDragSwitchTimer();
+        if (_vm == null || pageIndex == _vm.CurrentPageIndex) return;
+        _dragSwitchTargetIndex = pageIndex;
+        _dragSwitchTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
+        _dragSwitchTimer.Tick += (_, _) =>
+        {
+            StopDragSwitchTimer();
+            _vm?.NavigateToPageCommand.Execute(_dragSwitchTargetIndex);
+        };
+        _dragSwitchTimer.Start();
+    }
+
+    private void StopDragSwitchTimer()
+    {
+        _dragSwitchTimer?.Stop();
+        _dragSwitchTimer = null;
+    }
+
     private void RebuildIndicators()
     {
         if (_vm == null) return;
@@ -169,12 +201,12 @@ public partial class BottomBarControl : UserControl
 
             if (isCurrent)
             {
-                indicator.Children.Add(new Ellipse { Width = 18, Height = 18, Fill = brush });
+                indicator.Children.Add(new Ellipse { Width = 18, Height = 18, Fill = Brushes.White });
                 indicator.Children.Add(new Ellipse
                 {
                     Width               = 7,
                     Height              = 7,
-                    Fill                = Brushes.White,
+                    Fill                = new SolidColorBrush(Color.FromArgb(160, 0, 0, 0)),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment   = VerticalAlignment.Center,
                 });
@@ -185,10 +217,41 @@ public partial class BottomBarControl : UserControl
                 {
                     Width           = 18,
                     Height          = 18,
-                    Stroke          = brush,
+                    Stroke          = Brushes.White,
                     StrokeThickness = 2,
                     Fill            = Brushes.Transparent,
                 });
+            }
+
+            // ドラッグホバーでページ切り替え（通常モードのページのみ）
+            if (!isSettings)
+            {
+                var highlight = new Ellipse
+                {
+                    Width      = 18,
+                    Height     = 18,
+                    Fill       = new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)),
+                    Visibility = Visibility.Collapsed,
+                };
+                indicator.Children.Add(highlight);
+                indicator.AllowDrop = true;
+
+                int idx = pageIndex;
+                indicator.DragEnter += (_, _) =>
+                {
+                    highlight.Visibility = Visibility.Visible;
+                    StartDragSwitchTimer(idx);
+                };
+                indicator.DragLeave += (_, _) =>
+                {
+                    highlight.Visibility = Visibility.Collapsed;
+                    StopDragSwitchTimer();
+                };
+                indicator.Drop += (_, _) =>
+                {
+                    highlight.Visibility = Visibility.Collapsed;
+                    StopDragSwitchTimer();
+                };
             }
 
             IndicatorPanel.Children.Add(indicator);

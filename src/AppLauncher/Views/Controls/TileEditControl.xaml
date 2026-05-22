@@ -175,16 +175,16 @@
                                       SelectedValue="{Binding EditingTileVm.SiDeviceType, UpdateSourceTrigger=PropertyChanged}"
                                       SelectedValuePath="Value"/>
                         </Grid>
-                        <Grid Margin="0,4">
+                        <Grid Margin="0,4"
+                              Visibility="{Binding EditingTileVm.SiHasTarget, Converter={StaticResource BoolToVis}}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="90"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="対象" Foreground="#F0F0F0" VerticalAlignment="Center"/>
-                            <TextBox Grid.Column="1"
-                                     Text="{Binding EditingTileVm.SiTarget, UpdateSourceTrigger=PropertyChanged}"
-                                     Background="#30FFFFFF" Foreground="#F0F0F0"
-                                     BorderThickness="0,0,0,1" BorderBrush="#60F0F0F0" Padding="4,2"/>
+                            <ComboBox x:Name="SiTargetCombo" Grid.Column="1"
+                                      IsEditable="True"
+                                      Text="{Binding EditingTileVm.SiTarget, UpdateSourceTrigger=PropertyChanged}"/>
                         </Grid>
                         <Grid Margin="0,4"
                               Visibility="{Binding EditingTileVm.SiHasCircleFormat, Converter={StaticResource BoolToVis}}">

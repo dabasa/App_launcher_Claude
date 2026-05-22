@@ -27,6 +27,7 @@ public partial class TileControl : UserControl
 
     public event Action<TileViewModel>? EditRequested;
     public event Action<TileViewModel>? DeleteRequested;
+    public event Action<TileViewModel>? CopyRequested;
     public event Action<TileViewModel, MouseButtonEventArgs>? ResizeStarted;
 
     public TileControl()
@@ -34,6 +35,7 @@ public partial class TileControl : UserControl
         InitializeComponent();
         EditButton.MouseLeftButtonUp     += OnEditButtonClick;
         DeleteButton.MouseLeftButtonUp   += OnDeleteButtonClick;
+        CopyButton.MouseLeftButtonUp     += OnCopyButtonClick;
         ResizeHandle.MouseLeftButtonDown += OnResizeHandleMouseDown;
 
         AllowDrop = true;
@@ -229,6 +231,12 @@ public partial class TileControl : UserControl
     {
         e.Handled = true;
         if (_tile != null) DeleteRequested?.Invoke(_tile);
+    }
+
+    private void OnCopyButtonClick(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        if (_tile != null) CopyRequested?.Invoke(_tile);
     }
 
     private void OnResizeHandleMouseDown(object sender, MouseButtonEventArgs e)

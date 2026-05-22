@@ -19,8 +19,11 @@ public class ConfigService
 
     static ConfigService()
     {
-        string exeDir = AppDomain.CurrentDomain.BaseDirectory;
-        ConfigDir = Path.Combine(exeDir, "config");
+        // Program Files への書き込みを避けるため %APPDATA%\AppLauncher\ に保存
+        string appDataDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "AppLauncher");
+        ConfigDir  = appDataDir;
         ConfigPath = Path.Combine(ConfigDir, "config.json");
     }
 
@@ -65,9 +68,62 @@ public class ConfigService
 
 #if DEBUG_TILES
         pages[0].Tiles.AddRange(CreateDebugTiles());
+#else
+        pages[0].Tiles.AddRange(CreateSampleTiles());
 #endif
 
         return pages;
+    }
+
+    // リリース版の初期サンプルタイル（7件）
+    private static List<TileConfig> CreateSampleTiles()
+    {
+        string readmePath = Path.Combine(AppContext.BaseDirectory, "README.txt");
+        return
+        [
+            // 上段：システム情報 ＋ README
+            new() { Col=0, Row=0, ColSpan=1, RowSpan=1, Type="system",
+                    Title="CPU", Color="gray", Opacity=20,
+                    SystemInfo=new SystemInfoConfig
+                    {
+                        Category="usage", DeviceType="cpu",
+                        DisplayFormat="circle", MainColor="blue",
+                        AccentColor="orange", BackgroundAccent="red",
+                        Threshold=80, UpdateIntervalMs=2000,
+                    }},
+            new() { Col=1, Row=0, ColSpan=1, RowSpan=1, Type="system",
+                    Title="メモリ", Color="gray", Opacity=20,
+                    SystemInfo=new SystemInfoConfig
+                    {
+                        Category="usage", DeviceType="memory",
+                        DisplayFormat="text", MainColor="blue",
+                        AccentColor="orange", BackgroundAccent="red",
+                        Threshold=80, UpdateIntervalMs=5000,
+                    }},
+            new() { Col=2, Row=0, ColSpan=1, RowSpan=1, Type="system",
+                    Title="C: ドライブ", Color="gray", Opacity=20,
+                    SystemInfo=new SystemInfoConfig
+                    {
+                        Category="storage", Target="C:",
+                        DisplayFormat="text", MainColor="green",
+                        AccentColor="orange", BackgroundAccent="red",
+                        Threshold=80, UpdateIntervalMs=60000,
+                    }},
+            new() { Col=3, Row=0, ColSpan=1, RowSpan=1, Type="app",
+                    Title="README", Path="notepad.exe", Args=$"\"{readmePath}\"",
+                    Color="yellow", Opacity=20, FontSizePt=14 },
+
+            // 下段：フォルダ・アプリ
+            new() { Col=0, Row=1, ColSpan=1, RowSpan=1, Type="folder",
+                    Title="デスクトップ", Path=@"%USERPROFILE%\Desktop",
+                    Color="teal", Opacity=20, FontSizePt=14 },
+            new() { Col=1, Row=1, ColSpan=1, RowSpan=1, Type="folder",
+                    Title="ダウンロード", Path=@"%USERPROFILE%\Downloads",
+                    Color="blue", Opacity=20, FontSizePt=14 },
+            new() { Col=2, Row=1, ColSpan=1, RowSpan=1, Type="app",
+                    Title="メモ帳", Path="notepad.exe",
+                    Color="purple", Opacity=20, FontSizePt=14 },
+        ];
     }
 
 #if DEBUG_TILES

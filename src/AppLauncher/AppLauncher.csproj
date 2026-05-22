@@ -9,6 +9,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>..\resources\icons\app.ico</ApplicationIcon>
+    <!-- バージョン・メタ情報 -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Product>AppLauncher</Product>
+    <Description>アプリランチャー</Description>
+    <Copyright>Copyright © 2026 dabasa1942</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
@@ -16,8 +23,11 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>false</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,6 +40,10 @@
   <ItemGroup>
     <!-- タスクトレイアイコン -->
     <Resource Include="..\resources\icons\app.ico" Link="resources/icons/app.ico"/>
+    <!-- モード切替ボタン画像 -->
+    <Resource Include="..\resources\image\mode01chg.png" Link="resources/image/mode01chg.png"/>
+    <Resource Include="..\resources\image\mode02chg.png" Link="resources/image/mode02chg.png"/>
+    <Resource Include="..\resources\image\mode03chg.png" Link="resources/image/mode03chg.png"/>
   </ItemGroup>
 
 </Project>

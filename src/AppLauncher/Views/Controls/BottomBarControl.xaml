@@ -37,7 +37,9 @@
                 <!-- モード切替ボタン -->
                 <Border x:Name="ModeButton"
                         Width="32" Height="32"
-                        Cursor="Hand"/>
+                        Cursor="Hand">
+                    <Image x:Name="ModeButtonImage" Stretch="Uniform" Margin="3"/>
+                </Border>
             </StackPanel>
         </Grid>
 

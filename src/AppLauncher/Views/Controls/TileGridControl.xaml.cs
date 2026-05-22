@@ -16,6 +16,7 @@ namespace AppLauncher.Views.Controls;
 public partial class TileGridControl : UserControl
 {
     private TileViewModel? _resizingTile;
+    private TileViewModel? _copyingTile;
     private bool _modeSubscribed;
 
     // webview タイルはページ切替でも破棄しないためキャッシュする
@@ -26,12 +27,14 @@ public partial class TileGridControl : UserControl
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
 
-        TileGrid.DragOver  += OnTileGridDragOver;
-        TileGrid.DragLeave += (_, _) => HidePreview();
-        TileGrid.Drop      += OnTileGridDrop;
-        TileGrid.Drop      += OnTileGridFileDrop;
-        TileGrid.MouseMove += OnTileGridMouseMove;
-        TileGrid.MouseLeftButtonUp += OnTileGridMouseLeftButtonUp;
+        TileGrid.DragOver           += OnTileGridDragOver;
+        TileGrid.DragLeave          += (_, _) => HidePreview();
+        TileGrid.Drop               += OnTileGridDrop;
+        TileGrid.Drop               += OnTileGridFileDrop;
+        TileGrid.MouseMove          += OnTileGridMouseMove;
+        TileGrid.MouseLeave         += (_, _) => { if (_copyingTile != null) HidePreview(); };
+        TileGrid.MouseLeftButtonUp  += OnTileGridMouseLeftButtonUp;
+        TileGrid.MouseRightButtonUp += OnTileGridMouseRightButtonUp;
     }
 
     // ─── DataContext（ページ切り替え）────────────────────────────────
@@ -64,6 +67,7 @@ public partial class TileGridControl : UserControl
 
     private void Rebuild()
     {
+        ExitCopyMode();
         TileGrid.Children.Clear();
         TileGrid.ColumnDefinitions.Clear();
         TileGrid.RowDefinitions.Clear();
@@ -164,6 +168,7 @@ public partial class TileGridControl : UserControl
         ctrl.Apply(tile, cornerRadius, bgColor);
         ctrl.EditRequested   += OnTileEditRequested;
         ctrl.DeleteRequested += OnTileDeleteRequested;
+        ctrl.CopyRequested   += OnTileCopyRequested;
         ctrl.ResizeStarted   += OnTileResizeStarted;
         return ctrl;
     }
@@ -214,6 +219,20 @@ public partial class TileGridControl : UserControl
     private void CreateTileAt(int col, int row)
     {
         if (DataContext is not PageViewModel page) return;
+
+        if (_copyingTile != null)
+        {
+            // コピーモード：元タイルの設定を引き継いで 1×1 で配置
+            var cfg = _copyingTile.ToConfig();
+            cfg.Col     = col;
+            cfg.Row     = row;
+            cfg.ColSpan = 1;
+            cfg.RowSpan = 1;
+            page.Tiles.Add(new TileViewModel(cfg));
+            ExitCopyMode();
+            return;
+        }
+
         page.Tiles.Add(TileViewModel.CreateNew(col, row));
     }
 
@@ -222,6 +241,27 @@ public partial class TileGridControl : UserControl
 
     private void OnTileDeleteRequested(TileViewModel tile)
         => App.LauncherViewModel?.RequestDeleteTileCommand.Execute(tile);
+
+    private void OnTileCopyRequested(TileViewModel tile)
+    {
+        _copyingTile = tile;
+        TileGrid.Cursor = Cursors.Cross;
+    }
+
+    private void ExitCopyMode()
+    {
+        if (_copyingTile == null) return;
+        _copyingTile = null;
+        TileGrid.Cursor = null;
+        HidePreview();
+    }
+
+    private void OnTileGridMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_copyingTile == null) return;
+        ExitCopyMode();
+        e.Handled = true;
+    }
 
     // ─── リサイズ ──────────────────────────────────────────────────────
 
@@ -234,6 +274,13 @@ public partial class TileGridControl : UserControl
 
     private void OnTileGridMouseMove(object sender, MouseEventArgs e)
     {
+        if (_copyingTile != null)
+        {
+            var pos = e.GetPosition(TileGrid);
+            var (col, row) = PositionToCell(pos);
+            ShowPreview(col, row, 1, 1, CanPlace(col, row, 1, 1));
+            return;
+        }
         if (_resizingTile == null) return;
         var (cs, rs) = ComputeResizeSpan(e.GetPosition(TileGrid));
         bool valid = CanPlace(_resizingTile.Col, _resizingTile.Row, cs, rs, _resizingTile);
@@ -293,14 +340,27 @@ public partial class TileGridControl : UserControl
     private void OnTileGridDrop(object sender, DragEventArgs e)
     {
         HidePreview();
-        if (DataContext is not PageViewModel page) return;
+        if (DataContext is not PageViewModel destPage) return;
         if (e.Data.GetData(typeof(TileViewModel)) is not TileViewModel drag) return;
 
         var pos = e.GetPosition(TileGrid);
         var (col, row) = PositionToCell(pos);
 
-        // 同サイズタイルとの入れ替え
-        var target = page.Tiles.FirstOrDefault(t =>
+        // ページをまたいだ移動（ドラッグ中にページインジケーターで切り替えた場合）
+        var sourcePage = FindPageContaining(drag);
+        if (sourcePage != null && sourcePage != destPage)
+        {
+            if (!CanPlace(col, row, drag.ColSpan, drag.RowSpan)) return;
+            sourcePage.Tiles.Remove(drag);
+            drag.Col = col;
+            drag.Row = row;
+            destPage.Tiles.Add(drag);
+            Rebuild();
+            return;
+        }
+
+        // 同ページ内：同サイズタイルとの入れ替え
+        var target = destPage.Tiles.FirstOrDefault(t =>
             t != drag &&
             t.Col == col && t.Row == row &&
             t.ColSpan == drag.ColSpan && t.RowSpan == drag.RowSpan);
@@ -312,12 +372,15 @@ public partial class TileGridControl : UserControl
             return;
         }
 
-        // 通常移動
+        // 同ページ内：通常移動
         if (!CanPlace(col, row, drag.ColSpan, drag.RowSpan, drag)) return;
         drag.Col = col;
         drag.Row = row;
         Rebuild();
     }
+
+    private static PageViewModel? FindPageContaining(TileViewModel tile)
+        => App.LauncherViewModel?.Pages.FirstOrDefault(p => p.Tiles.Contains(tile));
 
     // ─── 編集モードでの外部ファイルドロップ → タイル自動作成 ────────────
 

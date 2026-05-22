@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -291,11 +292,13 @@ public partial class SystemTileControl : UserControl
     }
 
     // ─── データ取得・描画 ──────────────────────────────────────────────────
-    private void FetchAndUpdate()
+    private async void FetchAndUpdate()
     {
         if (_si == null || _tile == null) return;
-        var data = SystemInfoService.Instance.GetData(_si);
-        Render(data);
+        var si   = _si;
+        var data = await Task.Run(() => SystemInfoService.Instance.GetData(si));
+        // ページ切り替えで別タイルになっていたら破棄
+        if (_si == si) Render(data);
     }
 
     private void Render(SystemData data)
@@ -303,7 +306,7 @@ public partial class SystemTileControl : UserControl
         if (_si == null || _tile == null) return;
 
         bool isCircle = _si.DisplayFormat == "circle" &&
-                        _si.Category is "storage" or "usage";
+                        (_si.Category == "storage" || (_si.Category == "usage" && _si.DeviceType != "lan"));
 
         // アクセント切替
         var mainBrush = ColorPalette.GetBrush(

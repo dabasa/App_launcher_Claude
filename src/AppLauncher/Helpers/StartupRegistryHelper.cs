@@ -1,5 +1,5 @@
 using Microsoft.Win32;
-using System.Reflection;
+using System.Diagnostics;
 
 namespace AppLauncher.Helpers;
 
@@ -15,9 +15,9 @@ public static class StartupRegistryHelper
 
         if (enable)
         {
-            string? exePath = Assembly.GetExecutingAssembly().Location
-                .Replace(".dll", ".exe");
-            if (exePath != null)
+            // single-file publish でも正しく動作するよう Process.MainModule を使用
+            string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
+            if (!string.IsNullOrEmpty(exePath))
                 key.SetValue(AppName, $"\"{exePath}\"");
         }
         else
