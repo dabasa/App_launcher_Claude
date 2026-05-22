@@ -22,3 +22,10 @@ Thumbs.db
 
 # Claude Code local settings
 .claude/settings.json
+
+# ビルド成果物（Releases で配布するため git 管理不要）
+publish/
+installer/*.exe
+
+# デバッグシンボル（ソースパス情報を含むため除外）
+*.pdb
