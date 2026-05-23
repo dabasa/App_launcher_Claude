@@ -263,6 +263,12 @@ public partial class SystemTileControl : UserControl
             ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    protected override void OnMouseDoubleClick(MouseButtonEventArgs e)
+    {
+        base.OnMouseDoubleClick(e);
+        e.Handled = true;
+    }
+
     // ─── タイル移動 D&D ──────────────────────────────────────────────────
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {

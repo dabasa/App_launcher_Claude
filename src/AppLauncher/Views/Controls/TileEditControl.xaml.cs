@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using AppLauncher.Helpers;
 using AppLauncher.Models;
+using AppLauncher.Models.Config;
 using AppLauncher.Services;
 using AppLauncher.ViewModels;
 
@@ -140,6 +141,7 @@ public partial class TileEditControl : UserControl
             vm.PropertyChanged += OnTileVmPropertyChanged;
             UpdatePreviewImage();
             UpdateSiTargetCombo();
+            _ = RefreshSystemPreviewAsync();
         }
     }
 
@@ -153,6 +155,12 @@ public partial class TileEditControl : UserControl
         if (e.PropertyName is nameof(TileEditViewModel.SiCategory)
                            or nameof(TileEditViewModel.SiDeviceType))
             UpdateSiTargetCombo();
+
+        if (e.PropertyName is nameof(TileEditViewModel.Type)
+                           or nameof(TileEditViewModel.SiCategory)
+                           or nameof(TileEditViewModel.SiDeviceType)
+                           or nameof(TileEditViewModel.SiTarget))
+            _ = RefreshSystemPreviewAsync();
     }
 
     private void UpdateSiTargetCombo()
@@ -170,6 +178,36 @@ public partial class TileEditControl : UserControl
 
         if (items != null)
             SiTargetCombo.ItemsSource = items.ToList();
+    }
+
+    private async Task RefreshSystemPreviewAsync()
+    {
+        var vm = _subscribedTileVm;
+        if (vm?.Type != "system")
+        {
+            SystemPreviewText.Visibility = Visibility.Collapsed;
+            return;
+        }
+        var cfg = new SystemInfoConfig
+        {
+            Category   = vm.SiCategory,
+            DeviceType = vm.SiDeviceType,
+            Target     = vm.SiTarget,
+            Threshold  = vm.SiThreshold,
+        };
+        try
+        {
+            var data = await Task.Run(() => SystemInfoService.Instance.GetData(cfg));
+            if (_subscribedTileVm != vm) return;
+            SystemPreviewText.Text       = data.MainText;
+            SystemPreviewText.Visibility = Visibility.Visible;
+        }
+        catch
+        {
+            if (_subscribedTileVm != vm) return;
+            SystemPreviewText.Text       = "─";
+            SystemPreviewText.Visibility = Visibility.Visible;
+        }
     }
 
     private void UpdatePreviewImage()

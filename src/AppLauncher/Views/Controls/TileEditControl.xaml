@@ -43,6 +43,13 @@
                                Panel.ZIndex="1"
                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                TextWrapping="Wrap" TextAlignment="Center" Padding="4"/>
+                    <TextBlock x:Name="SystemPreviewText"
+                               Grid.Row="0" Grid.Column="0" Grid.RowSpan="2" Grid.ColumnSpan="2"
+                               Foreground="{Binding EditingTileVm.PreviewForeground}"
+                               FontSize="10" Panel.ZIndex="2"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               TextWrapping="Wrap" TextAlignment="Center" Padding="4"
+                               Visibility="Collapsed"/>
                 </Grid>
             </Border>
 

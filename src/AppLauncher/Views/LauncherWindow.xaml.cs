@@ -234,7 +234,8 @@ public partial class LauncherWindow : Window
         var dep = source as DependencyObject;
         while (dep != null)
         {
-            if (dep is TileControl or Button or RepeatButton or BottomBarControl) return true;
+            if (dep is TileControl or SystemTileControl or WebViewTileControl
+                     or Button or RepeatButton or BottomBarControl) return true;
             dep = VisualTreeHelper.GetParent(dep);
         }
         return false;
