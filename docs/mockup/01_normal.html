@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>通常モード - AppLauncher UI Mockup</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+    background: #0f1117;
+    color: #e0e0e0;
+}
+
+/* ─── Nav ─────────────────────────────────────── */
+.nav {
+    background: #1a1f2e;
+    border-bottom: 1px solid #2a3045;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+}
+.nav a { color: #8C9BAB; text-decoration: none; }
+.nav a:hover { color: #4A90D9; }
+.nav .sep { color: #3a4060; }
+.nav .current { color: #ffffff; font-weight: 600; }
+.nav-links { display: flex; gap: 6px; margin-left: auto; }
+.nav-links a {
+    padding: 4px 10px;
+    border-radius: 5px;
+    background: #2a3045;
+    color: #8C9BAB;
+    text-decoration: none;
+    font-size: 12px;
+    border: 1px solid #3a4060;
+}
+.nav-links a:hover { color: #4A90D9; border-color: #4A90D9; }
+.nav-links a.active { background: #4A90D9; color: #fff; border-color: #4A90D9; }
+
+/* ─── Layout ──────────────────────────────────── */
+.page-content {
+    display: flex;
+    gap: 40px;
+    padding: 32px 40px;
+    align-items: flex-start;
+}
+.mockup-area {
+    flex: 0 0 auto;
+}
+.annotations {
+    flex: 1;
+    min-width: 280px;
+}
+
+/* ─── Desktop Simulation ──────────────────────── */
+.desktop {
+    width: 750px;
+    height: 580px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    border-radius: 12px;
+    border: 1px solid #2a3045;
+    position: relative;
+    overflow: hidden;
+}
+/* Taskbar */
+.taskbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: rgba(26,31,46,0.95);
+    border-top: 1px solid #2a3045;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.taskbar-icon {
+    width: 32px;
+    height: 32px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+.taskbar-clock {
+    position: absolute;
+    right: 12px;
+    font-size: 12px;
+    color: #8C9BAB;
+}
+
+/* ─── Launcher Window ─────────────────────────── */
+.launcher-window {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%) translateY(-20px);
+    display: flex;
+    align-items: center;
+}
+
+.handle {
+    width: 15px;
+    height: 100px;
+    background: rgba(140,155,171,0.8);
+    border-radius: 10px;
+    border: 2px solid #000000;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+.handle-gap {
+    width: 8px;
+    flex-shrink: 0;
+}
+
+.launcher-frame {
+    background: rgba(140,155,171,0.7);
+    border-radius: 20px;
+    border: 2px solid #000000;
+    overflow: hidden;
+    /* width = 2*20 + 6*96 + 5*8 = 40+576+40 = 656, +border=660 */
+    width: 660px;
+}
+.launcher-frame.pinned {
+    border: 8px solid rgba(240,240,240,0.5);
+}
+
+/* Page name row */
+.page-name-row {
+    padding: 8px 20px;
+    text-align: center;
+}
+.page-name-text {
+    color: #F0F0F0;
+    font-size: 18.67px; /* 14pt × 4/3 */
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+/* Inline editing TextBox (hidden in normal mode) */
+.page-name-edit {
+    display: none;
+    background: transparent;
+    border: 0 0 1px 0;
+    border-bottom: 1px solid rgba(240,240,240,0.5);
+    color: #F0F0F0;
+    font-size: 18.67px;
+    text-align: center;
+    width: 100%;
+}
+
+/* Tile Grid */
+.tile-grid-wrapper {
+    padding: 0 20px;
+}
+.tile-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 96px);
+    grid-template-rows: repeat(4, 96px);
+    gap: 8px;
+}
+.tile {
+    width: 96px;
+    height: 96px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 10px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.1s;
+}
+.tile:hover { transform: scale(1.03); }
+.tile-icon {
+    font-size: 36px;
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.tile-label {
+    font-size: 11px;
+    color: #F0F0F0;
+    text-align: center;
+    word-break: break-all;
+    line-height: 1.2;
+    padding: 0 4px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+/* Left-layout tile: icon left, text right */
+.tile.layout-left {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 8px;
+    gap: 6px;
+    align-items: center;
+}
+.tile.layout-left .tile-icon {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    font-size: 32px;
+    flex-shrink: 0;
+}
+.tile.layout-left .tile-label {
+    font-size: 12px;
+}
+/* Span tiles */
+.tile.span-2-1 { grid-column: span 2; width: auto; }
+/* D&D overlay badge */
+.dnd-badge {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.5);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 10px;
+    color: #F0F0F0;
+    white-space: nowrap;
+    display: none;
+}
+.tile.dnd-mode .dnd-badge { display: block; }
+.tile.dnd-mode .tile-icon,
+.tile.dnd-mode .tile-label { opacity: 0.3; }
+
+/* System tile (circle graph) */
+.system-tile-inner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.system-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 8px solid rgba(240,240,240,0.2);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.system-circle::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 8px solid transparent;
+    border-top-color: #4A90D9;
+    border-right-color: #4A90D9;
+    transform: rotate(-90deg);
+}
+.system-pct {
+    font-size: 13px;
+    font-weight: 600;
+    color: #F0F0F0;
+}
+.system-label {
+    font-size: 10px;
+    color: rgba(240,240,240,0.75);
+    margin-top: 4px;
+}
+
+/* Bottom bar */
+.bottom-bar-wrapper {
+    padding: 8px 0 8px 0;
+}
+.bottom-bar-row1 {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+.page-indicators {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.page-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(240,240,240,0.4);
+    cursor: pointer;
+}
+.page-dot.active {
+    background: rgba(240,240,240,0.9);
+    width: 10px;
+    height: 10px;
+}
+.right-buttons {
+    position: absolute;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.mode-btn {
+    width: 32px;
+    height: 32px;
+    background: rgba(80,90,110,0.7);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+/* ─── Stored State ────────────────────────────── */
+.stored-window {
+    position: absolute;
+    right: 0;
+    top: 30%;
+    display: flex;
+    align-items: center;
+}
+
+/* ─── State Toggle ────────────────────────────── */
+.state-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 16px 40px 0;
+}
+.state-tab {
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: #2a3045;
+    color: #8C9BAB;
+    border: 1px solid #3a4060;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+}
+.state-tab.active {
+    background: #4A90D9;
+    color: #fff;
+    border-color: #4A90D9;
+}
+#desktop-normal { display: block; }
+#desktop-pinned { display: none; }
+#desktop-stored { display: none; }
+
+/* ─── Annotations ─────────────────────────────── */
+.annotations h2 {
+    font-size: 16px;
+    color: #fff;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #2a3045;
+}
+.annotation-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.ann-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #4A90D9;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.ann-body {}
+.ann-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 3px;
+}
+.ann-desc {
+    font-size: 12px;
+    color: #8C9BAB;
+    line-height: 1.6;
+}
+.ann-code {
+    display: inline-block;
+    background: #12161e;
+    border: 1px solid #2a3045;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: monospace;
+    font-size: 11px;
+    color: #4CAF72;
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+    <a href="index.html">一覧</a>
+    <span class="sep">›</span>
+    <span class="current">01 通常モード</span>
+    <div class="nav-links">
+        <a href="01_normal.html" class="active">01 通常</a>
+        <a href="02_edit_mode.html">02 編集</a>
+        <a href="03_tile_edit.html">03 タイル編集</a>
+        <a href="04_page_edit.html">04 ページ編集</a>
+        <a href="05_global_settings.html">05 全体設定</a>
+    </div>
+</nav>
+
+<div class="state-tabs">
+    <button class="state-tab active" onclick="showState('normal')">通常（展開）</button>
+    <button class="state-tab" onclick="showState('pinned')">ピン留め</button>
+    <button class="state-tab" onclick="showState('stored')">収納（ハンドルのみ）</button>
+</div>
+
+<div class="page-content">
+    <div class="mockup-area">
+
+        <!-- Normal / Pinned state -->
+        <div id="desktop-normal">
+            <div class="desktop">
+                <div class="taskbar">
+                    <div class="taskbar-icon">🪟</div>
+                    <div class="taskbar-icon">🔍</div>
+                    <div class="taskbar-icon">📁</div>
+                    <div class="taskbar-icon">🌐</div>
+                    <div class="taskbar-clock">15:30</div>
+                </div>
+                <div class="launcher-window" id="launcher-normal">
+                    <div class="handle"></div>
+                    <div class="handle-gap"></div>
+                    <div class="launcher-frame" id="frame-normal">
+                        <!-- Page name -->
+                        <div class="page-name-row">
+                            <div class="page-name-text">メイン</div>
+                        </div>
+                        <!-- Tile grid (6cols × 4rows) -->
+                        <div class="tile-grid-wrapper">
+                            <div class="tile-grid">
+                                <!-- Row 0 -->
+                                <div class="tile" style="background:rgba(74,144,217,0.8)">
+                                    <div class="tile-icon">🌐</div>
+                                    <div class="tile-label">Chrome</div>
+                                </div>
+                                <div class="tile" style="background:rgba(74,144,217,0.8)">
+                                    <div class="tile-icon">💻</div>
+                                    <div class="tile-label">VSCode</div>
+                                </div>
+                                <div class="tile" style="background:rgba(45,45,45,0.8)">
+                                    <div class="tile-icon">⬛</div>
+                                    <div class="tile-label">Terminal</div>
+                                </div>
+                                <div class="tile" style="background:rgba(240,194,51,0.8)">
+                                    <div class="tile-icon">📁</div>
+                                    <div class="tile-label">Explorer</div>
+                                </div>
+                                <div class="tile" style="background:rgba(140,155,171,0.8)">
+                                    <div class="tile-icon">⚙️</div>
+                                    <div class="tile-label">設定</div>
+                                </div>
+                                <div class="tile" style="background:rgba(43,181,160,0.8)">
+                                    <div class="tile-icon">🕐</div>
+                                    <div class="tile-label">時計</div>
+                                </div>
+                                <!-- Row 1 -->
+                                <div class="tile" style="background:rgba(232,132,58,0.8)">
+                                    <div class="tile-icon">🦊</div>
+                                    <div class="tile-label">Firefox</div>
+                                </div>
+                                <div class="tile" style="background:rgba(155,109,217,0.8)">
+                                    <div class="tile-icon">💬</div>
+                                    <div class="tile-label">Discord</div>
+                                </div>
+                                <div class="tile" style="background:rgba(232,104,162,0.8)">
+                                    <div class="tile-icon">💬</div>
+                                    <div class="tile-label">Slack</div>
+                                </div>
+                                <div class="tile" style="background:rgba(43,181,160,0.8)">
+                                    <div class="tile-icon">👥</div>
+                                    <div class="tile-label">Teams</div>
+                                </div>
+                                <div class="tile" style="background:rgba(74,144,217,0.8)">
+                                    <div class="tile-icon">🎥</div>
+                                    <div class="tile-label">Zoom</div>
+                                </div>
+                                <div class="tile" style="background:rgba(45,45,45,0.8)">
+                                    <div class="tile-icon">🎮</div>
+                                    <div class="tile-label">Steam</div>
+                                </div>
+                                <!-- Row 2 -->
+                                <div class="tile" style="background:rgba(240,194,51,0.8)">
+                                    <div class="tile-icon">📄</div>
+                                    <div class="tile-label">ドキュメント</div>
+                                </div>
+                                <div class="tile" style="background:rgba(76,175,114,0.8)">
+                                    <div class="tile-icon">⬇️</div>
+                                    <div class="tile-label">ダウンロード</div>
+                                </div>
+                                <div class="tile" style="background:rgba(43,181,160,0.8)">
+                                    <div class="tile-icon">🖼️</div>
+                                    <div class="tile-label">ピクチャ</div>
+                                </div>
+                                <div class="tile" style="background:rgba(155,109,217,0.8)">
+                                    <div class="tile-icon">🎵</div>
+                                    <div class="tile-label">ミュージック</div>
+                                </div>
+                                <div class="tile" style="background:rgba(232,104,162,0.8)">
+                                    <div class="tile-icon">📺</div>
+                                    <div class="tile-label">ビデオ</div>
+                                </div>
+                                <!-- Empty slot -->
+                                <div class="tile" style="background:transparent"></div>
+                                <!-- Row 3 -->
+                                <div class="tile" style="background:rgba(74,144,217,0.8);position:relative">
+                                    <div class="system-tile-inner">
+                                        <div class="system-circle"></div>
+                                        <div class="system-pct">42%</div>
+                                        <div class="system-label">CPU</div>
+                                    </div>
+                                </div>
+                                <div class="tile" style="background:rgba(76,175,114,0.8);position:relative">
+                                    <div class="system-tile-inner">
+                                        <div class="system-circle" style="border-top-color:#4CAF72;border-right-color:#4CAF72"></div>
+                                        <div class="system-pct">67%</div>
+                                        <div class="system-label">Memory</div>
+                                    </div>
+                                </div>
+                                <!-- Empty slots -->
+                                <div class="tile" style="background:transparent"></div>
+                                <div class="tile" style="background:transparent"></div>
+                                <div class="tile" style="background:transparent"></div>
+                                <!-- GlobalSettings tile (type=settings) -->
+                                <div class="tile" style="background:rgba(140,155,171,0.8)">
+                                    <div class="tile-icon">🔧</div>
+                                    <div class="tile-label">全体設定</div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Bottom bar -->
+                        <div class="bottom-bar-wrapper">
+                            <div class="bottom-bar-row1">
+                                <div class="page-indicators">
+                                    <div class="page-dot active"></div>
+                                    <div class="page-dot"></div>
+                                    <div class="page-dot"></div>
+                                </div>
+                                <div class="right-buttons">
+                                    <div class="mode-btn">✏️</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pinned state -->
+        <div id="desktop-pinned">
+            <div class="desktop">
+                <div class="taskbar">
+                    <div class="taskbar-icon">🪟</div>
+                    <div class="taskbar-icon">🔍</div>
+                    <div class="taskbar-icon">📁</div>
+                    <div class="taskbar-clock">15:30</div>
+                </div>
+                <div class="launcher-window">
+                    <div class="handle" style="background:rgba(240,240,240,0.5)"></div>
+                    <div class="handle-gap"></div>
+                    <div class="launcher-frame pinned">
+                        <div class="page-name-row">
+                            <div class="page-name-text">メイン</div>
+                        </div>
+                        <div class="tile-grid-wrapper">
+                            <div class="tile-grid">
+                                <div class="tile" style="background:rgba(74,144,217,0.8)"><div class="tile-icon">🌐</div><div class="tile-label">Chrome</div></div>
+                                <div class="tile" style="background:rgba(74,144,217,0.8)"><div class="tile-icon">💻</div><div class="tile-label">VSCode</div></div>
+                                <div class="tile" style="background:rgba(45,45,45,0.8)"><div class="tile-icon">⬛</div><div class="tile-label">Terminal</div></div>
+                                <div class="tile" style="background:rgba(240,194,51,0.8)"><div class="tile-icon">📁</div><div class="tile-label">Explorer</div></div>
+                                <div class="tile" style="background:rgba(140,155,171,0.8)"><div class="tile-icon">⚙️</div><div class="tile-label">設定</div></div>
+                                <div class="tile" style="background:rgba(43,181,160,0.8)"><div class="tile-icon">🕐</div><div class="tile-label">時計</div></div>
+                                <div class="tile" style="background:rgba(232,132,58,0.8)"><div class="tile-icon">🦊</div><div class="tile-label">Firefox</div></div>
+                                <div class="tile" style="background:rgba(155,109,217,0.8)"><div class="tile-icon">💬</div><div class="tile-label">Discord</div></div>
+                                <div class="tile" style="background:rgba(232,104,162,0.8)"><div class="tile-icon">💬</div><div class="tile-label">Slack</div></div>
+                                <div class="tile" style="background:rgba(43,181,160,0.8)"><div class="tile-icon">👥</div><div class="tile-label">Teams</div></div>
+                                <div class="tile" style="background:rgba(74,144,217,0.8)"><div class="tile-icon">🎥</div><div class="tile-label">Zoom</div></div>
+                                <div class="tile" style="background:rgba(45,45,45,0.8)"><div class="tile-icon">🎮</div><div class="tile-label">Steam</div></div>
+                                <div class="tile" style="background:rgba(240,194,51,0.8)"><div class="tile-icon">📄</div><div class="tile-label">ドキュメント</div></div>
+                                <div class="tile" style="background:rgba(76,175,114,0.8)"><div class="tile-icon">⬇️</div><div class="tile-label">ダウンロード</div></div>
+                                <div class="tile" style="background:rgba(43,181,160,0.8)"><div class="tile-icon">🖼️</div><div class="tile-label">ピクチャ</div></div>
+                                <div class="tile" style="background:rgba(155,109,217,0.8)"><div class="tile-icon">🎵</div><div class="tile-label">ミュージック</div></div>
+                                <div class="tile" style="background:rgba(232,104,162,0.8)"><div class="tile-icon">📺</div><div class="tile-label">ビデオ</div></div>
+                                <div class="tile" style="background:transparent"></div>
+                                <div class="tile" style="background:rgba(74,144,217,0.8);position:relative"><div class="system-tile-inner"><div class="system-circle"></div><div class="system-pct">42%</div><div class="system-label">CPU</div></div></div>
+                                <div class="tile" style="background:rgba(76,175,114,0.8);position:relative"><div class="system-tile-inner"><div class="system-circle" style="border-top-color:#4CAF72;border-right-color:#4CAF72"></div><div class="system-pct">67%</div><div class="system-label">Memory</div></div></div>
+                                <div class="tile" style="background:transparent"></div>
+                                <div class="tile" style="background:transparent"></div>
+                                <div class="tile" style="background:transparent"></div>
+                                <div class="tile" style="background:rgba(140,155,171,0.8)"><div class="tile-icon">🔧</div><div class="tile-label">全体設定</div></div>
+                            </div>
+                        </div>
+                        <div class="bottom-bar-wrapper">
+                            <div class="bottom-bar-row1">
+                                <div class="page-indicators">
+                                    <div class="page-dot active"></div>
+                                    <div class="page-dot"></div>
+                                    <div class="page-dot"></div>
+                                </div>
+                                <div class="right-buttons">
+                                    <div class="mode-btn">✏️</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stored state (only handle visible) -->
+        <div id="desktop-stored">
+            <div class="desktop" style="height:240px">
+                <div class="taskbar">
+                    <div class="taskbar-icon">🪟</div>
+                    <div class="taskbar-icon">🔍</div>
+                    <div class="taskbar-icon">📁</div>
+                    <div class="taskbar-clock">15:30</div>
+                </div>
+                <div class="stored-window">
+                    <!-- Only handle is visible when stored -->
+                    <div class="handle" style="cursor:pointer" title="マウスオーバーで展開"></div>
+                    <div class="handle-gap"></div>
+                    <!-- Frame is collapsed (not visible) -->
+                </div>
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:rgba(240,240,240,0.3);font-size:13px;pointer-events:none">
+                    フレームは収納されている<br>（ハンドルのみ表示）
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Annotations -->
+    <div class="annotations">
+        <h2>UI 要素の説明</h2>
+
+        <div class="annotation-item">
+            <div class="ann-num">1</div>
+            <div class="ann-body">
+                <div class="ann-title">ハンドル (HandleControl)</div>
+                <div class="ann-desc">
+                    幅 <span class="ann-code">15px</span>、高さ <span class="ann-code">100px</span>、
+                    角丸 <span class="ann-code">10px</span>、黒枠 <span class="ann-code">2px</span>。
+                    ページ設定の <code>HandleColor</code>・<code>HandleOpacity</code> で色を制御。
+                    ドラッグで画面移動、マウスオーバーで収納状態から展開。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">2</div>
+            <div class="ann-body">
+                <div class="ann-title">ギャップ (HandleFrameMargin)</div>
+                <div class="ann-desc">
+                    ハンドルとフレームの間 <span class="ann-code">8px</span> の透明ギャップ。
+                    AllowsTransparency=True ウィンドウのマウスリーブ誤検知を防ぐため
+                    α=1（視認不能）の Rectangle で覆っている。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">3</div>
+            <div class="ann-body">
+                <div class="ann-title">ランチャーフレーム (LauncherWindow › Border)</div>
+                <div class="ann-desc">
+                    角丸 <span class="ann-code">20px</span>、通常枠 <span class="ann-code">2px</span> 黒。
+                    背景色はページの <code>BackgroundColor</code>・<code>BackgroundOpacity</code>。
+                    内部は ClipToBounds=True。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">4</div>
+            <div class="ann-body">
+                <div class="ann-title">ページ名 (PageNameControl)</div>
+                <div class="ann-desc">
+                    上下マージン各 <span class="ann-code">8px</span>、左右マージン <span class="ann-code">20px</span>。
+                    ダブルクリックでインライン編集 TextBox に切り替え。
+                    フォントサイズは全体設定の <code>PageNameFontSizePt</code>（デフォルト14pt）。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">5</div>
+            <div class="ann-body">
+                <div class="ann-title">タイルグリッド (TileGridControl)</div>
+                <div class="ann-desc">
+                    左右マージン各 <span class="ann-code">20px</span>。タイルサイズ <span class="ann-code">96px</span>、
+                    ギャップ <span class="ann-code">8px</span>、角丸 <span class="ann-code">20px</span>。
+                    タイル種類: <strong>app</strong>（アプリ起動）、<strong>url</strong>、<strong>folder</strong>、
+                    <strong>system</strong>（システム情報）、<strong>settings</strong>（設定呼び出し）。
+                    ColSpan / RowSpan でタイルを複数セルに跨がせることができる。
+                    クリックで対応アプリ/URL/フォルダを起動。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">6</div>
+            <div class="ann-body">
+                <div class="ann-title">ボトムバー (BottomBarControl)</div>
+                <div class="ann-desc">
+                    通常モード高さ <span class="ann-code">32px</span>（編集時 <span class="ann-code">65px</span>）。
+                    中央: ページインジケーター（●＝現在ページ、○＝他ページ）。左右ページスワイプ対応。
+                    右端: モード切替ボタン（✏ = 編集モードへ）。
+                    ページ数分のドットが表示される。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num" style="background:#F0C233;color:#000">P</div>
+            <div class="ann-body">
+                <div class="ann-title">ピン留め状態（ピンモード）</div>
+                <div class="ann-desc">
+                    枠線が <span class="ann-code">2px → 8px</span> に拡大。
+                    枠色がページ設定の <code>PinFrameColor</code>（デフォルト: white 50%）に変化。
+                    ハンドルの色も <code>PinFrameColor</code> に変化。
+                    ピン中はマウスが離れても自動収納しない。
+                    タスクトレイアイコンのダブルクリックでもトグル可能。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num" style="background:#2D2D2D">S</div>
+            <div class="ann-body">
+                <div class="ann-title">収納状態（ストア）</div>
+                <div class="ann-desc">
+                    フレームが画面端に収納され、ハンドルのみが表示される。
+                    <code>StorageDelayMs</code> のタイマー後に自動収納。
+                    マウスがハンドルに触れると展開（スライドイン）。
+                </div>
+            </div>
+        </div>
+
+        <hr style="border:0;border-top:1px solid #2a3045;margin:20px 0">
+
+        <h2 style="margin-bottom:12px">吸着方向によるレイアウト変化</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <tr style="background:#1a1f2e">
+                <th style="padding:6px 10px;text-align:left;color:#8C9BAB;border:1px solid #2a3045">吸着位置</th>
+                <th style="padding:6px 10px;text-align:left;color:#8C9BAB;border:1px solid #2a3045">ハンドル位置</th>
+                <th style="padding:6px 10px;text-align:left;color:#8C9BAB;border:1px solid #2a3045">レイアウト</th>
+            </tr>
+            <tr>
+                <td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">right（デフォルト）</td>
+                <td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">左（Col 0）</td>
+                <td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">ハンドル | ギャップ | フレーム</td>
+            </tr>
+            <tr>
+                <td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">left</td>
+                <td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">右（Col 2）</td>
+                <td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">フレーム | ギャップ | ハンドル</td>
+            </tr>
+            <tr>
+                <td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">top</td>
+                <td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">下（Row 2）</td>
+                <td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">フレーム / ギャップ / ハンドル（縦）</td>
+            </tr>
+            <tr>
+                <td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">bottom</td>
+                <td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">上（Row 0）</td>
+                <td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">ハンドル / ギャップ / フレーム（縦）</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<script>
+function showState(state) {
+    document.getElementById('desktop-normal').style.display = 'none';
+    document.getElementById('desktop-pinned').style.display = 'none';
+    document.getElementById('desktop-stored').style.display = 'none';
+    document.getElementById('desktop-' + state).style.display = 'block';
+    document.querySelectorAll('.state-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

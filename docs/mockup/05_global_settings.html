@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>全体設定パネル - AppLauncher UI Mockup</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+    background: #0f1117;
+    color: #e0e0e0;
+}
+.nav {
+    background: #1a1f2e;
+    border-bottom: 1px solid #2a3045;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+}
+.nav a { color: #8C9BAB; text-decoration: none; }
+.nav a:hover { color: #4A90D9; }
+.nav .sep { color: #3a4060; }
+.nav .current { color: #ffffff; font-weight: 600; }
+.nav-links { display: flex; gap: 6px; margin-left: auto; }
+.nav-links a {
+    padding: 4px 10px;
+    border-radius: 5px;
+    background: #2a3045;
+    color: #8C9BAB;
+    text-decoration: none;
+    font-size: 12px;
+    border: 1px solid #3a4060;
+}
+.nav-links a:hover { color: #4A90D9; border-color: #4A90D9; }
+.nav-links a.active { background: #4A90D9; color: #fff; border-color: #4A90D9; }
+
+.page-content {
+    display: flex;
+    gap: 40px;
+    padding: 32px 40px;
+    align-items: flex-start;
+}
+
+/* ─── Launcher frame ──────────────────────────── */
+.launcher-outer { display: flex; align-items: center; }
+.handle {
+    width: 15px;
+    height: 100px;
+    background: rgba(140,155,171,0.8);
+    border-radius: 10px;
+    border: 2px solid #000;
+    flex-shrink: 0;
+}
+.handle-gap { width: 8px; flex-shrink: 0; }
+
+.launcher-frame {
+    background: rgba(140,155,171,0.7);
+    border-radius: 20px;
+    border: 2px solid #000;
+    overflow: hidden;
+    width: 660px;
+    height: 560px;
+    position: relative;
+}
+
+/* Global Settings panel */
+.global-settings-panel {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+.panel-header {
+    text-align: center;
+    padding: 12px 16px 8px;
+    font-size: 18.67px; /* linked to PageNameFontSizePt slider */
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+}
+
+/* Scroll area */
+.scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 10px 8px 0;
+}
+.scroll-area::-webkit-scrollbar { width: 6px; }
+.scroll-area::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+.scroll-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
+
+/* Form inner */
+.form-inner { padding: 0 16px; }
+
+/* Checkbox row */
+.check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0 4px;
+    cursor: pointer;
+}
+.check-box {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid rgba(240,240,240,0.7);
+    border-radius: 3px;
+    background: rgba(255,255,255,0.1);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: white;
+}
+.check-box.checked { background: rgba(74,144,217,0.8); border-color: #4A90D9; }
+.check-label { font-size: 13px; color: white; }
+
+/* Section label */
+.form-label-text {
+    font-size: 13px;
+    color: white;
+    margin: 8px 0 4px;
+    display: block;
+}
+
+/* Slider row */
+.slider-section { margin-bottom: 4px; }
+.slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+.slider-label {
+    font-size: 13px;
+    color: white;
+    flex-shrink: 0;
+}
+.slider-track {
+    width: 120px;
+    height: 5px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 3px;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.slider-thumb {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: white;
+    border-radius: 50%;
+    top: -5px;
+    transform: translateX(-50%);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    pointer-events: none;
+}
+.slider-value {
+    min-width: 24px;
+    font-size: 13px;
+    color: white;
+}
+
+/* Wide slider */
+.slider-wide { width: 200px; }
+
+/* Select */
+.form-select {
+    height: 26px;
+    background: white;
+    border: 1px solid #ccc;
+    color: #333;
+    padding: 0 6px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+/* Footer */
+.panel-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 8px 16px 12px;
+    flex-shrink: 0;
+}
+.panel-btn {
+    width: 80px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    color: white;
+    font-family: inherit;
+    background: rgba(80,90,110,0.85);
+}
+
+/* Section separator */
+.section-sep {
+    height: 1px;
+    background: rgba(255,255,255,0.15);
+    margin: 10px 0 4px;
+}
+
+/* Annotations */
+.annotations { flex: 1; min-width: 280px; }
+.annotations h2 {
+    font-size: 16px;
+    color: #fff;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #2a3045;
+}
+.annotation-item { display: flex; gap: 12px; margin-bottom: 14px; }
+.ann-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #8C9BAB;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.ann-title { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+.ann-desc { font-size: 12px; color: #8C9BAB; line-height: 1.6; }
+.ann-code {
+    display: inline-block;
+    background: #12161e;
+    border: 1px solid #2a3045;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: monospace;
+    font-size: 11px;
+    color: #4CAF72;
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+    <a href="index.html">一覧</a>
+    <span class="sep">›</span>
+    <span class="current">05 全体設定パネル</span>
+    <div class="nav-links">
+        <a href="01_normal.html">01 通常</a>
+        <a href="02_edit_mode.html">02 編集</a>
+        <a href="03_tile_edit.html">03 タイル編集</a>
+        <a href="04_page_edit.html">04 ページ編集</a>
+        <a href="05_global_settings.html" class="active">05 全体設定</a>
+    </div>
+</nav>
+
+<div class="page-content">
+    <div>
+        <div class="launcher-outer">
+            <div class="handle"></div>
+            <div class="handle-gap"></div>
+
+            <div class="launcher-frame">
+                <div class="global-settings-panel">
+
+                    <!-- Header (font size linked to PageNameFontSizePt) -->
+                    <div class="panel-header" id="header-text">全体設定</div>
+
+                    <!-- Scrollable form -->
+                    <div class="scroll-area">
+                        <div class="form-inner">
+
+                            <!-- タスクトレイ常駐 -->
+                            <div class="check-row" onclick="toggleCheck(this)">
+                                <div class="check-box checked">✓</div>
+                                <span class="check-label">タスクトレイ常駐</span>
+                            </div>
+
+                            <!-- Windows 起動時に自動起動 -->
+                            <div class="check-row" onclick="toggleCheck(this)">
+                                <div class="check-box">　</div>
+                                <span class="check-label">Windows 起動時に自動起動</span>
+                            </div>
+
+                            <!-- 常に前面に表示 -->
+                            <div class="check-row" onclick="toggleCheck(this)">
+                                <div class="check-box">　</div>
+                                <span class="check-label">常に前面に表示する</span>
+                            </div>
+
+                            <div class="section-sep"></div>
+
+                            <!-- タイル配置数 -->
+                            <span class="form-label-text">タイル配置数</span>
+                            <div class="slider-section">
+                                <div class="slider-row">
+                                    <span class="slider-label">横：</span>
+                                    <div class="slider-track" onclick="slideUpdate(event,this,'cols-val',4,16)">
+                                        <div class="slider-thumb" id="cols-thumb" style="left:33%"></div>
+                                    </div>
+                                    <span class="slider-value" id="cols-val">6</span>
+                                </div>
+                                <div class="slider-row">
+                                    <span class="slider-label">縦：</span>
+                                    <div class="slider-track" onclick="slideUpdate(event,this,'rows-val',4,16)">
+                                        <div class="slider-thumb" id="rows-thumb" style="left:0%"></div>
+                                    </div>
+                                    <span class="slider-value" id="rows-val">4</span>
+                                </div>
+                            </div>
+
+                            <div class="section-sep"></div>
+
+                            <!-- タイル間マージン -->
+                            <span class="form-label-text">タイル間マージン（px）</span>
+                            <div class="slider-row">
+                                <div class="slider-track slider-wide" onclick="slideUpdate(event,this,'margin-val',0,30)">
+                                    <div class="slider-thumb" id="margin-thumb" style="left:26.7%"></div>
+                                </div>
+                                <span class="slider-value" id="margin-val">8</span>
+                            </div>
+
+                            <div class="section-sep"></div>
+
+                            <!-- ページ名フォントサイズ -->
+                            <span class="form-label-text">ページ名フォントサイズ（pt）</span>
+                            <div class="slider-row">
+                                <div class="slider-track slider-wide" onclick="slideFontUpdate(event,this)">
+                                    <div class="slider-thumb" id="font-thumb" style="left:12.1%"></div>
+                                </div>
+                                <span class="slider-value" id="font-val">14</span>
+                            </div>
+
+                            <div class="section-sep"></div>
+
+                            <!-- 吸着位置 -->
+                            <span class="form-label-text">吸着位置</span>
+                            <select class="form-select" style="width:120px">
+                                <option selected>right</option>
+                                <option>left</option>
+                                <option>top</option>
+                                <option>bottom</option>
+                            </select>
+
+                            <!-- 接続モニター -->
+                            <span class="form-label-text">接続モニター</span>
+                            <select class="form-select" style="width:220px">
+                                <option>1: \\.\DISPLAY1 (1920×1080)</option>
+                                <option>2: \\.\DISPLAY2 (2560×1440)</option>
+                            </select>
+
+                            <div class="section-sep"></div>
+
+                            <!-- 収納待ち時間 -->
+                            <span class="form-label-text">収納待ち時間（ms）</span>
+                            <div class="slider-row">
+                                <div class="slider-track slider-wide" onclick="slideUpdate(event,this,'delay-val',0,3000)">
+                                    <div class="slider-thumb" id="delay-thumb" style="left:33.3%"></div>
+                                </div>
+                                <span class="slider-value" id="delay-val">1000</span>
+                            </div>
+
+                            <div style="height:8px"></div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="panel-footer">
+                        <button class="panel-btn">OK</button>
+                        <button class="panel-btn">キャンセル</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Annotations -->
+    <div class="annotations">
+        <h2>全体設定パネルの仕様</h2>
+
+        <div class="annotation-item">
+            <div class="ann-num">1</div>
+            <div class="ann-body">
+                <div class="ann-title">ヘッダー「全体設定」</div>
+                <div class="ann-desc">
+                    中央配置、FontWeight=Bold。フォントサイズはページ名フォントサイズスライダーに連動して
+                    リアルタイムプレビューされる（<span class="ann-code">PageNameFontSizePx = pt × 4/3</span>）。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">2</div>
+            <div class="ann-body">
+                <div class="ann-title">チェックボックス × 3</div>
+                <div class="ann-desc">
+                    <strong>タスクトレイ常駐</strong>: オンで最小化時にタスクトレイに格納。タスクトレイアイコンをダブルクリックでピン留めトグル。<br>
+                    <strong>Windows 起動時に自動起動</strong>: レジストリ <span class="ann-code">HKCU\...\Run</span> に登録/解除。<br>
+                    <strong>常に前面に表示する</strong>: ウィンドウの <span class="ann-code">Topmost</span> プロパティを制御。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">3</div>
+            <div class="ann-body">
+                <div class="ann-title">タイル配置数（横 / 縦）</div>
+                <div class="ann-desc">
+                    横・縦それぞれ <span class="ann-code">4〜16</span> のスライダー（1刻み）。
+                    OK 時、配置済みタイルの最大座標を下回らないよう自動補正される。<br>
+                    例: タイルが Col=5,ColSpan=1 にある場合、横は最低6以上に補正。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">4</div>
+            <div class="ann-body">
+                <div class="ann-title">タイル間マージン（px）</div>
+                <div class="ann-desc">
+                    <span class="ann-code">0〜30px</span>（1刻み）スライダー。
+                    LayoutConfig.TileMargin を更新。ウィンドウサイズが再計算される。
+                    デフォルト: <span class="ann-code">8px</span>。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">5</div>
+            <div class="ann-body">
+                <div class="ann-title">ページ名フォントサイズ（pt）</div>
+                <div class="ann-desc">
+                    <span class="ann-code">6〜72pt</span>（1刻み）スライダー。
+                    スライダー操作中、ヘッダーの「全体設定」テキストがプレビューサイズに追従する。
+                    px変換: <span class="ann-code">pt × 4/3</span>。デフォルト: <span class="ann-code">14pt → 18.67px</span>。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">6</div>
+            <div class="ann-body">
+                <div class="ann-title">吸着位置</div>
+                <div class="ann-desc">
+                    <span class="ann-code">right / left / top / bottom</span> から選択。
+                    OK 時に <code>SnapService.ApplySnap()</code> が呼ばれ即時反映。
+                    吸着位置・モニターが変わった場合は <span class="ann-code">preserveOrthogonal=false</span>。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">7</div>
+            <div class="ann-body">
+                <div class="ann-title">接続モニター</div>
+                <div class="ann-desc">
+                    接続中のモニター一覧からプルダウン選択。
+                    <span class="ann-code">SnapService.GetMonitorNames()</span> でリストを取得。
+                    選択モニターの端に吸着する。デフォルト: モニター1。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">8</div>
+            <div class="ann-body">
+                <div class="ann-title">収納待ち時間（ms）</div>
+                <div class="ann-desc">
+                    <span class="ann-code">0〜3000ms</span>（100刻み）スライダー。
+                    マウスがウィンドウから離れてからフレームが収納されるまでの待機時間。
+                    0ms で即時収納。デフォルト: <span class="ann-code">1000ms</span>。
+                </div>
+            </div>
+        </div>
+
+        <hr style="border:0;border-top:1px solid #2a3045;margin:20px 0">
+
+        <h2 style="margin-bottom:12px">GlobalConfig フィールド一覧</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <tr style="background:#1a1f2e">
+                <th style="padding:6px 10px;text-align:left;color:#8C9BAB;border:1px solid #2a3045">フィールド</th>
+                <th style="padding:6px 10px;text-align:left;color:#8C9BAB;border:1px solid #2a3045">型</th>
+                <th style="padding:6px 10px;text-align:left;color:#8C9BAB;border:1px solid #2a3045">範囲/デフォルト</th>
+            </tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">TaskTrayResident</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">bool</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">true</td></tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">StartWithWindows</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">bool</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">false</td></tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">AlwaysOnTop</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">bool</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">false</td></tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">TileCountCols</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">int</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">4〜16</td></tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">TileCountRows</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">int</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">4〜16</td></tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">PageNameFontSizePt</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">int</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">6〜72, 14</td></tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">SnapPosition</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">string</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">"right"</td></tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">SnapMonitor</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">int</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">1</td></tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">StorageDelayMs</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">int</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">0〜3000, 100刻み</td></tr>
+        </table>
+    </div>
+</div>
+
+<script>
+function toggleCheck(row) {
+    const box = row.querySelector('.check-box');
+    box.classList.toggle('checked');
+    box.textContent = box.classList.contains('checked') ? '✓' : '　';
+}
+
+function slideUpdate(e, el, valId, min, max) {
+    const rect = el.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const raw = min + ratio * (max - min);
+    const step = valId === 'delay-val' ? 100 : 1;
+    const val = Math.round(raw / step) * step;
+    const thumbId = valId.replace('-val', '-thumb');
+    document.getElementById(thumbId).style.left = ((val - min) / (max - min) * 100) + '%';
+    document.getElementById(valId).textContent = val;
+}
+
+function slideFontUpdate(e, el) {
+    const min = 6, max = 72;
+    const rect = el.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const val = Math.round(min + ratio * (max - min));
+    document.getElementById('font-thumb').style.left = ((val - min) / (max - min) * 100) + '%';
+    document.getElementById('font-val').textContent = val;
+    // Preview font size change in header
+    const px = val * 4 / 3;
+    document.getElementById('header-text').style.fontSize = px + 'px';
+}
+</script>
+</body>
+</html>

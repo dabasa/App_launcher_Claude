@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>AppLauncher UI仕様 モックアップ一覧</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+    background: #0f1117;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 32px;
+}
+header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 8px;
+}
+header p {
+    font-size: 14px;
+    color: #8C9BAB;
+}
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.card {
+    background: #1a1f2e;
+    border-radius: 12px;
+    border: 1px solid #2a3045;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.15s, border-color 0.15s;
+    display: block;
+}
+.card:hover {
+    transform: translateY(-3px);
+    border-color: #4A90D9;
+}
+.card-preview {
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 60px;
+    background: #12161e;
+    position: relative;
+    overflow: hidden;
+}
+/* Mini launcher preview in cards */
+.mini-launcher {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transform: scale(0.38);
+    transform-origin: center;
+    position: absolute;
+}
+.mini-handle {
+    width: 15px;
+    height: 80px;
+    background: rgba(140,155,171,0.8);
+    border-radius: 8px;
+    border: 1px solid #000;
+}
+.mini-frame {
+    width: 320px;
+    background: rgba(140,155,171,0.7);
+    border-radius: 14px;
+    border: 2px solid #000;
+    padding: 6px 12px;
+}
+.mini-page-name {
+    text-align: center;
+    color: #F0F0F0;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+.mini-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 38px);
+    gap: 3px;
+    margin-bottom: 6px;
+}
+.mini-tile {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+.mini-bottom {
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+.mini-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(240,240,240,0.5); }
+.mini-dot.active { background: rgba(240,240,240,0.9); }
+.card-body {
+    padding: 16px 20px 20px;
+}
+.card-num {
+    font-size: 11px;
+    font-weight: 600;
+    color: #4A90D9;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+.card-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 8px;
+}
+.card-desc {
+    font-size: 13px;
+    color: #8C9BAB;
+    line-height: 1.6;
+}
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+}
+.tag {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: #2a3045;
+    color: #8C9BAB;
+    border: 1px solid #3a4060;
+}
+.spec-table {
+    max-width: 800px;
+    margin: 48px auto 0;
+    background: #1a1f2e;
+    border-radius: 12px;
+    border: 1px solid #2a3045;
+    overflow: hidden;
+}
+.spec-table h2 {
+    padding: 20px 24px;
+    font-size: 16px;
+    border-bottom: 1px solid #2a3045;
+    color: #ffffff;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 10px 24px;
+    text-align: left;
+    font-size: 13px;
+    border-bottom: 1px solid #2a3045;
+}
+th {
+    background: #12161e;
+    color: #8C9BAB;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+td { color: #c0c8d8; }
+td:first-child { color: #ffffff; font-weight: 500; }
+tr:last-child td { border-bottom: none; }
+.color-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+}
+</style>
+</head>
+<body>
+<header>
+    <h1>AppLauncher UI仕様 モックアップ</h1>
+    <p>WPF アプリランチャー &mdash; 全画面状態の仕様一覧</p>
+</header>
+
+<div class="grid">
+    <!-- 01 Normal -->
+    <a class="card" href="01_normal.html">
+        <div class="card-preview">
+            <div class="mini-launcher">
+                <div class="mini-handle"></div>
+                <div style="width:6px"></div>
+                <div class="mini-frame">
+                    <div class="mini-page-name">メイン</div>
+                    <div class="mini-tile-grid">
+                        <div class="mini-tile" style="background:#4A90D9">🌐</div>
+                        <div class="mini-tile" style="background:#4CAF72">💻</div>
+                        <div class="mini-tile" style="background:#2D2D2D">⬛</div>
+                        <div class="mini-tile" style="background:#F0C233">📁</div>
+                        <div class="mini-tile" style="background:#8C9BAB">⚙️</div>
+                        <div class="mini-tile" style="background:#2BB5A0">🕐</div>
+                        <div class="mini-tile" style="background:#E8843A">🦊</div>
+                        <div class="mini-tile" style="background:#9B6DD9">💬</div>
+                        <div class="mini-tile" style="background:#E868A2">💬</div>
+                        <div class="mini-tile" style="background:#2BB5A0">👥</div>
+                        <div class="mini-tile" style="background:#4A90D9">🎥</div>
+                        <div class="mini-tile" style="background:#2D2D2D">🎮</div>
+                        <div class="mini-tile" style="background:#F0C233">📄</div>
+                        <div class="mini-tile" style="background:#4CAF72">⬇️</div>
+                        <div class="mini-tile" style="background:rgba(140,155,171,0.3);border:1px dashed rgba(255,255,255,0.3)"></div>
+                        <div class="mini-tile" style="background:rgba(140,155,171,0.3);border:1px dashed rgba(255,255,255,0.3)"></div>
+                        <div class="mini-tile" style="background:rgba(140,155,171,0.3);border:1px dashed rgba(255,255,255,0.3)"></div>
+                        <div class="mini-tile" style="background:rgba(140,155,171,0.3);border:1px dashed rgba(255,255,255,0.3)"></div>
+                        <div class="mini-tile" style="background:#4A90D9">🖥️</div>
+                        <div class="mini-tile" style="background:#4CAF72">💾</div>
+                        <div class="mini-tile" style="background:rgba(140,155,171,0.3);border:1px dashed rgba(255,255,255,0.3)"></div>
+                        <div class="mini-tile" style="background:rgba(140,155,171,0.3);border:1px dashed rgba(255,255,255,0.3)"></div>
+                        <div class="mini-tile" style="background:rgba(140,155,171,0.3);border:1px dashed rgba(255,255,255,0.3)"></div>
+                        <div class="mini-tile" style="background:#8C9BAB">⚙️</div>
+                    </div>
+                    <div class="mini-bottom">
+                        <div class="mini-dot active"></div>
+                        <div class="mini-dot"></div>
+                        <div class="mini-dot"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-num">画面 01</div>
+            <div class="card-title">通常モード</div>
+            <div class="card-desc">右吸着状態のランチャー。ハンドル・フレーム・タイルグリッド・ボトムバーで構成される基本レイアウト。ピン留め/収納状態も含む。</div>
+            <div class="tag-list">
+                <span class="tag">ハンドル</span>
+                <span class="tag">タイルグリッド</span>
+                <span class="tag">ページインジケーター</span>
+                <span class="tag">ピン留め</span>
+                <span class="tag">収納状態</span>
+            </div>
+        </div>
+    </a>
+
+    <!-- 02 Edit Mode -->
+    <a class="card" href="02_edit_mode.html">
+        <div class="card-preview">
+            <div class="mini-launcher">
+                <div class="mini-handle"></div>
+                <div style="width:6px"></div>
+                <div class="mini-frame" style="background:rgba(140,155,171,0.85)">
+                    <div class="mini-page-name">メイン</div>
+                    <div class="mini-tile-grid">
+                        <div class="mini-tile" style="background:#4A90D9;position:relative">🌐
+                            <div style="position:absolute;top:1px;right:1px;width:8px;height:8px;background:#E05252;border-radius:2px;font-size:5px;display:flex;align-items:center;justify-content:center;color:white">✕</div>
+                        </div>
+                        <div class="mini-tile" style="background:#4CAF72;position:relative">💻
+                            <div style="position:absolute;top:1px;right:1px;width:8px;height:8px;background:#E05252;border-radius:2px;font-size:5px;display:flex;align-items:center;justify-content:center;color:white">✕</div>
+                        </div>
+                        <div class="mini-tile" style="background:#2D2D2D;position:relative">⬛
+                            <div style="position:absolute;top:1px;right:1px;width:8px;height:8px;background:#E05252;border-radius:2px;font-size:5px;display:flex;align-items:center;justify-content:center;color:white">✕</div>
+                        </div>
+                        <div class="mini-tile" style="background:#F0C233">📁</div>
+                        <div class="mini-tile" style="background:#8C9BAB">⚙️</div>
+                        <div class="mini-tile" style="background:#2BB5A0">🕐</div>
+                        <div class="mini-tile" style="background:#E8843A">🦊</div>
+                        <div class="mini-tile" style="background:#9B6DD9">💬</div>
+                        <div class="mini-tile" style="background:#E868A2">💬</div>
+                        <div class="mini-tile" style="background:#2BB5A0">👥</div>
+                        <div class="mini-tile" style="background:#4A90D9">🎥</div>
+                        <div class="mini-tile" style="background:#2D2D2D">🎮</div>
+                        <div class="mini-tile" style="background:#F0C233">📄</div>
+                        <div class="mini-tile" style="background:#4CAF72">⬇️</div>
+                        <div class="mini-tile" style="background:rgba(255,255,255,0.15);border:1px dashed rgba(255,255,255,0.4);font-size:14px;color:rgba(255,255,255,0.5)">+</div>
+                        <div class="mini-tile" style="background:rgba(255,255,255,0.15);border:1px dashed rgba(255,255,255,0.4);font-size:14px;color:rgba(255,255,255,0.5)">+</div>
+                        <div class="mini-tile" style="background:rgba(255,255,255,0.15);border:1px dashed rgba(255,255,255,0.4);font-size:14px;color:rgba(255,255,255,0.5)">+</div>
+                        <div class="mini-tile" style="background:rgba(255,255,255,0.15);border:1px dashed rgba(255,255,255,0.4);font-size:14px;color:rgba(255,255,255,0.5)">+</div>
+                        <div class="mini-tile" style="background:#4A90D9">🖥️</div>
+                        <div class="mini-tile" style="background:#4CAF72">💾</div>
+                        <div class="mini-tile" style="background:rgba(255,255,255,0.15);border:1px dashed rgba(255,255,255,0.4);font-size:14px;color:rgba(255,255,255,0.5)">+</div>
+                        <div class="mini-tile" style="background:rgba(255,255,255,0.15);border:1px dashed rgba(255,255,255,0.4);font-size:14px;color:rgba(255,255,255,0.5)">+</div>
+                        <div class="mini-tile" style="background:rgba(255,255,255,0.15);border:1px dashed rgba(255,255,255,0.4);font-size:14px;color:rgba(255,255,255,0.5)">+</div>
+                        <div class="mini-tile" style="background:#8C9BAB">⚙️</div>
+                    </div>
+                    <div class="mini-bottom">
+                        <div class="mini-dot active"></div>
+                        <div class="mini-dot"></div>
+                        <div class="mini-dot"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-num">画面 02</div>
+            <div class="card-title">編集モード</div>
+            <div class="card-desc">タイルに編集/削除/コピー/リサイズボタンが表示。空きセルに「+」ボタン。ボトムバーにページ管理行が追加される。削除確認ダイアログも含む。</div>
+            <div class="tag-list">
+                <span class="tag">編集オーバーレイ</span>
+                <span class="tag">D&amp;D移動</span>
+                <span class="tag">リサイズ</span>
+                <span class="tag">ページ管理</span>
+                <span class="tag">削除確認</span>
+            </div>
+        </div>
+    </a>
+
+    <!-- 03 Tile Edit -->
+    <a class="card" href="03_tile_edit.html">
+        <div class="card-preview" style="background:#12161e">
+            <div style="width:300px;height:170px;background:rgba(140,155,171,0.85);border-radius:12px;border:2px solid #000;padding:10px;font-size:12px;color:#F0F0F0">
+                <div style="display:flex;gap:8px;margin-bottom:8px">
+                    <div style="width:80px;height:48px;background:#4A90D9;border-radius:5px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;font-size:10px">Chrome</div>
+                    <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">タイル編集</div>
+                </div>
+                <div style="border-top:1px solid rgba(255,255,255,0.3);padding-top:6px">
+                    <div style="margin-bottom:4px;display:flex;gap:6px;align-items:center">
+                        <span style="width:60px;font-size:10px;color:#ccc">タイトル</span>
+                        <div style="flex:1;height:16px;background:rgba(255,255,255,0.2);border-radius:2px"></div>
+                    </div>
+                    <div style="margin-bottom:4px;display:flex;gap:6px;align-items:center">
+                        <span style="width:60px;font-size:10px;color:#ccc">種類</span>
+                        <div style="flex:1;height:16px;background:rgba(255,255,255,0.2);border-radius:2px"></div>
+                    </div>
+                    <div style="display:flex;gap:6px;align-items:center">
+                        <span style="width:60px;font-size:10px;color:#ccc">カラー</span>
+                        <div style="flex:1;height:16px;background:rgba(255,255,255,0.2);border-radius:2px"></div>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px">
+                    <div style="width:48px;height:16px;background:rgba(140,155,171,0.8);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px">キャンセル</div>
+                    <div style="width:32px;height:16px;background:rgba(140,155,171,0.8);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px">OK</div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-num">画面 03</div>
+            <div class="card-title">タイル編集パネル</div>
+            <div class="card-desc">編集ボタン押下でフレーム全体を覆うオーバーレイ。プレビュー、基本/起動/見た目/システム情報の折りたたみセクション。OK/キャンセルで確定・破棄。</div>
+            <div class="tag-list">
+                <span class="tag">プレビュー</span>
+                <span class="tag">タイル種類</span>
+                <span class="tag">起動設定</span>
+                <span class="tag">見た目設定</span>
+                <span class="tag">システム情報</span>
+            </div>
+        </div>
+    </a>
+
+    <!-- 04 Page Edit -->
+    <a class="card" href="04_page_edit.html">
+        <div class="card-preview" style="background:#12161e">
+            <div style="width:300px;height:170px;background:rgba(140,155,171,0.85);border-radius:12px;border:2px solid #000;padding:10px;font-size:12px;color:#F0F0F0">
+                <div style="display:flex;gap:8px;margin-bottom:8px">
+                    <div style="width:80px;height:40px;background:rgba(140,155,171,0.8);border-radius:5px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px">メイン</div>
+                    <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">ページ編集</div>
+                </div>
+                <div style="border-top:1px solid rgba(255,255,255,0.3);padding-top:6px">
+                    <div style="margin-bottom:4px;font-size:10px;color:#ccc">背景色</div>
+                    <div style="height:16px;background:rgba(255,255,255,0.2);border-radius:2px;margin-bottom:6px"></div>
+                    <div style="margin-bottom:4px;font-size:10px;color:#ccc">背景不透明度（%）</div>
+                    <div style="height:6px;background:rgba(255,255,255,0.2);border-radius:3px;margin-bottom:6px;position:relative">
+                        <div style="position:absolute;left:30%;width:10px;height:10px;background:white;border-radius:50%;top:-2px"></div>
+                    </div>
+                    <div style="margin-bottom:4px;font-size:10px;color:#ccc">ハンドル色</div>
+                    <div style="height:16px;background:rgba(255,255,255,0.2);border-radius:2px"></div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px">
+                    <div style="width:32px;height:16px;background:rgba(140,155,171,0.8);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px">OK</div>
+                    <div style="width:48px;height:16px;background:rgba(140,155,171,0.8);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px">キャンセル</div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-num">画面 04</div>
+            <div class="card-title">ページ編集パネル</div>
+            <div class="card-desc">ページの背景色・不透明度、ハンドル色・不透明度、ピン枠色・不透明度を設定。カラーパレットはプルダウンから選択。リアルタイムプレビュー付き。</div>
+            <div class="tag-list">
+                <span class="tag">背景色</span>
+                <span class="tag">ハンドル色</span>
+                <span class="tag">ピン枠色</span>
+                <span class="tag">不透明度</span>
+            </div>
+        </div>
+    </a>
+
+    <!-- 05 Global Settings -->
+    <a class="card" href="05_global_settings.html">
+        <div class="card-preview" style="background:#12161e">
+            <div style="width:300px;height:170px;background:rgba(140,155,171,0.85);border-radius:12px;border:2px solid #000;padding:12px;font-size:12px;color:#F0F0F0;overflow:hidden">
+                <div style="text-align:center;font-size:14px;font-weight:700;margin-bottom:8px">全体設定</div>
+                <div style="font-size:10px;display:flex;flex-direction:column;gap:5px">
+                    <div style="display:flex;align-items:center;gap:6px">
+                        <div style="width:10px;height:10px;border:1.5px solid #fff;border-radius:2px;background:rgba(255,255,255,0.3)"></div>
+                        <span>タスクトレイ常駐</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px">
+                        <div style="width:10px;height:10px;border:1.5px solid #fff;border-radius:2px;background:rgba(255,255,255,0.3)"></div>
+                        <span>Windows 起動時に自動起動</span>
+                    </div>
+                    <div style="margin-top:2px;color:#ccc">タイル配置数（横/縦）</div>
+                    <div style="height:6px;background:rgba(255,255,255,0.2);border-radius:3px;position:relative">
+                        <div style="position:absolute;left:60%;width:10px;height:10px;background:white;border-radius:50%;top:-2px"></div>
+                    </div>
+                    <div style="color:#ccc">吸着位置</div>
+                    <div style="height:16px;background:rgba(255,255,255,0.2);border-radius:2px;width:80px"></div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px">
+                    <div style="width:32px;height:16px;background:rgba(140,155,171,0.8);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px">OK</div>
+                    <div style="width:48px;height:16px;background:rgba(140,155,171,0.8);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px">キャンセル</div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-num">画面 05</div>
+            <div class="card-title">全体設定パネル</div>
+            <div class="card-desc">タスクトレイ・起動・前面表示の3チェックボックス。タイル配置数/マージン/フォントサイズのスライダー。吸着位置・モニター選択のコンボボックス。</div>
+            <div class="tag-list">
+                <span class="tag">タスクトレイ</span>
+                <span class="tag">自動起動</span>
+                <span class="tag">タイル数</span>
+                <span class="tag">吸着位置</span>
+                <span class="tag">収納タイマー</span>
+            </div>
+        </div>
+    </a>
+
+    <!-- 既存: ランチャー想定図 -->
+    <a class="card" href="ランチャー想定図.html">
+        <div class="card-preview" style="background:#13131f;display:flex;align-items:center;justify-content:center">
+            <div style="text-align:center;color:#7eb4f8">
+                <div style="font-size:48px;margin-bottom:8px">📐</div>
+                <div style="font-size:13px;font-weight:600;color:#fff">ランチャー想定図</div>
+                <div style="font-size:11px;color:#7a7a9a;margin-top:4px">レイアウト寸法・数値定義</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-num" style="color:#7eb4f8">既存ドキュメント</div>
+            <div class="card-title">ランチャー想定図</div>
+            <div class="card-desc">ウィンドウ全体の配置・寸法を SVG で可視化した設計図。フレーム・ハンドル・タイルグリッドの数値定義を含む。</div>
+            <div class="tag-list">
+                <span class="tag">SVG図</span>
+                <span class="tag">寸法定義</span>
+                <span class="tag">レイアウト</span>
+            </div>
+        </div>
+    </a>
+</div>
+
+<!-- Color Palette & Layout Spec Table -->
+<div class="spec-table" style="margin-top:48px">
+    <h2>カラーパレット仕様</h2>
+    <table>
+        <tr><th>名前</th><th>HEX</th><th>用途例</th></tr>
+        <tr><td><span class="color-swatch" style="background:#4A90D9"></span>blue</td><td>#4A90D9</td><td>タイルデフォルト、システム情報</td></tr>
+        <tr><td><span class="color-swatch" style="background:#4CAF72"></span>green</td><td>#4CAF72</td><td>タイル、システム情報（メモリ）</td></tr>
+        <tr><td><span class="color-swatch" style="background:#9B6DD9"></span>purple</td><td>#9B6DD9</td><td>タイル</td></tr>
+        <tr><td><span class="color-swatch" style="background:#E8843A"></span>orange</td><td>#E8843A</td><td>タイル、アクセント色</td></tr>
+        <tr><td><span class="color-swatch" style="background:#E05252"></span>red</td><td>#E05252</td><td>タイル、削除ボタン</td></tr>
+        <tr><td><span class="color-swatch" style="background:#8C9BAB"></span>gray</td><td>#8C9BAB</td><td>タイル、ハンドル、フレーム背景（デフォルト）</td></tr>
+        <tr><td><span class="color-swatch" style="background:#2BB5A0"></span>teal</td><td>#2BB5A0</td><td>タイル</td></tr>
+        <tr><td><span class="color-swatch" style="background:#E868A2"></span>pink</td><td>#E868A2</td><td>タイル</td></tr>
+        <tr><td><span class="color-swatch" style="background:#F0C233"></span>yellow</td><td>#F0C233</td><td>タイル</td></tr>
+        <tr><td><span class="color-swatch" style="background:#2D2D2D"></span>black</td><td>#2D2D2D</td><td>タイル</td></tr>
+        <tr><td><span class="color-swatch" style="background:#F0F0F0;border-color:#555"></span>white</td><td>#F0F0F0</td><td>タイル、ピン枠色（デフォルト）</td></tr>
+    </table>
+</div>
+
+<div class="spec-table" style="margin-top:24px">
+    <h2>レイアウト設定デフォルト値</h2>
+    <table>
+        <tr><th>設定項目</th><th>デフォルト値</th><th>説明</th></tr>
+        <tr><td>TileSize</td><td>96 px</td><td>タイルの縦横サイズ</td></tr>
+        <tr><td>TileMargin</td><td>8 px</td><td>タイル間マージン</td></tr>
+        <tr><td>TileCornerRadius</td><td>20</td><td>タイルの角丸半径</td></tr>
+        <tr><td>TileSideMargin</td><td>20 px</td><td>タイルグリッドの左右マージン</td></tr>
+        <tr><td>HandleShortSide</td><td>15 px</td><td>ハンドルの短辺（幅）</td></tr>
+        <tr><td>HandleLongSide</td><td>100 px</td><td>ハンドルの長辺（高さ）</td></tr>
+        <tr><td>HandleCornerRadius</td><td>10</td><td>ハンドルの角丸半径</td></tr>
+        <tr><td>HandleFrameMargin</td><td>8 px</td><td>ハンドルとフレームの間隔</td></tr>
+        <tr><td>FrameCornerRadius</td><td>20</td><td>フレームの角丸半径</td></tr>
+        <tr><td>FrameBorderThickness</td><td>2 px</td><td>通常時のフレーム枠線</td></tr>
+        <tr><td>PinBorderThickness</td><td>8 px</td><td>ピン留め時のフレーム枠線</td></tr>
+        <tr><td>ScreenEdgeDistance</td><td>20 px</td><td>画面端からの吸着距離</td></tr>
+        <tr><td>BottomBarHeightNormal</td><td>32 px</td><td>通常モードのボトムバー高さ</td></tr>
+        <tr><td>BottomBarHeightEdit</td><td>65 px</td><td>編集モードのボトムバー高さ (25+8+32)</td></tr>
+    </table>
+</div>
+
+<p style="text-align:center;color:#4a5568;font-size:12px;margin-top:40px;padding-bottom:32px">
+    AppLauncher UI仕様 モックアップ &mdash; v1.0.0
+</p>
+</body>
+</html>

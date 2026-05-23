@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>タイル編集パネル - AppLauncher UI Mockup</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+    background: #0f1117;
+    color: #e0e0e0;
+}
+.nav {
+    background: #1a1f2e;
+    border-bottom: 1px solid #2a3045;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+}
+.nav a { color: #8C9BAB; text-decoration: none; }
+.nav a:hover { color: #4A90D9; }
+.nav .sep { color: #3a4060; }
+.nav .current { color: #ffffff; font-weight: 600; }
+.nav-links { display: flex; gap: 6px; margin-left: auto; }
+.nav-links a {
+    padding: 4px 10px;
+    border-radius: 5px;
+    background: #2a3045;
+    color: #8C9BAB;
+    text-decoration: none;
+    font-size: 12px;
+    border: 1px solid #3a4060;
+}
+.nav-links a:hover { color: #4A90D9; border-color: #4A90D9; }
+.nav-links a.active { background: #4A90D9; color: #fff; border-color: #4A90D9; }
+
+.page-content {
+    display: flex;
+    gap: 40px;
+    padding: 32px 40px;
+    align-items: flex-start;
+}
+
+/* ─── Launcher with TileEdit overlay ─────────────────── */
+.launcher-outer {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+.handle {
+    width: 15px;
+    height: 100px;
+    background: rgba(140,155,171,0.8);
+    border-radius: 10px;
+    border: 2px solid #000;
+    flex-shrink: 0;
+}
+.handle-gap { width: 8px; flex-shrink: 0; }
+
+.launcher-frame {
+    background: rgba(140,155,171,0.7);
+    border-radius: 20px;
+    border: 2px solid #000;
+    overflow: hidden;
+    width: 660px;
+    height: 560px; /* fixed height for this mockup */
+    position: relative;
+}
+
+/* TileEdit panel overlay (covers entire frame) */
+.tile-edit-panel {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 50;
+    /* inherits frame background color */
+}
+
+/* Section header (collapsible) */
+.section-header {
+    padding: 8px 0 6px 0;
+    border-bottom: 1px solid rgba(240,240,240,0.3);
+    margin-top: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    user-select: none;
+}
+.section-header:hover { opacity: 0.85; }
+.section-arrow { font-size: 12px; color: #F0F0F0; font-weight: 600; margin-right: 6px; }
+.section-title { font-size: 13px; color: #F0F0F0; font-weight: 600; }
+
+.section-content { margin: 6px 0 0; }
+.section-content.collapsed { display: none; }
+
+/* Form row */
+.form-row {
+    display: flex;
+    align-items: center;
+    margin: 4px 0;
+    gap: 0;
+}
+.form-label {
+    width: 90px;
+    font-size: 12px;
+    color: #F0F0F0;
+    flex-shrink: 0;
+}
+.form-input {
+    flex: 1;
+    height: 22px;
+    background: rgba(255,255,255,0.18);
+    border: 0;
+    border-bottom: 1px solid rgba(240,240,240,0.4);
+    color: #F0F0F0;
+    padding: 0 4px;
+    font-size: 12px;
+    font-family: inherit;
+}
+.form-input:focus { outline: none; border-bottom-color: #4A90D9; }
+.form-select {
+    flex: 1;
+    height: 22px;
+    background: white;
+    border: 1px solid #ccc;
+    color: #333;
+    padding: 0 4px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+}
+.form-browse {
+    width: 36px;
+    height: 22px;
+    margin-left: 4px;
+    background: rgba(80,90,110,0.8);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: white;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.form-slider {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 2px;
+    position: relative;
+    margin: 9px 0;
+    cursor: pointer;
+}
+.form-slider-thumb {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: white;
+    border-radius: 50%;
+    top: -5px;
+    left: 30%;
+    transform: translateX(-50%);
+}
+.form-slider-value {
+    width: 44px;
+    font-size: 12px;
+    color: #F0F0F0;
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+.form-checkbox {
+    width: 16px;
+    height: 16px;
+    margin-right: 0;
+}
+.color-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.color-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+/* Preview area */
+.preview-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 12px 4px;
+}
+.preview-tile {
+    width: 200px;
+    height: 96px;
+    border-radius: 8px;
+    background: rgba(74,144,217,0.8);
+    border: 1px solid #000;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 8px;
+    position: relative;
+    flex-shrink: 0;
+}
+.preview-tile-icon {
+    font-size: 40px;
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.preview-tile-label {
+    font-size: 13px;
+    color: #F0F0F0;
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.preview-mode-label {
+    flex: 1;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    color: #F0F0F0;
+}
+
+/* Scroll area */
+.scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 12px 4px 12px;
+    margin-right: 10px;
+}
+.scroll-area::-webkit-scrollbar { width: 6px; }
+.scroll-area::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+.scroll-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
+
+/* Footer buttons */
+.panel-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 4px 12px 12px;
+}
+.panel-btn {
+    width: 80px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: white;
+    font-family: inherit;
+}
+.btn-ok { background: rgba(80,90,110,0.85); }
+.btn-cancel { background: rgba(80,90,110,0.85); }
+
+/* State tab for type switch */
+.type-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 16px 40px 0;
+}
+.type-tab {
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: #2a3045;
+    color: #8C9BAB;
+    border: 1px solid #3a4060;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+}
+.type-tab.active { background: #4A90D9; color: #fff; border-color: #4A90D9; }
+
+/* Annotations */
+.annotations { flex: 1; min-width: 260px; }
+.annotations h2 {
+    font-size: 16px;
+    color: #fff;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #2a3045;
+}
+.annotation-item { display: flex; gap: 12px; margin-bottom: 14px; }
+.ann-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #4A90D9;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.ann-title { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+.ann-desc { font-size: 12px; color: #8C9BAB; line-height: 1.6; }
+.ann-code {
+    display: inline-block;
+    background: #12161e;
+    border: 1px solid #2a3045;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: monospace;
+    font-size: 11px;
+    color: #4CAF72;
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+    <a href="index.html">一覧</a>
+    <span class="sep">›</span>
+    <span class="current">03 タイル編集パネル</span>
+    <div class="nav-links">
+        <a href="01_normal.html">01 通常</a>
+        <a href="02_edit_mode.html">02 編集</a>
+        <a href="03_tile_edit.html" class="active">03 タイル編集</a>
+        <a href="04_page_edit.html">04 ページ編集</a>
+        <a href="05_global_settings.html">05 全体設定</a>
+    </div>
+</nav>
+
+<div class="type-tabs">
+    <button class="type-tab active" onclick="switchType('app')">type=app</button>
+    <button class="type-tab" onclick="switchType('system')">type=system</button>
+    <button class="type-tab" onclick="switchType('url')">type=url</button>
+</div>
+
+<div class="page-content">
+    <div>
+        <div class="launcher-outer">
+            <div class="handle"></div>
+            <div class="handle-gap"></div>
+
+            <div class="launcher-frame">
+                <!-- TileEdit panel covers the entire frame -->
+                <div class="tile-edit-panel">
+
+                    <!-- Header: Preview + Mode label -->
+                    <div class="preview-area">
+                        <div class="preview-tile" id="preview-tile">
+                            <div class="preview-tile-icon" id="preview-icon">🌐</div>
+                            <div class="preview-tile-label" id="preview-label">Chrome</div>
+                        </div>
+                        <div class="preview-mode-label">タイル編集</div>
+                    </div>
+
+                    <!-- Scrollable form sections -->
+                    <div class="scroll-area">
+
+                        <!-- 基本セクション -->
+                        <div class="section-header" onclick="toggleSection('basic')">
+                            <span class="section-arrow" id="arrow-basic">▲</span>
+                            <span class="section-title">基本</span>
+                        </div>
+                        <div class="section-content" id="content-basic">
+                            <div class="form-row">
+                                <div class="form-label">タイトル</div>
+                                <input class="form-input" type="text" value="Chrome" id="input-title" oninput="updatePreview()">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-label">種類</div>
+                                <select class="form-select" id="input-type" onchange="updateType()">
+                                    <option value="app">app（アプリ起動）</option>
+                                    <option value="url">url（ウェブ）</option>
+                                    <option value="folder">folder（フォルダ）</option>
+                                    <option value="system">system（システム情報）</option>
+                                    <option value="settings">settings（設定呼出）</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 起動セクション (app/url/folder) -->
+                        <div id="launch-section">
+                            <div class="section-header" onclick="toggleSection('launch')">
+                                <span class="section-arrow" id="arrow-launch">▲</span>
+                                <span class="section-title">起動</span>
+                            </div>
+                            <div class="section-content" id="content-launch">
+                                <div class="form-row">
+                                    <div class="form-label">パス/URL</div>
+                                    <input class="form-input" type="text" value="C:\Program Files\Google\Chrome\Application\chrome.exe">
+                                    <div class="form-browse">参照</div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-label">引数</div>
+                                    <input class="form-input" type="text" placeholder="例: --profile-directory=Default">
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-label">作業フォルダ</div>
+                                    <input class="form-input" type="text" placeholder="%USERPROFILE%">
+                                    <div class="form-browse">参照</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- システム情報セクション (system のみ) -->
+                        <div id="system-section" style="display:none">
+                            <div class="section-header" onclick="toggleSection('system')">
+                                <span class="section-arrow" id="arrow-system">▲</span>
+                                <span class="section-title">システム情報</span>
+                            </div>
+                            <div class="section-content" id="content-system">
+                                <div class="form-row">
+                                    <div class="form-label">カテゴリ</div>
+                                    <select class="form-select">
+                                        <option>usage（使用率）</option>
+                                        <option>temp（温度）</option>
+                                        <option>clock（クロック）</option>
+                                        <option>network（ネットワーク）</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-label">デバイス種別</div>
+                                    <select class="form-select">
+                                        <option>cpu</option>
+                                        <option>gpu</option>
+                                        <option>memory</option>
+                                        <option>disk</option>
+                                        <option>network</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-label">対象</div>
+                                    <select class="form-select" style="flex:none;width:120px">
+                                        <option>CPU(0)</option>
+                                        <option>CPU(1)</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-label">表示形式</div>
+                                    <select class="form-select">
+                                        <option>text（テキスト）</option>
+                                        <option>circle（円グラフ）</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-label">メインカラー</div>
+                                    <select class="form-select">
+                                        <option>blue</option>
+                                        <option>green</option>
+                                        <option>orange</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-label">アクセント</div>
+                                    <select class="form-select">
+                                        <option>orange</option>
+                                        <option>red</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-label">背景アクセント</div>
+                                    <select class="form-select">
+                                        <option>red</option>
+                                        <option>orange</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-label">基準値</div>
+                                    <input class="form-input" type="text" value="80">
+                                    <div style="font-size:12px;color:#F0F0F0;margin-left:4px;flex-shrink:0">%</div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-label">更新間隔</div>
+                                    <input class="form-input" type="text" value="60000">
+                                    <div style="font-size:12px;color:#F0F0F0;margin-left:4px;flex-shrink:0">ms</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 見た目セクション -->
+                        <div class="section-header" onclick="toggleSection('appearance')">
+                            <span class="section-arrow" id="arrow-appearance">▲</span>
+                            <span class="section-title">見た目</span>
+                        </div>
+                        <div class="section-content" id="content-appearance">
+                            <div class="form-row">
+                                <div class="form-label">カラー</div>
+                                <select class="form-select" id="input-color" onchange="updatePreview()">
+                                    <option value="#4A90D9">blue</option>
+                                    <option value="#4CAF72">green</option>
+                                    <option value="#9B6DD9">purple</option>
+                                    <option value="#E8843A">orange</option>
+                                    <option value="#E05252">red</option>
+                                    <option value="#8C9BAB">gray</option>
+                                    <option value="#2BB5A0">teal</option>
+                                    <option value="#E868A2">pink</option>
+                                    <option value="#F0C233">yellow</option>
+                                    <option value="#2D2D2D">black</option>
+                                    <option value="#F0F0F0">white</option>
+                                </select>
+                            </div>
+                            <div class="form-row" style="align-items:flex-start">
+                                <div class="form-label" style="padding-top:5px">透過率</div>
+                                <div class="form-slider">
+                                    <div class="form-slider-thumb" style="left:20%"></div>
+                                </div>
+                                <div class="form-slider-value">20%</div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-label">フォント名</div>
+                                <select class="form-select">
+                                    <option>（システムフォント）</option>
+                                    <option>Yu Gothic UI</option>
+                                    <option>Meiryo</option>
+                                    <option>Consolas</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-label">フォントサイズ</div>
+                                <input class="form-input" type="text" value="16">
+                                <div style="font-size:12px;color:#F0F0F0;margin-left:4px;flex-shrink:0">pt</div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-label">フォントカラー</div>
+                                <select class="form-select">
+                                    <option>white</option>
+                                    <option>black</option>
+                                    <option>blue</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-label">画像/アイコン</div>
+                                <input class="form-input" type="text" placeholder="（画像ファイルパス）">
+                                <div class="form-browse">参照</div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-label">表示位置</div>
+                                <select class="form-select">
+                                    <option>top（上: 画像上、テキスト下）</option>
+                                    <option>left（左: 画像左、テキスト右）</option>
+                                    <option>center（中央: 画像全面）</option>
+                                    <option>none（テキストのみ）</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-label">画像透過</div>
+                                <input type="checkbox" class="form-checkbox">
+                            </div>
+                        </div>
+
+                        <div style="height:12px"></div>
+                    </div>
+
+                    <!-- OK / Cancel buttons -->
+                    <div class="panel-footer">
+                        <button class="panel-btn btn-cancel">キャンセル</button>
+                        <button class="panel-btn btn-ok">OK</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Annotations -->
+    <div class="annotations">
+        <h2>タイル編集パネルの仕様</h2>
+
+        <div class="annotation-item">
+            <div class="ann-num">1</div>
+            <div class="ann-body">
+                <div class="ann-title">プレビューエリア</div>
+                <div class="ann-desc">
+                    左: タイルプレビュー（<span class="ann-code">200×96px</span>、角丸8px）。
+                    タイトル・カラー・フォントの変更がリアルタイムに反映される。<br>
+                    右: 「タイル編集」ラベル。<span class="ann-code">FontSize=15, SemiBold</span>。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">2</div>
+            <div class="ann-body">
+                <div class="ann-title">折りたたみセクション</div>
+                <div class="ann-desc">
+                    ▲/▼ でセクションを展開/折りたたみ。
+                    ヘッダーをクリックで切替。デフォルトはすべて展開。<br>
+                    種類（▲ 基本 / ▲ 起動 / ▲ 見た目）。type=system の場合のみ「システム情報」セクションが表示される。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">3</div>
+            <div class="ann-body">
+                <div class="ann-title">「起動」セクション（type≠system）</div>
+                <div class="ann-desc">
+                    <strong>app/folder</strong>: パス・引数・作業フォルダ（参照ボタン付き）<br>
+                    <strong>url</strong>: URL のみ（参照ボタンなし）<br>
+                    <strong>settings</strong>: パスに <span class="ann-code">settings://globalSettings</span> など<br>
+                    引数に <span class="ann-code">{drop}</span> を含む app は D&amp;D専用タイルとして動作。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">4</div>
+            <div class="ann-body">
+                <div class="ann-title">「システム情報」セクション（type=system）</div>
+                <div class="ann-desc">
+                    カテゴリ: <span class="ann-code">usage/temp/clock/network</span><br>
+                    デバイス種別: <span class="ann-code">cpu/gpu/memory/disk/network</span><br>
+                    表示形式: <span class="ann-code">text/circle</span>（circle は円グラフ）<br>
+                    基準値（%）超過時にアクセントカラーに変化。更新間隔は ms 単位。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">5</div>
+            <div class="ann-body">
+                <div class="ann-title">「見た目」セクション</div>
+                <div class="ann-desc">
+                    カラー: ColorPalette の11色からプルダウン選択（カラープレビュー付き）<br>
+                    透過率: <span class="ann-code">0〜90%</span> スライダー（0=不透明 / 90=ほぼ透明）<br>
+                    フォント名: システムフォント一覧から選択<br>
+                    フォントサイズ: pt 単位で直接入力<br>
+                    フォントカラー: ColorPalette から選択<br>
+                    画像/アイコン: ファイルパス＋参照ボタン<br>
+                    表示位置: <span class="ann-code">top/left/center/none</span><br>
+                    画像透過: チェックオンで画像の黒部分を透過処理
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">6</div>
+            <div class="ann-body">
+                <div class="ann-title">OK / キャンセル</div>
+                <div class="ann-desc">
+                    OK: 変更を config に反映してタイルを再描画（フォーカス移動後に UIを更新）<br>
+                    キャンセル: 変更を破棄してパネルを閉じる。<br>
+                    ボタン色はページ背景色を元に <code>ColorHelper.ComputeUiElementColor</code> で自動計算（HSL ±15%）。
+                </div>
+            </div>
+        </div>
+
+        <hr style="border:0;border-top:1px solid #2a3045;margin:20px 0">
+
+        <h2 style="margin-bottom:12px">タイル種類別の表示差分</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <tr style="background:#1a1f2e">
+                <th style="padding:6px 10px;text-align:left;color:#8C9BAB;border:1px solid #2a3045">type</th>
+                <th style="padding:6px 10px;text-align:left;color:#8C9BAB;border:1px solid #2a3045">起動セクション</th>
+                <th style="padding:6px 10px;text-align:left;color:#8C9BAB;border:1px solid #2a3045">システム情報</th>
+            </tr>
+            <tr>
+                <td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">app</td>
+                <td style="padding:6px 10px;color:#4CAF72;border:1px solid #2a3045">表示（参照ボタン付き）</td>
+                <td style="padding:6px 10px;color:#E05252;border:1px solid #2a3045">非表示</td>
+            </tr>
+            <tr>
+                <td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">url</td>
+                <td style="padding:6px 10px;color:#4CAF72;border:1px solid #2a3045">表示（URL のみ）</td>
+                <td style="padding:6px 10px;color:#E05252;border:1px solid #2a3045">非表示</td>
+            </tr>
+            <tr>
+                <td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">folder</td>
+                <td style="padding:6px 10px;color:#4CAF72;border:1px solid #2a3045">表示（参照ボタン付き）</td>
+                <td style="padding:6px 10px;color:#E05252;border:1px solid #2a3045">非表示</td>
+            </tr>
+            <tr>
+                <td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">system</td>
+                <td style="padding:6px 10px;color:#E05252;border:1px solid #2a3045">非表示</td>
+                <td style="padding:6px 10px;color:#4CAF72;border:1px solid #2a3045">表示</td>
+            </tr>
+            <tr>
+                <td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">settings</td>
+                <td style="padding:6px 10px;color:#4CAF72;border:1px solid #2a3045">表示（パスのみ）</td>
+                <td style="padding:6px 10px;color:#E05252;border:1px solid #2a3045">非表示</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<script>
+function toggleSection(name) {
+    const arrow = document.getElementById('arrow-' + name);
+    const content = document.getElementById('content-' + name);
+    const isOpen = !content.classList.contains('collapsed');
+    if (isOpen) {
+        content.classList.add('collapsed');
+        arrow.textContent = '▼';
+    } else {
+        content.classList.remove('collapsed');
+        arrow.textContent = '▲';
+    }
+}
+
+function updatePreview() {
+    const title = document.getElementById('input-title').value;
+    const color = document.getElementById('input-color').value;
+    const preview = document.getElementById('preview-tile');
+    const label = document.getElementById('preview-label');
+    preview.style.background = hexToRgba(color, 0.8);
+    label.textContent = title;
+}
+
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function updateType() {
+    const type = document.getElementById('input-type').value;
+    document.getElementById('launch-section').style.display = type === 'system' ? 'none' : '';
+    document.getElementById('system-section').style.display = type === 'system' ? '' : 'none';
+}
+
+function switchType(type) {
+    document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    const sel = document.getElementById('input-type');
+    sel.value = type;
+    updateType();
+}
+</script>
+</body>
+</html>

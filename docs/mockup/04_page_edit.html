@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ページ編集パネル - AppLauncher UI Mockup</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+    background: #0f1117;
+    color: #e0e0e0;
+}
+.nav {
+    background: #1a1f2e;
+    border-bottom: 1px solid #2a3045;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+}
+.nav a { color: #8C9BAB; text-decoration: none; }
+.nav a:hover { color: #4A90D9; }
+.nav .sep { color: #3a4060; }
+.nav .current { color: #ffffff; font-weight: 600; }
+.nav-links { display: flex; gap: 6px; margin-left: auto; }
+.nav-links a {
+    padding: 4px 10px;
+    border-radius: 5px;
+    background: #2a3045;
+    color: #8C9BAB;
+    text-decoration: none;
+    font-size: 12px;
+    border: 1px solid #3a4060;
+}
+.nav-links a:hover { color: #4A90D9; border-color: #4A90D9; }
+.nav-links a.active { background: #4A90D9; color: #fff; border-color: #4A90D9; }
+
+.page-content {
+    display: flex;
+    gap: 40px;
+    padding: 32px 40px;
+    align-items: flex-start;
+}
+
+/* ─── Launcher frame ──────────────────────────── */
+.launcher-outer {
+    display: flex;
+    align-items: center;
+}
+.handle {
+    width: 15px;
+    height: 100px;
+    background: rgba(140,155,171,0.8);
+    border-radius: 10px;
+    border: 2px solid #000;
+    flex-shrink: 0;
+}
+.handle-gap { width: 8px; flex-shrink: 0; }
+
+.launcher-frame {
+    border-radius: 20px;
+    border: 2px solid #000;
+    overflow: hidden;
+    width: 660px;
+    height: 500px;
+    position: relative;
+}
+
+/* Page edit panel */
+.page-edit-panel {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Preview row */
+.preview-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px 8px;
+}
+.preview-page-tile {
+    width: 200px;
+    height: 96px;
+    border-radius: 10px;
+    border: 1px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    flex-shrink: 0;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 0 12px;
+}
+.preview-mode-label {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+}
+
+/* Scroll area */
+.scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 10px 8px 0;
+    margin: 0 0 0 0;
+}
+.scroll-area::-webkit-scrollbar { width: 6px; }
+.scroll-area::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+.scroll-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
+
+/* Form layout */
+.form-section {
+    padding: 0 16px;
+}
+.form-label-text {
+    font-size: 13px;
+    color: white;
+    margin: 8px 0 4px;
+    display: block;
+}
+.form-select {
+    height: 28px;
+    background: white;
+    border: 1px solid #ccc;
+    color: #333;
+    padding: 0 6px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 3px;
+}
+.slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.slider-track {
+    flex: 1;
+    height: 5px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 3px;
+    max-width: 180px;
+    position: relative;
+    cursor: pointer;
+}
+.slider-thumb {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: white;
+    border-radius: 50%;
+    top: -5px;
+    transform: translateX(-50%);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+.slider-value {
+    width: 32px;
+    font-size: 13px;
+    color: white;
+    text-align: right;
+}
+
+/* Color option in select */
+.color-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.color-preview-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.3);
+    flex-shrink: 0;
+}
+
+/* Section separator */
+.section-sep {
+    height: 1px;
+    background: rgba(255,255,255,0.15);
+    margin: 12px 16px 0;
+}
+
+/* Footer */
+.panel-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 8px 16px 12px;
+}
+.panel-btn {
+    width: 80px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    color: white;
+    font-family: inherit;
+}
+
+/* Annotations */
+.annotations { flex: 1; min-width: 260px; }
+.annotations h2 {
+    font-size: 16px;
+    color: #fff;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #2a3045;
+}
+.annotation-item { display: flex; gap: 12px; margin-bottom: 14px; }
+.ann-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #4CAF72;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.ann-title { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+.ann-desc { font-size: 12px; color: #8C9BAB; line-height: 1.6; }
+.ann-code {
+    display: inline-block;
+    background: #12161e;
+    border: 1px solid #2a3045;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: monospace;
+    font-size: 11px;
+    color: #4CAF72;
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+    <a href="index.html">一覧</a>
+    <span class="sep">›</span>
+    <span class="current">04 ページ編集パネル</span>
+    <div class="nav-links">
+        <a href="01_normal.html">01 通常</a>
+        <a href="02_edit_mode.html">02 編集</a>
+        <a href="03_tile_edit.html">03 タイル編集</a>
+        <a href="04_page_edit.html" class="active">04 ページ編集</a>
+        <a href="05_global_settings.html">05 全体設定</a>
+    </div>
+</nav>
+
+<div class="page-content">
+    <div>
+        <div class="launcher-outer">
+            <div class="handle" id="handle-el" style="background:rgba(140,155,171,0.8)"></div>
+            <div class="handle-gap"></div>
+
+            <div class="launcher-frame" id="frame-el" style="background:rgba(140,155,171,0.7)">
+                <div class="page-edit-panel">
+
+                    <!-- Preview row -->
+                    <div class="preview-row">
+                        <div class="preview-page-tile" id="preview-tile" style="background:rgba(140,155,171,0.8)">
+                            メイン
+                        </div>
+                        <div class="preview-mode-label">ページ編集</div>
+                    </div>
+
+                    <!-- Form -->
+                    <div class="scroll-area">
+                        <div class="form-section">
+
+                            <!-- 背景色 -->
+                            <span class="form-label-text">背景色</span>
+                            <div class="color-row">
+                                <div class="color-preview-dot" id="bg-color-dot" style="background:#8C9BAB"></div>
+                                <select class="form-select" id="bg-color-select" style="width:160px" onchange="updateBgColor()">
+                                    <option value="#4A90D9">blue</option>
+                                    <option value="#4CAF72">green</option>
+                                    <option value="#9B6DD9">purple</option>
+                                    <option value="#E8843A">orange</option>
+                                    <option value="#E05252">red</option>
+                                    <option value="#8C9BAB" selected>gray</option>
+                                    <option value="#2BB5A0">teal</option>
+                                    <option value="#E868A2">pink</option>
+                                    <option value="#F0C233">yellow</option>
+                                    <option value="#2D2D2D">black</option>
+                                    <option value="#F0F0F0">white</option>
+                                </select>
+                            </div>
+
+                            <!-- 背景不透明度 -->
+                            <span class="form-label-text">背景不透明度（%）</span>
+                            <div class="slider-row">
+                                <div class="slider-track" onclick="updateBgOpacity(event, this)">
+                                    <div class="slider-thumb" id="bg-opacity-thumb" style="left:30%"></div>
+                                </div>
+                                <div class="slider-value" id="bg-opacity-val">30</div>
+                            </div>
+
+                            <div class="section-sep"></div>
+
+                            <!-- ハンドル色 -->
+                            <span class="form-label-text">ハンドル色</span>
+                            <div class="color-row">
+                                <div class="color-preview-dot" id="handle-color-dot" style="background:#8C9BAB"></div>
+                                <select class="form-select" id="handle-color-select" style="width:160px" onchange="updateHandleColor()">
+                                    <option value="#4A90D9">blue</option>
+                                    <option value="#4CAF72">green</option>
+                                    <option value="#9B6DD9">purple</option>
+                                    <option value="#E8843A">orange</option>
+                                    <option value="#E05252">red</option>
+                                    <option value="#8C9BAB" selected>gray</option>
+                                    <option value="#2BB5A0">teal</option>
+                                    <option value="#E868A2">pink</option>
+                                    <option value="#F0C233">yellow</option>
+                                    <option value="#2D2D2D">black</option>
+                                    <option value="#F0F0F0">white</option>
+                                </select>
+                            </div>
+
+                            <!-- ハンドル不透明度 -->
+                            <span class="form-label-text">ハンドル不透明度（%）</span>
+                            <div class="slider-row">
+                                <div class="slider-track" onclick="updateHandleOpacity(event, this)">
+                                    <div class="slider-thumb" id="handle-opacity-thumb" style="left:20%"></div>
+                                </div>
+                                <div class="slider-value" id="handle-opacity-val">20</div>
+                            </div>
+
+                            <div class="section-sep"></div>
+
+                            <!-- ピン枠色 -->
+                            <span class="form-label-text">ピン枠色</span>
+                            <div class="color-row">
+                                <div class="color-preview-dot" id="pin-color-dot" style="background:#F0F0F0;border-color:#8C9BAB"></div>
+                                <select class="form-select" id="pin-color-select" style="width:160px" onchange="updatePinColor()">
+                                    <option value="#4A90D9">blue</option>
+                                    <option value="#4CAF72">green</option>
+                                    <option value="#9B6DD9">purple</option>
+                                    <option value="#E8843A">orange</option>
+                                    <option value="#E05252">red</option>
+                                    <option value="#8C9BAB">gray</option>
+                                    <option value="#2BB5A0">teal</option>
+                                    <option value="#E868A2">pink</option>
+                                    <option value="#F0C233">yellow</option>
+                                    <option value="#2D2D2D">black</option>
+                                    <option value="#F0F0F0" selected>white</option>
+                                </select>
+                            </div>
+
+                            <!-- ピン枠不透明度 -->
+                            <span class="form-label-text">ピン枠不透明度（%）</span>
+                            <div class="slider-row">
+                                <div class="slider-track" onclick="updatePinOpacity(event, this)">
+                                    <div class="slider-thumb" id="pin-opacity-thumb" style="left:50%"></div>
+                                </div>
+                                <div class="slider-value" id="pin-opacity-val">50</div>
+                            </div>
+
+                            <div style="height:8px"></div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="panel-footer">
+                        <button class="panel-btn" id="ok-btn" style="background:rgba(80,90,110,0.85)">OK</button>
+                        <button class="panel-btn" id="cancel-btn" style="background:rgba(80,90,110,0.85)">キャンセル</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Color presets quick-switch -->
+        <div style="margin-top:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-size:12px;color:#8C9BAB">プリセット:</span>
+            <button onclick="applyPreset('#4A90D9','#4A90D9','#F0F0F0')" style="padding:4px 10px;border-radius:4px;border:none;background:#4A90D9;color:white;cursor:pointer;font-size:11px">blue</button>
+            <button onclick="applyPreset('#4CAF72','#4CAF72','#F0C233')" style="padding:4px 10px;border-radius:4px;border:none;background:#4CAF72;color:white;cursor:pointer;font-size:11px">green</button>
+            <button onclick="applyPreset('#9B6DD9','#9B6DD9','#E868A2')" style="padding:4px 10px;border-radius:4px;border:none;background:#9B6DD9;color:white;cursor:pointer;font-size:11px">purple</button>
+            <button onclick="applyPreset('#E8843A','#E8843A','#F0C233')" style="padding:4px 10px;border-radius:4px;border:none;background:#E8843A;color:white;cursor:pointer;font-size:11px">orange</button>
+            <button onclick="applyPreset('#2D2D2D','#2D2D2D','#4A90D9')" style="padding:4px 10px;border-radius:4px;border:none;background:#2D2D2D;color:white;cursor:pointer;font-size:11px;border:1px solid #444">black</button>
+            <button onclick="applyPreset('#8C9BAB','#8C9BAB','#F0F0F0')" style="padding:4px 10px;border-radius:4px;border:none;background:#8C9BAB;color:white;cursor:pointer;font-size:11px">gray（デフォルト）</button>
+        </div>
+    </div>
+
+    <!-- Annotations -->
+    <div class="annotations">
+        <h2>ページ編集パネルの仕様</h2>
+
+        <div class="annotation-item">
+            <div class="ann-num">1</div>
+            <div class="ann-body">
+                <div class="ann-title">プレビューエリア（上部）</div>
+                <div class="ann-desc">
+                    左: ページカラープレビュー（<span class="ann-code">200×96px</span>、角丸10px）。
+                    ページ名が中央に表示される。背景色・不透明度の変更がリアルタイムに反映。<br>
+                    右: 「ページ編集」ラベル（FontSize=14, Bold）。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">2</div>
+            <div class="ann-body">
+                <div class="ann-title">背景色 / 背景不透明度</div>
+                <div class="ann-desc">
+                    ColorPalette の11色からプルダウン選択（カラープレビュードット付き）。<br>
+                    不透明度スライダー: <span class="ann-code">0〜90%</span>（<span class="ann-code">10刻み</span>）。
+                    デフォルト: color=gray, opacity=30（30%透明 = 70%不透明）。<br>
+                    フレームの背景色に適用される。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">3</div>
+            <div class="ann-body">
+                <div class="ann-title">ハンドル色 / ハンドル不透明度</div>
+                <div class="ann-desc">
+                    ハンドルの背景色とその不透明度。<br>
+                    スライダー: <span class="ann-code">0〜90%</span>（<span class="ann-code">10刻み</span>）。
+                    デフォルト: color=gray, opacity=20（20%透明 = 80%不透明）。<br>
+                    ページ毎に異なるハンドル色を設定可能。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">4</div>
+            <div class="ann-body">
+                <div class="ann-title">ピン枠色 / ピン枠不透明度</div>
+                <div class="ann-desc">
+                    ピン留め時のフレーム枠線の色と不透明度。<br>
+                    スライダー: <span class="ann-code">0〜90%</span>（<span class="ann-code">10刻み</span>）。
+                    デフォルト: color=white, opacity=50（50%透明 = 50%不透明）。<br>
+                    通常の黒枠（2px）からピン枠色の太枠（8px）に変化する。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">5</div>
+            <div class="ann-body">
+                <div class="ann-title">ボタン色の自動計算</div>
+                <div class="ann-desc">
+                    OK/キャンセルボタンの背景色はページ背景色を元に
+                    <span class="ann-code">ColorHelper.ComputeUiElementColor()</span> で自動計算。<br>
+                    HSL変換 → L ±15pt 調整（明るい色は暗く、暗い色は明るく）→ S -5pt 調整 → RGB変換。
+                </div>
+            </div>
+        </div>
+
+        <hr style="border:0;border-top:1px solid #2a3045;margin:20px 0">
+
+        <h2 style="margin-bottom:12px">PageConfig デフォルト値</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <tr style="background:#1a1f2e">
+                <th style="padding:6px 10px;text-align:left;color:#8C9BAB;border:1px solid #2a3045">フィールド</th>
+                <th style="padding:6px 10px;text-align:left;color:#8C9BAB;border:1px solid #2a3045">デフォルト</th>
+            </tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">Name</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">"ページ1"</td></tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">BackgroundColor</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">"gray"</td></tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">BackgroundOpacity</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">30</td></tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">HandleColor</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">"gray"</td></tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">HandleOpacity</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">20</td></tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">PinFrameColor</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">"white"</td></tr>
+            <tr><td style="padding:6px 10px;color:#fff;border:1px solid #2a3045">PinFrameOpacity</td><td style="padding:6px 10px;color:#8C9BAB;border:1px solid #2a3045">50</td></tr>
+        </table>
+
+        <div style="margin-top:16px;padding:12px;background:#1a1f2e;border-radius:8px;border:1px solid #2a3045;font-size:12px;color:#8C9BAB;line-height:1.6">
+            <strong style="color:#F0C233">注:</strong>
+            不透明度の値は「透過率（%）」として保存される。
+            <br>
+            WPF Opacity への変換: <span class="ann-code">1.0 - transparencyPercent / 100.0</span><br>
+            opacity=30 → WPF Opacity 0.70 (70%不透明)
+        </div>
+    </div>
+</div>
+
+<script>
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function updateBgColor() {
+    const hex = document.getElementById('bg-color-select').value;
+    const opacity = (100 - parseInt(document.getElementById('bg-opacity-val').textContent)) / 100;
+    document.getElementById('bg-color-dot').style.background = hex;
+    document.getElementById('frame-el').style.background = hexToRgba(hex, opacity);
+    document.getElementById('preview-tile').style.background = hexToRgba(hex, opacity + 0.1);
+    updateButtons(hex);
+}
+
+function updateBgOpacity(e, el) {
+    const rect = el.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(90, Math.round((e.clientX - rect.left) / rect.width * 90 / 10) * 10));
+    document.getElementById('bg-opacity-val').textContent = pct;
+    document.getElementById('bg-opacity-thumb').style.left = (pct / 90 * 100) + '%';
+    updateBgColor();
+}
+
+function updateHandleColor() {
+    const hex = document.getElementById('handle-color-select').value;
+    const opacity = (100 - parseInt(document.getElementById('handle-opacity-val').textContent)) / 100;
+    document.getElementById('handle-color-dot').style.background = hex;
+    document.getElementById('handle-el').style.background = hexToRgba(hex, opacity);
+}
+
+function updateHandleOpacity(e, el) {
+    const rect = el.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(90, Math.round((e.clientX - rect.left) / rect.width * 90 / 10) * 10));
+    document.getElementById('handle-opacity-val').textContent = pct;
+    document.getElementById('handle-opacity-thumb').style.left = (pct / 90 * 100) + '%';
+    updateHandleColor();
+}
+
+function updatePinColor() {
+    const hex = document.getElementById('pin-color-select').value;
+    document.getElementById('pin-color-dot').style.background = hex;
+}
+
+function updatePinOpacity(e, el) {
+    const rect = el.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(90, Math.round((e.clientX - rect.left) / rect.width * 90 / 10) * 10));
+    document.getElementById('pin-opacity-val').textContent = pct;
+    document.getElementById('pin-opacity-thumb').style.left = (pct / 90 * 100) + '%';
+}
+
+function updateButtons(hex) {
+    // Approximate ComputeUiElementColor (lighter/darker by 15%)
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    const lum = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+    const adj = lum > 0.5 ? -38 : 38;
+    const nr = Math.max(0, Math.min(255, r + adj));
+    const ng = Math.max(0, Math.min(255, g + adj));
+    const nb = Math.max(0, Math.min(255, b + adj));
+    const btnColor = `rgba(${nr},${ng},${nb},0.85)`;
+    document.getElementById('ok-btn').style.background = btnColor;
+    document.getElementById('cancel-btn').style.background = btnColor;
+}
+
+function applyPreset(bgHex, handleHex, pinHex) {
+    const bgSel = document.getElementById('bg-color-select');
+    const handleSel = document.getElementById('handle-color-select');
+    const pinSel = document.getElementById('pin-color-select');
+
+    function setVal(sel, hex) {
+        for (let o of sel.options) { if (o.value === hex) { sel.value = hex; break; } }
+    }
+    setVal(bgSel, bgHex);
+    setVal(handleSel, handleHex);
+    setVal(pinSel, pinHex);
+    updateBgColor();
+    updateHandleColor();
+    updatePinColor();
+}
+</script>
+</body>
+</html>

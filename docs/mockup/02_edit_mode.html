@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>編集モード - AppLauncher UI Mockup</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+    background: #0f1117;
+    color: #e0e0e0;
+}
+.nav {
+    background: #1a1f2e;
+    border-bottom: 1px solid #2a3045;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+}
+.nav a { color: #8C9BAB; text-decoration: none; }
+.nav a:hover { color: #4A90D9; }
+.nav .sep { color: #3a4060; }
+.nav .current { color: #ffffff; font-weight: 600; }
+.nav-links { display: flex; gap: 6px; margin-left: auto; }
+.nav-links a {
+    padding: 4px 10px;
+    border-radius: 5px;
+    background: #2a3045;
+    color: #8C9BAB;
+    text-decoration: none;
+    font-size: 12px;
+    border: 1px solid #3a4060;
+}
+.nav-links a:hover { color: #4A90D9; border-color: #4A90D9; }
+.nav-links a.active { background: #4A90D9; color: #fff; border-color: #4A90D9; }
+
+.state-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 16px 40px 0;
+}
+.state-tab {
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: #2a3045;
+    color: #8C9BAB;
+    border: 1px solid #3a4060;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+}
+.state-tab.active { background: #E8843A; color: #fff; border-color: #E8843A; }
+
+.page-content {
+    display: flex;
+    gap: 40px;
+    padding: 32px 40px;
+    align-items: flex-start;
+}
+
+.desktop {
+    width: 750px;
+    height: 580px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    border-radius: 12px;
+    border: 1px solid #2a3045;
+    position: relative;
+    overflow: hidden;
+}
+.taskbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: rgba(26,31,46,0.95);
+    border-top: 1px solid #2a3045;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.taskbar-icon {
+    width: 32px;
+    height: 32px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+.taskbar-clock {
+    position: absolute;
+    right: 12px;
+    font-size: 12px;
+    color: #8C9BAB;
+}
+
+.launcher-window {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%) translateY(-20px);
+    display: flex;
+    align-items: center;
+}
+.handle {
+    width: 15px;
+    height: 100px;
+    background: rgba(140,155,171,0.8);
+    border-radius: 10px;
+    border: 2px solid #000;
+    flex-shrink: 0;
+}
+.handle-gap { width: 8px; flex-shrink: 0; }
+
+.launcher-frame {
+    background: rgba(140,155,171,0.85);
+    border-radius: 20px;
+    border: 2px solid #000;
+    overflow: hidden;
+    width: 660px;
+    position: relative;
+}
+
+/* Drag overlay (DnD preview) */
+.drag-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    pointer-events: none;
+    z-index: 30;
+}
+.drag-preview-rect {
+    position: absolute;
+    top: 56px;
+    left: 20px;
+    width: 200px;
+    height: 200px;
+    border: 2px dashed rgba(240,240,240,0.7);
+    background: rgba(255,255,255,0.15);
+    border-radius: 20px;
+    display: none;
+}
+
+.page-name-row {
+    padding: 8px 20px;
+    text-align: center;
+}
+.page-name-text {
+    color: #F0F0F0;
+    font-size: 18.67px;
+    font-weight: 400;
+}
+
+.tile-grid-wrapper { padding: 0 20px; }
+.tile-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 96px);
+    grid-template-rows: repeat(4, 96px);
+    gap: 8px;
+}
+
+/* Tile base */
+.tile {
+    width: 96px;
+    height: 96px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 10px;
+    cursor: grab;
+    position: relative;
+    overflow: hidden;
+}
+.tile-icon {
+    font-size: 34px;
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.tile-label {
+    font-size: 11px;
+    color: #F0F0F0;
+    text-align: center;
+    word-break: break-all;
+    line-height: 1.2;
+    padding: 0 4px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Edit overlay on tile hover */
+.edit-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    border-radius: 20px;
+}
+.tile:hover .edit-overlay { display: block; }
+
+.edit-btn {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: white;
+    cursor: pointer;
+    margin: 4px;
+}
+.btn-edit   { top: 0; left: 0;  background: rgba(51,51,51,0.8); }
+.btn-delete { top: 0; right: 0; background: rgba(224,82,82,0.8); }
+.btn-copy   { bottom: 0; left: 0; background: rgba(68,153,204,0.8); font-size: 15px; }
+.btn-resize {
+    bottom: 0; right: 0;
+    width: 16px; height: 16px;
+    background: rgba(240,240,240,0.8);
+    border-radius: 3px;
+    cursor: nwse-resize;
+    margin: 4px;
+}
+
+/* Empty cell (add button) */
+.tile-empty {
+    width: 96px;
+    height: 96px;
+    border-radius: 20px;
+    border: 1.5px dashed rgba(240,240,240,0.4);
+    background: rgba(255,255,255,0.07);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: rgba(240,240,240,0.4);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.tile-empty:hover {
+    background: rgba(255,255,255,0.15);
+    color: rgba(240,240,240,0.8);
+    border-color: rgba(240,240,240,0.7);
+}
+
+/* System tile */
+.system-tile-inner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.system-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 8px solid rgba(240,240,240,0.2);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.system-circle::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 8px solid transparent;
+    border-top-color: #4A90D9;
+    border-right-color: #4A90D9;
+    transform: rotate(-90deg);
+}
+.system-pct { font-size: 13px; font-weight: 600; color: #F0F0F0; }
+.system-label { font-size: 10px; color: rgba(240,240,240,0.75); margin-top: 4px; }
+
+/* Bottom bar */
+.bottom-bar-wrapper { padding: 8px 0; }
+.bottom-bar-row1 {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+.page-indicators {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.page-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(240,240,240,0.4);
+}
+.page-dot.active { background: rgba(240,240,240,0.9); width: 10px; height: 10px; }
+.right-buttons {
+    position: absolute;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.page-edit-btn {
+    width: 32px;
+    height: 32px;
+    background: rgba(80,90,110,0.7);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+}
+.mode-btn {
+    width: 32px;
+    height: 32px;
+    background: rgba(232,132,58,0.8);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+/* Page management row (edit mode only) */
+.bottom-bar-row2 {
+    height: 25px;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.page-mgmt-btn {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: rgba(80,90,110,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 13px;
+    color: #F0F0F0;
+    border: none;
+}
+
+/* Delete confirm overlay */
+.delete-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    border-radius: 20px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+.delete-overlay.show { display: flex; }
+.delete-dialog {
+    background: #8C9BAB;
+    border-radius: 10px;
+    width: 300px;
+    padding: 20px;
+    text-align: center;
+}
+.delete-dialog-text {
+    color: white;
+    font-size: 13px;
+    margin-bottom: 16px;
+    line-height: 1.6;
+}
+.delete-dialog-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+.dialog-btn {
+    width: 80px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    color: white;
+    font-family: inherit;
+}
+.dialog-btn-ok { background: #E05252; }
+.dialog-btn-cancel { background: #6D7880; }
+
+/* Annotations */
+.annotations { flex: 1; min-width: 280px; }
+.annotations h2 {
+    font-size: 16px;
+    color: #fff;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #2a3045;
+}
+.annotation-item { display: flex; gap: 12px; margin-bottom: 16px; }
+.ann-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #E8843A;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.ann-title { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+.ann-desc { font-size: 12px; color: #8C9BAB; line-height: 1.6; }
+.ann-code {
+    display: inline-block;
+    background: #12161e;
+    border: 1px solid #2a3045;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: monospace;
+    font-size: 11px;
+    color: #4CAF72;
+}
+.badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    vertical-align: middle;
+}
+.badge-edit   { background: rgba(51,51,51,0.8);   color: white; }
+.badge-delete { background: rgba(224,82,82,0.8);  color: white; }
+.badge-copy   { background: rgba(68,153,204,0.8); color: white; }
+.badge-resize { background: rgba(240,240,240,0.6); color: #333; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+    <a href="index.html">一覧</a>
+    <span class="sep">›</span>
+    <span class="current">02 編集モード</span>
+    <div class="nav-links">
+        <a href="01_normal.html">01 通常</a>
+        <a href="02_edit_mode.html" class="active">02 編集</a>
+        <a href="03_tile_edit.html">03 タイル編集</a>
+        <a href="04_page_edit.html">04 ページ編集</a>
+        <a href="05_global_settings.html">05 全体設定</a>
+    </div>
+</nav>
+
+<div class="state-tabs">
+    <button class="state-tab active" onclick="showState('edit')">編集モード</button>
+    <button class="state-tab" onclick="showState('delete')">削除確認ダイアログ</button>
+</div>
+
+<div class="page-content">
+    <div class="mockup-area">
+        <div class="desktop">
+            <div class="taskbar">
+                <div class="taskbar-icon">🪟</div>
+                <div class="taskbar-icon">🔍</div>
+                <div class="taskbar-icon">📁</div>
+                <div class="taskbar-clock">15:30</div>
+            </div>
+            <div class="launcher-window">
+                <div class="handle"></div>
+                <div class="handle-gap"></div>
+                <div class="launcher-frame">
+
+                    <!-- Delete confirm overlay -->
+                    <div class="delete-overlay" id="delete-overlay">
+                        <div class="delete-dialog">
+                            <div class="delete-dialog-text">タイルを削除しますがよろしいですか？</div>
+                            <div class="delete-dialog-buttons">
+                                <button class="dialog-btn dialog-btn-ok" onclick="hideDelete()">OK</button>
+                                <button class="dialog-btn dialog-btn-cancel" onclick="hideDelete()">キャンセル</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Page name -->
+                    <div class="page-name-row">
+                        <div class="page-name-text">メイン</div>
+                    </div>
+
+                    <!-- Tile grid -->
+                    <div class="tile-grid-wrapper">
+                        <div class="tile-grid">
+                            <!-- Row 0 -->
+                            <div class="tile" style="background:rgba(74,144,217,0.8)">
+                                <div class="tile-icon">🌐</div>
+                                <div class="tile-label">Chrome</div>
+                                <div class="edit-overlay">
+                                    <div class="edit-btn btn-edit">✎</div>
+                                    <div class="edit-btn btn-delete" onclick="showDelete()">✕</div>
+                                    <div class="edit-btn btn-copy">⊕</div>
+                                    <div class="btn-resize"></div>
+                                </div>
+                            </div>
+                            <div class="tile" style="background:rgba(74,144,217,0.8)">
+                                <div class="tile-icon">💻</div>
+                                <div class="tile-label">VSCode</div>
+                                <div class="edit-overlay">
+                                    <div class="edit-btn btn-edit">✎</div>
+                                    <div class="edit-btn btn-delete" onclick="showDelete()">✕</div>
+                                    <div class="edit-btn btn-copy">⊕</div>
+                                    <div class="btn-resize"></div>
+                                </div>
+                            </div>
+                            <div class="tile" style="background:rgba(45,45,45,0.8)">
+                                <div class="tile-icon">⬛</div>
+                                <div class="tile-label">Terminal</div>
+                                <div class="edit-overlay">
+                                    <div class="edit-btn btn-edit">✎</div>
+                                    <div class="edit-btn btn-delete" onclick="showDelete()">✕</div>
+                                    <div class="edit-btn btn-copy">⊕</div>
+                                    <div class="btn-resize"></div>
+                                </div>
+                            </div>
+                            <div class="tile" style="background:rgba(240,194,51,0.8)">
+                                <div class="tile-icon">📁</div>
+                                <div class="tile-label">Explorer</div>
+                                <div class="edit-overlay">
+                                    <div class="edit-btn btn-edit">✎</div>
+                                    <div class="edit-btn btn-delete" onclick="showDelete()">✕</div>
+                                    <div class="edit-btn btn-copy">⊕</div>
+                                    <div class="btn-resize"></div>
+                                </div>
+                            </div>
+                            <div class="tile" style="background:rgba(140,155,171,0.8)">
+                                <div class="tile-icon">⚙️</div>
+                                <div class="tile-label">設定</div>
+                                <div class="edit-overlay">
+                                    <div class="edit-btn btn-edit">✎</div>
+                                    <div class="edit-btn btn-delete" onclick="showDelete()">✕</div>
+                                    <div class="edit-btn btn-copy">⊕</div>
+                                    <div class="btn-resize"></div>
+                                </div>
+                            </div>
+                            <div class="tile" style="background:rgba(43,181,160,0.8)">
+                                <div class="tile-icon">🕐</div>
+                                <div class="tile-label">時計</div>
+                                <div class="edit-overlay">
+                                    <div class="edit-btn btn-edit">✎</div>
+                                    <div class="edit-btn btn-delete" onclick="showDelete()">✕</div>
+                                    <div class="edit-btn btn-copy">⊕</div>
+                                    <div class="btn-resize"></div>
+                                </div>
+                            </div>
+                            <!-- Row 1 -->
+                            <div class="tile" style="background:rgba(232,132,58,0.8)">
+                                <div class="tile-icon">🦊</div>
+                                <div class="tile-label">Firefox</div>
+                                <div class="edit-overlay">
+                                    <div class="edit-btn btn-edit">✎</div>
+                                    <div class="edit-btn btn-delete" onclick="showDelete()">✕</div>
+                                    <div class="edit-btn btn-copy">⊕</div>
+                                    <div class="btn-resize"></div>
+                                </div>
+                            </div>
+                            <div class="tile" style="background:rgba(155,109,217,0.8)">
+                                <div class="tile-icon">💬</div>
+                                <div class="tile-label">Discord</div>
+                                <div class="edit-overlay">
+                                    <div class="edit-btn btn-edit">✎</div>
+                                    <div class="edit-btn btn-delete" onclick="showDelete()">✕</div>
+                                    <div class="edit-btn btn-copy">⊕</div>
+                                    <div class="btn-resize"></div>
+                                </div>
+                            </div>
+                            <div class="tile" style="background:rgba(232,104,162,0.8)">
+                                <div class="tile-icon">💬</div>
+                                <div class="tile-label">Slack</div>
+                                <div class="edit-overlay">
+                                    <div class="edit-btn btn-edit">✎</div>
+                                    <div class="edit-btn btn-delete" onclick="showDelete()">✕</div>
+                                    <div class="edit-btn btn-copy">⊕</div>
+                                    <div class="btn-resize"></div>
+                                </div>
+                            </div>
+                            <div class="tile-empty">+</div>
+                            <div class="tile-empty">+</div>
+                            <div class="tile-empty">+</div>
+                            <!-- Row 2 -->
+                            <div class="tile" style="background:rgba(240,194,51,0.8)">
+                                <div class="tile-icon">📄</div>
+                                <div class="tile-label">ドキュメント</div>
+                                <div class="edit-overlay">
+                                    <div class="edit-btn btn-edit">✎</div>
+                                    <div class="edit-btn btn-delete" onclick="showDelete()">✕</div>
+                                    <div class="edit-btn btn-copy">⊕</div>
+                                    <div class="btn-resize"></div>
+                                </div>
+                            </div>
+                            <div class="tile" style="background:rgba(76,175,114,0.8)">
+                                <div class="tile-icon">⬇️</div>
+                                <div class="tile-label">ダウンロード</div>
+                                <div class="edit-overlay">
+                                    <div class="edit-btn btn-edit">✎</div>
+                                    <div class="edit-btn btn-delete" onclick="showDelete()">✕</div>
+                                    <div class="edit-btn btn-copy">⊕</div>
+                                    <div class="btn-resize"></div>
+                                </div>
+                            </div>
+                            <div class="tile-empty">+</div>
+                            <div class="tile-empty">+</div>
+                            <div class="tile-empty">+</div>
+                            <div class="tile-empty">+</div>
+                            <!-- Row 3 -->
+                            <div class="tile" style="background:rgba(74,144,217,0.8);position:relative">
+                                <div class="system-tile-inner">
+                                    <div class="system-circle"></div>
+                                    <div class="system-pct">42%</div>
+                                    <div class="system-label">CPU</div>
+                                </div>
+                                <div class="edit-overlay">
+                                    <div class="edit-btn btn-edit">✎</div>
+                                    <div class="edit-btn btn-delete" onclick="showDelete()">✕</div>
+                                    <div class="btn-resize"></div>
+                                </div>
+                            </div>
+                            <div class="tile" style="background:rgba(76,175,114,0.8);position:relative">
+                                <div class="system-tile-inner">
+                                    <div class="system-circle" style="border-top-color:#4CAF72;border-right-color:#4CAF72"></div>
+                                    <div class="system-pct">67%</div>
+                                    <div class="system-label">Memory</div>
+                                </div>
+                                <div class="edit-overlay">
+                                    <div class="edit-btn btn-edit">✎</div>
+                                    <div class="edit-btn btn-delete" onclick="showDelete()">✕</div>
+                                    <div class="btn-resize"></div>
+                                </div>
+                            </div>
+                            <div class="tile-empty">+</div>
+                            <div class="tile-empty">+</div>
+                            <div class="tile-empty">+</div>
+                            <div class="tile" style="background:rgba(140,155,171,0.8)">
+                                <div class="tile-icon">🔧</div>
+                                <div class="tile-label">全体設定</div>
+                                <div class="edit-overlay">
+                                    <div class="edit-btn btn-edit">✎</div>
+                                    <div class="edit-btn btn-delete" onclick="showDelete()">✕</div>
+                                    <div class="edit-btn btn-copy">⊕</div>
+                                    <div class="btn-resize"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom bar (edit mode: 2 rows) -->
+                    <div class="bottom-bar-wrapper">
+                        <div class="bottom-bar-row1">
+                            <div class="page-indicators">
+                                <div class="page-dot active"></div>
+                                <div class="page-dot"></div>
+                                <div class="page-dot"></div>
+                            </div>
+                            <div class="right-buttons">
+                                <!-- Page edit button -->
+                                <div class="page-edit-btn" title="ページ編集">📝</div>
+                                <!-- Global settings button -->
+                                <div class="page-edit-btn" title="全体設定">⚙️</div>
+                                <!-- Mode toggle button (active = edit mode, orange) -->
+                                <div class="mode-btn">✏️</div>
+                            </div>
+                        </div>
+                        <!-- Row 2: Page management -->
+                        <div class="bottom-bar-row2">
+                            <button class="page-mgmt-btn" title="左へ移動">◀</button>
+                            <button class="page-mgmt-btn" title="ページ追加">＋</button>
+                            <button class="page-mgmt-btn" title="ページ削除">－</button>
+                            <button class="page-mgmt-btn" title="右へ移動">▶</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Annotations -->
+    <div class="annotations">
+        <h2>編集モードの UI 要素</h2>
+
+        <div class="annotation-item">
+            <div class="ann-num">1</div>
+            <div class="ann-body">
+                <div class="ann-title">編集モード切替</div>
+                <div class="ann-desc">
+                    ボトムバー右端のモードボタン（✏️）クリックで編集モードへ遷移。
+                    ボタン背景がオレンジ色になり編集中を示す。
+                    再クリックで通常モードに戻る。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">2</div>
+            <div class="ann-body">
+                <div class="ann-title">タイルへのホバーオーバーレイ</div>
+                <div class="ann-desc">
+                    編集モード中、タイルにマウスオーバーすると4つのコントロールが表示される:<br>
+                    <span class="badge badge-edit">✎ 編集</span> 左上 — タイル編集パネルを開く<br>
+                    <span class="badge badge-delete">✕ 削除</span> 右上 — 削除確認ダイアログを表示<br>
+                    <span class="badge badge-copy">⊕ コピー</span> 左下 — タイルを複製<br>
+                    <span class="badge badge-resize">□ リサイズ</span> 右下 — ドラッグでスパン変更
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">3</div>
+            <div class="ann-body">
+                <div class="ann-title">空きセル（追加ボタン）</div>
+                <div class="ann-desc">
+                    タイルのない空きセルには「+」ボタンが表示される。
+                    クリックでタイル編集パネルが開き、新規タイルを追加できる。
+                    デフォルト値: <span class="ann-code">type=app, color=blue, opacity=20, fontSize=16pt</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">4</div>
+            <div class="ann-body">
+                <div class="ann-title">D&amp;D によるタイル移動</div>
+                <div class="ann-desc">
+                    タイルをドラッグして他のセルへ移動できる。
+                    ドラッグ中はオーバーレイに点線の矩形プレビューが表示される。
+                    引数に <span class="ann-code">{drop}</span> を含む app タイルは
+                    外部からのファイルドロップも受け付ける（D&amp;D専用モード）。
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">5</div>
+            <div class="ann-body">
+                <div class="ann-title">ボトムバー（編集モード）</div>
+                <div class="ann-desc">
+                    通常の行（32px）に加えてページ管理行（25px + 8px マージン）が表示される。<br>
+                    合計高さ: <span class="ann-code">32 + 8 + 25 = 65px</span><br>
+                    ページ管理行: ◀ 左移動 / ＋ 追加 / － 削除 / ▶ 右移動<br>
+                    右端に追加: 📝 ページ編集 / ⚙️ 全体設定 の2ボタン
+                </div>
+            </div>
+        </div>
+
+        <div class="annotation-item">
+            <div class="ann-num">6</div>
+            <div class="ann-body">
+                <div class="ann-title">削除確認ダイアログ</div>
+                <div class="ann-desc">
+                    削除ボタン押下でフレーム全体に半透明オーバーレイが表示される。
+                    中央に確認ダイアログ（幅300px × 高140px）。
+                    <span class="ann-code">gray (#8C9BAB)</span> 背景、角丸10px。
+                    OK: 赤 (<span class="ann-code">#E05252</span>)、キャンセル: グレー (<span class="ann-code">#6D7880</span>)。
+                </div>
+            </div>
+        </div>
+
+        <hr style="border:0;border-top:1px solid #2a3045;margin:20px 0">
+
+        <h2 style="margin-bottom:12px">WebView タイル（type=url）の編集オーバーレイ</h2>
+        <p style="font-size:12px;color:#8C9BAB;line-height:1.6">
+            WebView タイルは編集モード中に WebView を非表示にしてプレースホルダーを表示。
+            プレースホルダーには「WebView」ラベル、タイトル、URL が表示される。
+            コピーボタン（⊕）は WebView タイルには非表示（通常タイルのみ）。
+        </p>
+    </div>
+</div>
+
+<script>
+function showState(state) {
+    document.querySelectorAll('.state-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    if (state === 'delete') showDelete();
+    else hideDelete();
+}
+function showDelete() {
+    document.getElementById('delete-overlay').classList.add('show');
+}
+function hideDelete() {
+    document.getElementById('delete-overlay').classList.remove('show');
+}
+</script>
+</body>
+</html>
