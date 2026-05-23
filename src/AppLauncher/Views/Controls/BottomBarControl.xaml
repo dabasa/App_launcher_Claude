@@ -13,34 +13,40 @@
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"/>
 
-            <!-- 右側ボタン群 -->
-            <StackPanel x:Name="RightButtons"
-                        Orientation="Horizontal"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        Margin="0,0,20,0">
+            <!-- 右側ボタン群（固定列 Grid でボタン位置を固定） -->
+            <Grid HorizontalAlignment="Right"
+                  VerticalAlignment="Center"
+                  Margin="0,0,20,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="40"/>  <!-- PageEdit: 32px + 右マージン8px -->
+                    <ColumnDefinition Width="40"/>  <!-- Settings: 32px + 右マージン8px -->
+                    <ColumnDefinition Width="32"/>  <!-- ModeButton: 常時表示 -->
+                </Grid.ColumnDefinitions>
 
-                <!-- ページ編集ボタン（Ph.8 実装予定・現在はプレースホルダー） -->
+                <!-- ページ編集ボタン（列幅を確保したまま非表示） -->
                 <Border x:Name="PageEditButton"
+                        Grid.Column="0"
                         Width="32" Height="32"
-                        Margin="0,0,8,0"
+                        HorizontalAlignment="Left"
                         Cursor="Hand"
-                        Visibility="Collapsed"/>
+                        Visibility="Hidden"/>
 
-                <!-- 全体設定ボタン（Ph.8 実装予定・現在はプレースホルダー） -->
+                <!-- 全体設定ボタン（列幅を確保したまま非表示） -->
                 <Border x:Name="GlobalSettingsButton"
+                        Grid.Column="1"
                         Width="32" Height="32"
-                        Margin="0,0,8,0"
+                        HorizontalAlignment="Left"
                         Cursor="Hand"
-                        Visibility="Collapsed"/>
+                        Visibility="Hidden"/>
 
-                <!-- モード切替ボタン -->
+                <!-- モード切替ボタン（常に Col=2 に固定） -->
                 <Border x:Name="ModeButton"
+                        Grid.Column="2"
                         Width="32" Height="32"
                         Cursor="Hand">
                     <Image x:Name="ModeButtonImage" Stretch="Uniform" Margin="3"/>
                 </Border>
-            </StackPanel>
+            </Grid>
         </Grid>
 
         <!-- ═══ 行2：ページ管理コントロール（編集モード時のみ表示） ════ -->

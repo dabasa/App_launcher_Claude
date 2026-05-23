@@ -93,10 +93,10 @@ public partial class BottomBarControl : UserControl
         ModeButtonImage.Source  = isEdit ? ImgEdit : isSettings ? ImgSettings : ImgNormal;
 
         // ─── ページ編集ボタンは Edit モードのみ表示 ─────────────────
-        PageEditButton.Visibility = isEdit ? Visibility.Visible : Visibility.Collapsed;
+        PageEditButton.Visibility = isEdit ? Visibility.Visible : Visibility.Hidden;
         if (isEdit) SetPageBtn(PageEditButton, "🗒", true);
 
-        GlobalSettingsButton.Visibility = Visibility.Collapsed;
+        GlobalSettingsButton.Visibility = Visibility.Hidden;
 
         // ─── 行2 は Edit モードのみ表示 ──────────────────────────────
         PageMgmtRow.Visibility = isEdit ? Visibility.Visible : Visibility.Collapsed;
