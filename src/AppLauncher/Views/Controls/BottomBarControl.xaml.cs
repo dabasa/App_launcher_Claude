@@ -63,10 +63,9 @@ public partial class BottomBarControl : UserControl
 
     private void WireButtons()
     {
-        ModeButton.MouseLeftButtonUp           += (_, _) => _vm?.ToggleModeCommand.Execute(null);
-        PageEditButton.MouseLeftButtonUp       += (_, _) => _vm?.OpenPageEditCommand.Execute(null);
-        GlobalSettingsButton.MouseLeftButtonUp += (_, _) => _vm?.OpenGlobalSettingsCommand.Execute(null);
-        MoveLeftButton.MouseLeftButtonUp       += (_, _) => _vm?.MovePageLeftCommand.Execute(null);
+        ModeButton.MouseLeftButtonUp     += (_, _) => _vm?.ToggleModeCommand.Execute(null);
+        PageEditButton.MouseLeftButtonUp += (_, _) => _vm?.OpenPageEditCommand.Execute(null);
+        MoveLeftButton.MouseLeftButtonUp += (_, _) => _vm?.MovePageLeftCommand.Execute(null);
         AddPageButton.MouseLeftButtonUp        += (_, _) => _vm?.AddPageCommand.Execute(null);
         RemovePageButton.MouseLeftButtonUp     += (_, _) => _vm?.RemovePageCommand.Execute(null);
         MoveRightButton.MouseLeftButtonUp      += (_, _) => _vm?.MovePageRightCommand.Execute(null);
@@ -95,8 +94,6 @@ public partial class BottomBarControl : UserControl
         // ─── ページ編集ボタンは Edit モードのみ表示 ─────────────────
         PageEditButton.Visibility = isEdit ? Visibility.Visible : Visibility.Hidden;
         if (isEdit) SetPageBtn(PageEditButton, "🗒", true);
-
-        GlobalSettingsButton.Visibility = Visibility.Hidden;
 
         // ─── 行2 は Edit モードのみ表示 ──────────────────────────────
         PageMgmtRow.Visibility = isEdit ? Visibility.Visible : Visibility.Collapsed;

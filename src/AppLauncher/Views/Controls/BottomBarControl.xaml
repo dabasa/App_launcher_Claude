@@ -18,12 +18,11 @@
                   VerticalAlignment="Center"
                   Margin="0,0,20,0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="40"/>  <!-- PageEdit: 32px + 右マージン8px -->
-                    <ColumnDefinition Width="40"/>  <!-- Settings: 32px + 右マージン8px -->
+                    <ColumnDefinition Width="40"/>  <!-- PageEdit: 32px + 右マージン8px（編集モード時のみ表示） -->
                     <ColumnDefinition Width="32"/>  <!-- ModeButton: 常時表示 -->
                 </Grid.ColumnDefinitions>
 
-                <!-- ページ編集ボタン（列幅を確保したまま非表示） -->
+                <!-- ページ編集ボタン（編集モード時のみ表示） -->
                 <Border x:Name="PageEditButton"
                         Grid.Column="0"
                         Width="32" Height="32"
@@ -31,17 +30,9 @@
                         Cursor="Hand"
                         Visibility="Hidden"/>
 
-                <!-- 全体設定ボタン（列幅を確保したまま非表示） -->
-                <Border x:Name="GlobalSettingsButton"
-                        Grid.Column="1"
-                        Width="32" Height="32"
-                        HorizontalAlignment="Left"
-                        Cursor="Hand"
-                        Visibility="Hidden"/>
-
-                <!-- モード切替ボタン（常に Col=2 に固定） -->
+                <!-- モード切替ボタン（常に Col=1 に固定） -->
                 <Border x:Name="ModeButton"
-                        Grid.Column="2"
+                        Grid.Column="1"
                         Width="32" Height="32"
                         Cursor="Hand">
                     <Image x:Name="ModeButtonImage" Stretch="Uniform" Margin="3"/>

@@ -437,6 +437,62 @@ tr:last-child td { border-bottom: none; }
         </div>
     </a>
 
+    <!-- 06 Auto Exec -->
+    <a class="card" href="06_auto_exec.html">
+        <div class="card-preview" style="background:#12161e">
+            <div style="width:300px;height:170px;background:rgba(140,155,171,0.85);border-radius:12px;border:2px solid #000;padding:10px;font-size:12px;color:#F0F0F0;overflow:hidden">
+                <div style="text-align:center;font-size:14px;font-weight:700;margin-bottom:6px">自動実行管理</div>
+                <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+                    <div style="padding:2px 8px;background:rgba(74,144,217,0.8);border-radius:4px;font-size:10px">＋ タスクを追加</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;font-size:10px">
+                    <div style="background:rgba(0,0,0,0.2);border-radius:5px;padding:4px 6px">
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-weight:600">daily_backup</span>
+                            <span style="background:rgba(240,194,51,0.25);color:#F0C233;padding:1px 4px;border-radius:3px;font-size:9px">.bat</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;color:rgba(255,255,255,0.6);margin-top:2px">
+                            <span>毎日 12:00</span><span style="color:#4CAF72">成功(0)</span>
+                            <span style="color:#4CAF72;font-size:9px">● 有効</span>
+                        </div>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.2);border-radius:5px;padding:4px 6px">
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-weight:600">data_collect</span>
+                            <span style="background:rgba(74,144,217,0.25);color:#7eb4f8;padding:1px 4px;border-radius:3px;font-size:9px">.py</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;color:rgba(255,255,255,0.6);margin-top:2px">
+                            <span>60分間隔</span><span style="color:#E05252">失敗(1)</span>
+                            <span style="color:#4CAF72;font-size:9px">● 有効</span>
+                        </div>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.2);border-radius:5px;padding:4px 6px;opacity:0.55">
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <span style="font-weight:600">startup_init</span>
+                            <span style="background:rgba(43,181,160,0.25);color:#2BB5A0;padding:1px 4px;border-radius:3px;font-size:9px">.ps1</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;color:rgba(255,255,255,0.6);margin-top:2px">
+                            <span>ログオン時</span><span style="color:#4CAF72">成功(0)</span>
+                            <span style="color:rgba(255,255,255,0.4);font-size:9px">○ 無効</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-num">画面 06</div>
+            <div class="card-title">自動実行管理パネル</div>
+            <div class="card-desc">タスクスケジューラーと連携した自動実行タスクの一覧・追加・編集・削除・有効無効切替。指定時間（毎日/毎週/ログオン/起動時）と指定間隔に対応。</div>
+            <div class="tag-list">
+                <span class="tag">タスクスケジューラー</span>
+                <span class="tag">有効・無効</span>
+                <span class="tag">指定時間</span>
+                <span class="tag">指定間隔</span>
+                <span class="tag">実行ログ</span>
+            </div>
+        </div>
+    </a>
+
     <!-- 既存: ランチャー想定図 -->
     <a class="card" href="ランチャー想定図.html">
         <div class="card-preview" style="background:#13131f;display:flex;align-items:center;justify-content:center">

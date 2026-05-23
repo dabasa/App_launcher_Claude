@@ -162,6 +162,7 @@ public partial class LauncherWindow : Window
         {
             Frame.BorderBrush     = new SolidColorBrush(Colors.Black);
             Frame.BorderThickness = new Thickness(layout.FrameBorderThickness);
+            Frame.Padding         = new Thickness(layout.PinBorderThickness - layout.FrameBorderThickness);
             Handle.ResetBorder();
             return;
         }
@@ -173,6 +174,7 @@ public partial class LauncherWindow : Window
             Color.FromArgb((byte)(255 * alpha), color.R, color.G, color.B));
         Frame.BorderBrush     = brush;
         Frame.BorderThickness = new Thickness(bt);
+        Frame.Padding         = new Thickness(0);
         Handle.SetPinBorder(brush, bt);
     }
 
