@@ -1,272 +1,190 @@
-# Ph.F-D 実装指示書 ─ AutoFont 最適サイズ算出モード
+# Ph.F-D 実装指示書 ─ AutoFont 自動調整（見切れ防止）
 
 対象バージョン：V1.2.0  
-作成日：2026-05-24
+作成日：2026-05-24  
+実装完了：2026-05-30
+
+> **設計変更（2026-05-30）**  
+> 当初は「overflow（見切れ防止）」と「optimal（最適サイズ算出）」の2モードを実装する予定だったが、  
+> ユーザーの判断により **optimal モードは廃止**し、チェックボックス1つの構成に統一した。  
+> AutoFontSize=true は「はみ出す場合のみ縮小する」（overflow 相当）の動作のみとなる。
 
 ---
 
 ## 概要
 
-自動フォントサイズ調整（`AutoFontSize`）に2つのモードを追加する。
-
-| モード | 動作 |
-|---|---|
-| `overflow`（見切れ防止） | 既存の動作。72pt から順に小さくし、タイル領域に収まる最大サイズを選択する |
-| `optimal`（最適サイズ） | タイルの短辺からフォントサイズを逆算し、読みやすいサイズを算出する。算出後に見切れチェックを行い、収まらなければ縮小する |
-
-両モードとも最大値は `72pt`、最小値は `6pt` に制限する。
-
-**前提**：Ph.F-A（FontConfig 基盤）および Ph.F-B（FontDetailDialog）の実装完了が必要。
+`AutoFontSize = true` が設定されたタイルにおいて、  
+指定 `FontSizePt` を上限としてテキストがタイル領域に収まる最大フォントサイズを計算し、適用する。  
+実タイル・編集画面プレビュー・フォント詳細設定パネルのプレビュー全てに反映する。
 
 ---
 
 ## 実装内容
 
-### 1. `FontConfig` への追加フィールド
+### 1. `FontConfig` への変更（不要なフィールドを追加しない）
 
-**対象ファイル**
-
-- `src/AppLauncher/Models/Config/FontConfig.cs`
-
-```csharp
-public class FontConfig
-{
-    public string FontName     { get; set; } = "";
-    public int    FontSizePt   { get; set; } = 16;
-    public string FontColor    { get; set; } = "white";
-    public bool   AutoFontSize { get; set; } = false;
-
-    // Ph.F-D 追加
-    /// <summary>"overflow" または "optimal"。AutoFontSize が true の場合のみ有効。</summary>
-    public string AutoFontSizeMode { get; set; } = "overflow";
-
-    /// <summary>
-    /// optimal モード時のサイズ計算係数。タイル短辺（px）に掛けて基準フォントサイズを求める。
-    /// 範囲：0.05 ～ 0.50（5% ～ 50%）。デフォルト 0.20（20%）。
-    /// 例：タイル短辺 96px × 0.20 = 19.2px → 約 14pt（96DPI換算）。
-    /// </summary>
-    public double AutoFontOptimalFactor { get; set; } = 0.20;
-}
-```
+当初の設計では `AutoFontSizeMode`・`AutoFontOptimalFactor` を追加する予定だったが、  
+optimal モード廃止に伴い追加しない。  
+`FontConfig` は既存の構成（`FontName` / `FontSizePt` / `FontColor` / `AutoFontSize`）のままとする。
 
 ---
 
-### 2. `TileControl.xaml.cs` の更新
+### 2. `TileControl.xaml.cs` の更新（見切れ防止ロジック）
 
-**対象ファイル**
+**実装ファイル**：`src/AppLauncher/Views/Controls/TileControl.xaml.cs`
 
-- `src/AppLauncher/Views/Controls/TileControl.xaml.cs`
-
-**変更内容**
-
-`CalcAutoFontSize()` を `FontConfig` を受け取る形に拡張する。
+`FormattedText` は WPF TextBlock の実描画より行高が小さく出るため、`TextBlock.Measure()` で測定する。  
+`w`・`h` はパディング（8px×2=16px）を除いたコンテンツ領域。
 
 ```csharp
-private void UpdateFontSize()
-{
-    if (_tile == null) return;
-    if (!_tile.AutoFontSize)
-    {
-        TitleText.FontSize = _tile.FontSizePt * 4.0 / 3.0;
-        return;
-    }
-    if (TileBorder.ActualWidth <= 0 || TileBorder.ActualHeight <= 0) return;
-
-    const double pad = 16.0;
-    double w = TileBorder.ActualWidth  - pad;
-    double h;
-    bool hasImage = !string.IsNullOrEmpty(_tile.ImagePath);
-    if (hasImage && _tile.ImagePosition is "top" or "bottom")
-        h = (TileBorder.ActualHeight - pad) * 0.35;
-    else
-        h = TileBorder.ActualHeight - pad;
-
-    var   cfg  = _tile.TitleFont;
-    double size = cfg.AutoFontSizeMode == "optimal"
-        ? CalcOptimalFontSize(cfg.AutoFontOptimalFactor, w, h, _tile.Title)
-        : CalcOverflowFontSize(_tile.Title, w, h);
-
-    TitleText.FontSize = size * 4.0 / 3.0;  // pt → device-independent px
-}
-
-/// <summary>
-/// overflow モード：96pt から順に下げ、テキストが w×h に収まる最大サイズを返す（単位: pt）。
-/// </summary>
 private double CalcOverflowFontSize(string text, double w, double h)
 {
     if (string.IsNullOrEmpty(text) || w <= 0 || h <= 0) return 6;
-    var typeface = new Typeface(TitleText.FontFamily, TitleText.FontStyle,
-        TitleText.FontWeight, TitleText.FontStretch);
-    double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
 
-    for (double size = 96; size >= 6; size--)
+    var measure = new TextBlock
     {
-        double emPx = size * 4.0 / 3.0;
-        var ft = new FormattedText(text, CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight, typeface, emPx, Brushes.Black, dpi);
-        ft.MaxTextWidth = w;
-        if (ft.Height <= h && ft.Width <= w) return size;
-    }
-    return 6;
-}
-
-/// <summary>
-/// optimal モード：タイル短辺 × factor で基準サイズを算出し、
-/// overflow チェックで収まらなければ縮小する（単位: pt）。
-/// </summary>
-private double CalcOptimalFontSize(double factor, double w, double h, string text)
-{
-    double shortSidePx = Math.Min(w, h);
-    // factor はデバイス独立ピクセル系の係数として扱い、pt に変換
-    double basePx = shortSidePx * factor;
-    double basePt = Math.Clamp(basePx * 3.0 / 4.0, 6, 72);  // px → pt
-    double startPt = Math.Floor(basePt);
-
-    if (string.IsNullOrEmpty(text)) return startPt;
-
-    var typeface = new Typeface(TitleText.FontFamily, TitleText.FontStyle,
-        TitleText.FontWeight, TitleText.FontStretch);
-    double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-
-    // 基準サイズから下げながら overflow チェック
+        Text         = text,
+        TextWrapping = TextWrapping.Wrap,
+        FontFamily   = TitleText.FontFamily,
+        FontStyle    = TitleText.FontStyle,
+        FontWeight   = TitleText.FontWeight,
+        FontStretch  = TitleText.FontStretch,
+        Padding      = new Thickness(8),
+    };
+    // w/h はパディング除外済み。+16 で TextBlock 全体サイズに戻す
+    double startPt = Math.Clamp(_tile.FontSizePt, 6, 72);
     for (double size = startPt; size >= 6; size--)
     {
-        double emPx = size * 4.0 / 3.0;
-        var ft = new FormattedText(text, CultureInfo.CurrentCulture,
-            FlowDirection.LeftToRight, typeface, emPx, Brushes.Black, dpi);
-        ft.MaxTextWidth = w;
-        if (ft.Height <= h && ft.Width <= w) return size;
+        measure.FontSize = size * 4.0 / 3.0;
+        measure.Measure(new Size(w + 16, double.PositiveInfinity));
+        if (measure.DesiredSize.Height <= h + 16) return size;
     }
     return 6;
 }
 ```
+
+画像レイアウトに応じたテキスト領域調整：
+
+| ImagePosition | w の調整 | h の調整 |
+|---|---|---|
+| top / bottom | なし | `(ActualHeight - pad) * 0.35` |
+| left / right | `ActualWidth / 2.0 - pad` | なし |
+| center | なし | なし（全体をテキスト領域として使う） |
 
 ---
 
 ### 3. `SystemTileControl.xaml.cs` の更新
 
-**対象ファイル**
+**実装ファイル**：`src/AppLauncher/Views/Controls/SystemTileControl.xaml.cs`
 
-- `src/AppLauncher/Views/Controls/SystemTileControl.xaml.cs`
+#### タイトルフォント自動調整（`UpdateTitleFontSize`）
 
-**変更内容**
+`TitleFont.AutoFontSize = true` の場合に `TitleText.FontSize` を自動調整する。  
+`ImagePosition` に応じてタイトル領域のサイズ予算を算出：
 
-`ContentFont` に `AutoFontSize = true` が設定されている場合、  
-`MainText` / `SubText` / `CircleCenterText` / `CircleLabel` のフォントサイズを自動計算する。
-
-```csharp
-private void UpdateContentFontSize()
-{
-    if (_tile?.ContentFont is not { AutoFontSize: true } cf) return;
-    if (ActualWidth <= 0 || ActualHeight <= 0) return;
-
-    const double pad = 16.0;
-    double w = ActualWidth  - pad;
-    double h = ActualHeight - pad;
-    double shortSide = Math.Min(w, h);
-
-    double sizePt = cf.AutoFontSizeMode == "optimal"
-        ? Math.Clamp(shortSide * cf.AutoFontOptimalFactor * 3.0 / 4.0, 6, 72)
-        : cf.FontSizePt;  // overflow モードは現時点では手動サイズをベースに使用
-
-    double emPx = sizePt * 4.0 / 3.0;
-    MainText.FontSize         = emPx;
-    SubText.FontSize          = Math.Max(10, emPx - 4);
-    CircleCenterText.FontSize = emPx;
-    CircleLabel.FontSize      = Math.Max(8, emPx - 4);
-}
-```
-
-`Loaded` イベントおよびサイズ変更時に `UpdateContentFontSize()` を呼び出す。
-
----
-
-### 4. `FontDetailPanel.xaml` の更新（モード選択 UI 追加）
-
-**対象ファイル**
-
-- `src/AppLauncher/Views/Controls/FontDetailPanel.xaml`
-
-**変更内容**
-
-自動調整チェックボックスの下にモード選択ラジオボタンを追加する。  
-`AutoFontSize = false` の場合はグレーアウト（`IsEnabled` バインド）。
-
-```xml
-<StackPanel IsEnabled="{Binding AutoFontSize}" Margin="16,0,0,12" Opacity="{Binding AutoFontSize, Converter={...BoolToOpacityConverter}}">
-    <RadioButton Content="見切れ防止のみ（文字が収まる最大サイズ）"
-                 IsChecked="{Binding IsOverflowMode}"
-                 Foreground="White" Margin="0,0,0,4"/>
-    <RadioButton Content="最適サイズを算出（タイルサイズから逆算）"
-                 IsChecked="{Binding IsOptimalMode}"
-                 Foreground="White" Margin="0,0,0,4"/>
-    <!-- optimal モード専用：係数スライダー -->
-    <Grid IsEnabled="{Binding IsOptimalMode}" Margin="16,0,0,0">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="60"/>
-        </Grid.ColumnDefinitions>
-        <Slider Grid.Column="0"
-                Minimum="0.05" Maximum="0.50" TickFrequency="0.05"
-                IsSnapToTickEnabled="True"
-                Value="{Binding AutoFontOptimalFactor}"
-                VerticalAlignment="Center"/>
-        <TextBlock Grid.Column="1"
-                   Text="{Binding AutoFontOptimalFactor, StringFormat={}{0:P0}}"
-                   Foreground="White" TextAlignment="Right" VerticalAlignment="Center"/>
-    </Grid>
-</StackPanel>
-```
-
----
-
-### 5. `FontDetailViewModel` の更新
-
-**対象ファイル**
-
-- `src/AppLauncher/ViewModels/FontDetailViewModel.cs`
-
-```csharp
-[ObservableProperty]
-[NotifyPropertyChangedFor(nameof(IsOverflowMode))]
-[NotifyPropertyChangedFor(nameof(IsOptimalMode))]
-private string _autoFontSizeMode = "overflow";
-
-[ObservableProperty] private double _autoFontOptimalFactor = 0.20;
-
-public bool IsOverflowMode
-{
-    get => AutoFontSizeMode == "overflow";
-    set { if (value) AutoFontSizeMode = "overflow"; }
-}
-public bool IsOptimalMode
-{
-    get => AutoFontSizeMode == "optimal";
-    set { if (value) AutoFontSizeMode = "optimal"; }
-}
-
-public FontConfig ToConfig() => new()
-{
-    FontName             = FontName,
-    FontSizePt           = FontSizePt,
-    FontColor            = FontColor,
-    AutoFontSize         = AutoFontSize,
-    AutoFontSizeMode     = AutoFontSizeMode,
-    AutoFontOptimalFactor = AutoFontOptimalFactor,
-};
-```
-
----
-
-## テスト観点
-
-| # | 確認内容 | 期待結果 |
+| ImagePosition | 幅予算 | 高さ予算 |
 |---|---|---|
-| 1 | 自動調整 OFF でスライダーの値がそのまま適用される | 既存動作と変わらない |
-| 2 | 自動調整 ON・overflow モード | タイルに収まる最大フォントサイズで表示される |
-| 3 | 自動調整 ON・optimal モード・係数 0.20 | 短辺 96px のタイルで約 14pt 相当のサイズになる |
-| 4 | optimal モードで長いテキストが overflow する場合 | 自動的にサイズを縮小して収める |
-| 5 | タイルリサイズ後にフォントサイズが再計算される | サイズ変更に追従して再描画される |
-| 6 | 係数スライダーを変更してダイアログ OK を押す | 係数が config に保存され、再起動後も維持される |
-| 7 | system タイルの ContentFont で自動調整を設定する | MainText / SubText がサイズ自動調整される |
-| 8 | モード選択ラジオボタンが自動調整 OFF 時にグレーアウトする | IsEnabled が正しく機能している |
+| top / bottom / center | `ActualWidth`（全幅） | `ActualHeight * 0.35` |
+| left / right | `ActualWidth / 2.0` | `ActualHeight`（全高） |
+
+#### コンテンツフォント自動調整（`UpdateContentFontSize`）
+
+`ContentFont.AutoFontSize = true` の場合にテキスト形式のコンテンツフォントを自動調整する。  
+コンテンツ領域予算：
+
+| 条件 | 幅予算 | 高さ予算 |
+|---|---|---|
+| left / right 配置 | `ActualWidth / 2.0` | `ActualHeight` |
+| タイトルあり（top / bottom） | `ActualWidth` | `ActualHeight * 0.65` |
+| タイトルなし | `ActualWidth` | `ActualHeight` |
+
+- 円グラフ形式（キャンバス固定レイアウト）は対象外
+- テキスト更新のたびに `Render()` 末尾で再計算（テキスト内容が変わるため）
+
+---
+
+### 4. `FontDetailPanel` プレビューの更新
+
+**実装ファイル**：`src/AppLauncher/ViewModels/FontDetailViewModel.cs`
+
+`PreviewFontSize` プロパティを更新し、`AutoFontSize = true` 時は標準タイル（96×96px）を基準に  
+収まるフォントサイズを計算して返すようにする。
+
+```csharp
+public double PreviewFontSize
+{
+    get
+    {
+        if (!AutoFontSize || string.IsNullOrEmpty(PreviewText))
+            return FontSizePt * 4.0 / 3.0;
+
+        // 標準タイル 96×96 で TextBlock.Measure
+        const double tileSize = 96.0;
+        const double pad = 16.0;
+        double w = tileSize - pad;
+        double h = tileSize - pad;
+        var measure = new TextBlock { Text=PreviewText, TextWrapping=TextWrapping.Wrap,
+            FontFamily=PreviewFontFamily, Padding=new Thickness(8) };
+        double startPt = Math.Clamp(FontSizePt, 6, 72);
+        for (double size = startPt; size >= 6; size--)
+        {
+            measure.FontSize = size * 4.0 / 3.0;
+            measure.Measure(new Size(w + 16, double.PositiveInfinity));
+            if (measure.DesiredSize.Height <= h + 16) return size * 4.0 / 3.0;
+        }
+        return 6 * 4.0 / 3.0;
+    }
+}
+```
+
+チェックボックス ON/OFF で即座にプレビューへ反映するため  
+`[NotifyPropertyChangedFor(nameof(PreviewFontSize))]` を `AutoFontSize` に追加。
+
+---
+
+### 5. `TileEditControl` プレビューの更新
+
+**実装ファイル**：`src/AppLauncher/Views/Controls/TileEditControl.xaml.cs`
+
+#### 共通ヘルパー `ComputeEffectivePreviewFontSizePx`
+
+実タイルと同一ロジックで有効プレビューフォントサイズ（WPF px）を計算する静的ヘルパー。  
+`ColSpan` / `RowSpan` × `Layout.TileSize` で実ピクセルサイズを求め、`TextBlock.Measure()` で判定する。
+
+```csharp
+private static double ComputeEffectivePreviewFontSizePx(TileEditViewModel vm)
+{
+    if (!vm.AutoFontSize) return vm.PreviewFontSize;
+    // 実タイルサイズで TextBlock.Measure（TileControl と同一ロジック）
+    var layout = App.ConfigService.Current.Layout;
+    double tileW = vm.ColSpan * layout.TileSize + (vm.ColSpan - 1) * layout.TileMargin;
+    double tileH = vm.RowSpan * layout.TileSize + (vm.RowSpan - 1) * layout.TileMargin;
+    // ... 計算 ...
+}
+```
+
+#### 適用先の分岐
+
+| タイル種別 | 適用先 |
+|---|---|
+| 非 system タイル | `PreviewText.FontSize` |
+| system タイル | `SysTitleText.FontSize`（`ArrangeSystemPreviewPanels` 内で適用） |
+
+呼び出しタイミング：
+- 編集ダイアログを開いたとき（`SubscribeToTileVm`）
+- フォント詳細ダイアログの OK 押下後（`OnTitleFontDetailClick` コールバック）
+
+---
+
+## テスト結果
+
+| # | 確認内容 | 結果 |
+|---|---|---|
+| 1 | 自動調整 OFF：スライダーの値がそのまま適用される | ✅ |
+| 2 | 自動調整 ON：タイルに収まる最大フォントサイズで表示される | ✅ |
+| 3 | タイルリサイズ後にフォントサイズが再計算される | ✅ |
+| 4 | system タイルのタイトルフォントが自動調整される | ✅ |
+| 5 | system タイルのコンテンツフォントが自動調整される | ✅ |
+| 6 | FontDetailPanel のプレビューが自動調整結果を反映する | ✅ |
+| 7 | TileEditControl のプレビューが自動調整結果を反映する（通常タイル） | ✅ |
+| 8 | TileEditControl のプレビューが自動調整結果を反映する（system タイル） | ✅ |

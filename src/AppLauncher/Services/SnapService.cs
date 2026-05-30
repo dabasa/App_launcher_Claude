@@ -384,6 +384,7 @@ public class SnapService
     /// </summary>
     private bool IsMouseInWindowOrGap()
     {
+        if (PresentationSource.FromVisual(_window) == null) return true;
         GetCursorPos(out var screenPt);
         var pos  = _window.PointFromScreen(new Point(screenPt.X, screenPt.Y));
         double gap = App.ConfigService.Current.Layout.ScreenEdgeDistance;

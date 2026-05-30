@@ -145,8 +145,10 @@ public partial class TileEditViewModel : ObservableObject
     public bool SiHasCircleFormat => SiCategory == "storage" || (SiCategory == "usage" && SiDeviceType != "lan");
     public bool SiHasTarget       => SiCategory == "storage" || (SiCategory == "usage" && SiDeviceType is "lan" or "gpu");
 
-    // Title 変更時に PreviewAutoFontSize も再計算
-    partial void OnTitleChanged(string value) => OnPropertyChanged(nameof(PreviewAutoFontSize));
+    // これらの変更時に PreviewAutoFontSize も再計算
+    partial void OnTitleChanged(string value)         => OnPropertyChanged(nameof(PreviewAutoFontSize));
+    partial void OnImagePathChanged(string value)     => OnPropertyChanged(nameof(PreviewAutoFontSize));
+    partial void OnImagePositionChanged(string value) => OnPropertyChanged(nameof(PreviewAutoFontSize));
 
     // ─── プレビュー用計算プロパティ ────────────────────────────────────────
     public SolidColorBrush PreviewBackground
@@ -163,27 +165,55 @@ public partial class TileEditViewModel : ObservableObject
     public SolidColorBrush PreviewForeground => ColorPalette.GetBrush(FontColor);
     public double PreviewFontSize => FontSizePt * 4.0 / 3.0;
 
-    // AutoFontSize=true 時はプレビュー枠(200×96)に収まるサイズを計算して返す
+    // AutoFontSize=true 時は実タイルと同じロジックで収まるフォントサイズを計算して返す
     public double PreviewAutoFontSize
     {
         get
         {
             if (!AutoFontSize || string.IsNullOrEmpty(Title)) return PreviewFontSize;
 
+            // 実タイルのピクセルサイズを Config から算出（TileControl.UpdateFontSize と同一ロジック）
+            var layout   = App.ConfigService.Current.Layout;
+            double tileW = ColSpan * layout.TileSize + (ColSpan - 1) * layout.TileMargin;
+            double tileH = RowSpan * layout.TileSize + (RowSpan - 1) * layout.TileMargin;
+
+            const double pad = 16.0; // TitleText Padding="8" の両側
+            double w = tileW - pad;
+            double h = tileH - pad;
+
+            bool hasImage = !string.IsNullOrEmpty(ImagePath);
+            if (hasImage)
+            {
+                switch (ImagePosition ?? "top")
+                {
+                    case "top":
+                    case "bottom":
+                        h = (tileH - pad) * 0.35;
+                        break;
+                    case "left":
+                    case "right":
+                        w = tileW / 2.0 - pad;
+                        break;
+                }
+            }
+
+            if (w <= 0 || h <= 0) return PreviewFontSize;
+
+            // TileControl.CalcOverflowFontSize と同一の TextBlock.Measure ロジック
             var measure = new TextBlock
             {
                 Text         = Title,
                 TextWrapping = TextWrapping.Wrap,
                 FontFamily   = string.IsNullOrEmpty(FontName)
                     ? SystemFonts.MessageFontFamily : new FontFamily(FontName),
-                Padding      = new Thickness(4),
+                Padding      = new Thickness(8), // TitleText は Padding="8"
             };
             double startPt = Math.Clamp(FontSizePt, 6, 72);
             for (double size = startPt; size >= 6; size--)
             {
                 measure.FontSize = size * 4.0 / 3.0;
-                measure.Measure(new Size(200, double.PositiveInfinity));
-                if (measure.DesiredSize.Height <= 96) return size * 4.0 / 3.0;
+                measure.Measure(new Size(w + 16, double.PositiveInfinity));
+                if (measure.DesiredSize.Height <= h + 16) return size * 4.0 / 3.0;
             }
             return 6 * 4.0 / 3.0;
         }

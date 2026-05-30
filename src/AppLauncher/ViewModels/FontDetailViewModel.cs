@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using AppLauncher.Models;
 using AppLauncher.Models.Config;
@@ -13,6 +14,7 @@ public partial class FontDetailViewModel : ObservableObject
     // ─── フォント設定プロパティ ────────────────────────────────────────────
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PreviewFontFamily))]
+    [NotifyPropertyChangedFor(nameof(PreviewFontSize))]
     private string _fontName = "";
 
     [ObservableProperty]
@@ -26,11 +28,42 @@ public partial class FontDetailViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(FontSizeSliderEnabled))]
+    [NotifyPropertyChangedFor(nameof(PreviewFontSize))]
     private bool _autoFontSize = false;
 
     // ─── 派生プロパティ ───────────────────────────────────────────────────
-    public bool   FontSizeSliderEnabled => !AutoFontSize;
-    public double PreviewFontSize       => FontSizePt * 4.0 / 3.0;
+    public bool FontSizeSliderEnabled => !AutoFontSize;
+
+    // AutoFontSize=true 時は標準タイル(96×96)で収まるサイズを計算して返す
+    public double PreviewFontSize
+    {
+        get
+        {
+            if (!AutoFontSize || string.IsNullOrEmpty(PreviewText))
+                return FontSizePt * 4.0 / 3.0;
+
+            const double tileSize = 96.0;
+            const double pad      = 16.0;
+            double w = tileSize - pad;   // TitleText Padding="8" の両側
+            double h = tileSize - pad;
+
+            var measure = new TextBlock
+            {
+                Text         = PreviewText,
+                TextWrapping = TextWrapping.Wrap,
+                FontFamily   = PreviewFontFamily,
+                Padding      = new Thickness(8),
+            };
+            double startPt = Math.Clamp(FontSizePt, 6, 72);
+            for (double size = startPt; size >= 6; size--)
+            {
+                measure.FontSize = size * 4.0 / 3.0;
+                measure.Measure(new Size(w + 16, double.PositiveInfinity));
+                if (measure.DesiredSize.Height <= h + 16) return size * 4.0 / 3.0;
+            }
+            return 6 * 4.0 / 3.0;
+        }
+    }
     public SolidColorBrush PreviewForeground => ColorPalette.GetBrush(FontColor);
     public FontFamily PreviewFontFamily =>
         string.IsNullOrEmpty(FontName) ? SystemFonts.MessageFontFamily : new FontFamily(FontName);

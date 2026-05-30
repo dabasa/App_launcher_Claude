@@ -138,10 +138,28 @@ public partial class TileEditControl : UserControl
         if (vm != null)
         {
             vm.PropertyChanged += OnTileVmPropertyChanged;
+            ResetSections();
+            UpdatePreviewFontSize(vm);
             UpdatePreviewImage();
             UpdateSiTargetCombo();
             _ = RefreshSystemPreviewAsync();
         }
+    }
+
+    // 編集画面を開くたびに全セクションを閉じた状態にリセット
+    private void ResetSections()
+    {
+        BasicContent.Visibility      = Visibility.Collapsed;
+        LaunchContent.Visibility     = Visibility.Collapsed;
+        SystemContent.Visibility     = Visibility.Collapsed;
+        AppearanceContent.Visibility = Visibility.Collapsed;
+        FontContent.Visibility       = Visibility.Collapsed;
+
+        BasicArrow.Text      = "▼ 基本";
+        LaunchArrow.Text     = "▼ 起動・コンテンツ";
+        SystemArrow.Text     = "▼ システム情報";
+        AppearanceArrow.Text = "▼ 外観";
+        FontArrow.Text       = "▼ フォント";
     }
 
     private void OnTileVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -167,6 +185,71 @@ public partial class TileEditControl : UserControl
                            or nameof(TileEditViewModel.FontSizePt)
                            or nameof(TileEditViewModel.FontColor))
             UpdateSystemPreviewArrangement();
+
+        if (e.PropertyName is nameof(TileEditViewModel.Title)
+                           or nameof(TileEditViewModel.FontSizePt)
+                           or nameof(TileEditViewModel.FontName)
+                           or nameof(TileEditViewModel.AutoFontSize)
+                           or nameof(TileEditViewModel.ImagePath)
+                           or nameof(TileEditViewModel.ImagePosition))
+            UpdatePreviewFontSize();
+    }
+
+    // ─── プレビューフォントサイズ（自動調整対応） ─────────────────────────
+
+    // 自動調整を考慮した実効プレビューフォントサイズ(WPF px)を返す共通ヘルパー
+    private static double ComputeEffectivePreviewFontSizePx(TileEditViewModel vm)
+    {
+        if (!vm.AutoFontSize) return vm.PreviewFontSize;
+
+        var layout   = App.ConfigService.Current.Layout;
+        double tileW = vm.ColSpan * layout.TileSize + (vm.ColSpan - 1) * layout.TileMargin;
+        double tileH = vm.RowSpan * layout.TileSize + (vm.RowSpan - 1) * layout.TileMargin;
+
+        const double pad = 16.0;
+        double w = tileW - pad;
+        double h = tileH - pad;
+
+        bool hasImage = !string.IsNullOrEmpty(vm.ImagePath);
+        if (hasImage)
+        {
+            switch (vm.ImagePosition ?? "top")
+            {
+                case "top": case "bottom": h = (tileH - pad) * 0.35; break;
+                case "left": case "right": w = tileW / 2.0 - pad;    break;
+            }
+        }
+
+        if (w <= 0 || h <= 0) return vm.PreviewFontSize;
+
+        var fontFamily = string.IsNullOrEmpty(vm.FontName)
+            ? SystemFonts.MessageFontFamily : new FontFamily(vm.FontName);
+        var measure = new TextBlock
+        {
+            Text         = string.IsNullOrEmpty(vm.Title) ? "Aa" : vm.Title,
+            TextWrapping = TextWrapping.Wrap,
+            FontFamily   = fontFamily,
+            Padding      = new Thickness(8),
+        };
+
+        double startPt = Math.Clamp(vm.FontSizePt, 6, 72);
+        for (double size = startPt; size >= 6; size--)
+        {
+            measure.FontSize = size * 4.0 / 3.0;
+            measure.Measure(new Size(w + 16, double.PositiveInfinity));
+            if (measure.DesiredSize.Height <= h + 16) return size * 4.0 / 3.0;
+        }
+        return 6 * 4.0 / 3.0;
+    }
+
+    private void UpdatePreviewFontSize(TileEditViewModel? source = null)
+    {
+        var vm = source ?? _subscribedTileVm;
+        if (vm == null) return;
+
+        double effectivePx = ComputeEffectivePreviewFontSizePx(vm);
+        PreviewText.FontSize = effectivePx;
+        // システムタイルの SysTitleText は ArrangeSystemPreviewPanels() が管理する
     }
 
     private void UpdateSiTargetCombo()
@@ -299,7 +382,8 @@ public partial class TileEditControl : UserControl
         var vm = _subscribedTileVm;
         SysTitleText.Text       = vm?.Title ?? "";
         SysTitleText.Foreground = vm?.PreviewForeground ?? System.Windows.Media.Brushes.White;
-        SysTitleText.FontSize   = Math.Max(8, (vm?.PreviewFontSize ?? 12) * 0.75);
+        double sysFontPx = vm != null ? ComputeEffectivePreviewFontSizePx(vm) : 12;
+        SysTitleText.FontSize   = Math.Max(8, sysFontPx * 0.75);
         SysTitleText.Visibility = Visibility.Visible;
 
         Grid.SetRowSpan(SystemPreviewPanel, 1);
@@ -397,6 +481,8 @@ public partial class TileEditControl : UserControl
         if (vm.Type != "system")
             ArrangePreviewImageAndText(vm.ImagePosition ?? "top");
         // system タイルの場合は ArrangeSystemPreviewPanels で処理
+
+        UpdatePreviewFontSize(vm);
     }
 
     private void ArrangePreviewImageAndText(string position)
@@ -528,6 +614,7 @@ public partial class TileEditControl : UserControl
             {
                 vm.ApplyTitleFont(result);
                 if (vm.Type == "system") UpdateSystemPreviewArrangement();
+                UpdatePreviewFontSize(vm);  // _subscribedTileVm でなく vm を直接渡す
             },
             uiColor);
     }

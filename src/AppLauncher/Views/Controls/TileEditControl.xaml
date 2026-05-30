@@ -40,7 +40,7 @@
                                Grid.Row="1" Grid.Column="0"
                                Text="{Binding EditingTileVm.Title}"
                                Foreground="{Binding EditingTileVm.PreviewForeground}"
-                               FontSize="{Binding EditingTileVm.PreviewAutoFontSize}"
+                               FontSize="21.3"
                                Panel.ZIndex="1"
                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                TextWrapping="Wrap" TextAlignment="Center" Padding="4"/>
@@ -107,10 +107,10 @@
                 <!-- ── 基本セクション ── -->
                 <Border x:Name="BasicHeader" Cursor="Hand" Padding="0,8,0,6"
                         BorderThickness="0,0,0,1" Margin="0,8,0,0">
-                    <TextBlock x:Name="BasicArrow" Text="▲ 基本"
+                    <TextBlock x:Name="BasicArrow" Text="▼ 基本"
                                Foreground="#F0F0F0" FontWeight="SemiBold"/>
                 </Border>
-                <StackPanel x:Name="BasicContent" Margin="0,6,0,0">
+                <StackPanel x:Name="BasicContent" Margin="0,6,0,0" Visibility="Collapsed">
                     <Grid Margin="0,4">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="90"/>
@@ -138,10 +138,10 @@
                 <StackPanel Visibility="{Binding EditingTileVm.HasPath, Converter={StaticResource BoolToVis}}">
                     <Border x:Name="LaunchHeader" Cursor="Hand" Padding="0,8,0,6"
                             BorderThickness="0,0,0,1" Margin="0,8,0,0">
-                        <TextBlock x:Name="LaunchArrow" Text="▲ 起動・コンテンツ"
+                        <TextBlock x:Name="LaunchArrow" Text="▼ 起動・コンテンツ"
                                    Foreground="#F0F0F0" FontWeight="SemiBold"/>
                     </Border>
-                    <StackPanel x:Name="LaunchContent" Margin="0,6,0,0">
+                    <StackPanel x:Name="LaunchContent" Margin="0,6,0,0" Visibility="Collapsed">
                         <Grid Margin="0,4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="90"/>
@@ -199,10 +199,10 @@
                 <StackPanel Visibility="{Binding EditingTileVm.HasSystemInfo, Converter={StaticResource BoolToVis}}">
                     <Border x:Name="SystemHeader" Cursor="Hand" Padding="0,8,0,6"
                             BorderThickness="0,0,0,1" Margin="0,8,0,0">
-                        <TextBlock x:Name="SystemArrow" Text="▲ システム情報"
+                        <TextBlock x:Name="SystemArrow" Text="▼ システム情報"
                                    Foreground="#F0F0F0" FontWeight="SemiBold"/>
                     </Border>
-                    <StackPanel x:Name="SystemContent" Margin="0,6,0,0">
+                    <StackPanel x:Name="SystemContent" Margin="0,6,0,0" Visibility="Collapsed">
                         <Grid Margin="0,4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="90"/>

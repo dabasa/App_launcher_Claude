@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(dotnet build *)",
-      "PowerShell(Get-Content \"$env:APPDATA\\\\AppLauncher\\\\config.json\" | Select-String \"autoFontSize|titleFont\" | Select-Object -First 30)"
+      "PowerShell(Get-Content \"$env:APPDATA\\\\AppLauncher\\\\config.json\" | Select-String \"autoFontSize|titleFont\" | Select-Object -First 30)",
+      "Bash(taskkill /PID 11608 /F)",
+      "Bash(Start-Process \"c:\\\\Locarization\\\\Programing\\\\アプリランチャー_Claude版\\\\src\\\\AppLauncher\\\\bin\\\\Debug\\\\net10.0-windows\\\\AppLauncher.exe\")",
+      "PowerShell(Start-Process \"c:\\\\Locarization\\\\Programing\\\\�A�v�������`���[_Claude��\\\\src\\\\AppLauncher\\\\bin\\\\Debug\\\\net10.0-windows\\\\AppLauncher.exe\")",
+      "PowerShell(Get-Process AppLauncher -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Force)"
     ]
   }
 }

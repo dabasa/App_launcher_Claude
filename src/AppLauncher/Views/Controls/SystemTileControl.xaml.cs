@@ -245,7 +245,7 @@ public partial class SystemTileControl : UserControl
         }
 
         SizeChanged += OnSizeChanged;
-        UpdateContentFontSize();
+        UpdateAllFontSizes();
         FetchAndUpdate();
         StartTimer();
         SubscribeMode();
@@ -260,17 +260,129 @@ public partial class SystemTileControl : UserControl
         UnsubscribeMode();
     }
 
-    private void OnSizeChanged(object sender, SizeChangedEventArgs e) => UpdateContentFontSize();
+    private void OnSizeChanged(object sender, SizeChangedEventArgs e) => UpdateAllFontSizes();
 
+    private void UpdateAllFontSizes()
+    {
+        UpdateTitleFontSize();
+        UpdateContentFontSize();
+    }
+
+    // ─── タイトルフォント自動調整 ──────────────────────────────────────────
+    private void UpdateTitleFontSize()
+    {
+        if (_tile == null || !_tile.TitleFont.AutoFontSize) return;
+        if (TitleText.Visibility != Visibility.Visible) return;
+
+        double totalW = ActualWidth;
+        double totalH = ActualHeight;
+        if (totalW <= 0 || totalH <= 0) return;
+
+        string pos = _tile.ImagePosition ?? "top";
+        // left/right: タイトル列はタイル幅の半分、高さはフル
+        // それ以外:   タイトル行はタイル高さの35%、幅はフル
+        double availW = pos is "left" or "right" ? totalW / 2.0 : totalW;
+        double availH = pos is "left" or "right" ? totalH       : totalH * 0.35;
+
+        var measure = new TextBlock
+        {
+            Text         = TitleText.Text,
+            TextWrapping = TextWrapping.Wrap,
+            FontFamily   = TitleText.FontFamily,
+            FontStyle    = TitleText.FontStyle,
+            FontWeight   = TitleText.FontWeight,
+            FontStretch  = TitleText.FontStretch,
+            Padding      = TitleText.Padding,
+        };
+        double startPt = Math.Clamp(_tile.TitleFont.FontSizePt, 6, 72);
+        for (double size = startPt; size >= 6; size--)
+        {
+            measure.FontSize = size * 4.0 / 3.0;
+            measure.Measure(new Size(availW, double.PositiveInfinity));
+            if (measure.DesiredSize.Height <= availH)
+            {
+                TitleText.FontSize = size * 4.0 / 3.0;
+                return;
+            }
+        }
+        TitleText.FontSize = 6 * 4.0 / 3.0;
+    }
+
+    // ─── コンテンツフォント自動調整 ────────────────────────────────────────
     private void UpdateContentFontSize()
     {
-        if (_tile?.ContentFont is not { AutoFontSize: true } cf) return;
+        if (_tile == null) return;
+        var cf = _tile.ContentFont ?? _tile.TitleFont;
+        if (!cf.AutoFontSize) return;
 
-        double emPx = cf.FontSizePt * 4.0 / 3.0;
-        MainText.FontSize         = emPx;
-        SubText.FontSize          = Math.Max(10, emPx - 4);
-        CircleCenterText.FontSize = emPx;
-        CircleLabel.FontSize      = Math.Max(8, emPx - 4);
+        double totalW = ActualWidth;
+        double totalH = ActualHeight;
+        if (totalW <= 0 || totalH <= 0) return;
+
+        string pos      = _tile.ImagePosition ?? "top";
+        bool   hasTitle = !string.IsNullOrEmpty(_tile.Title);
+
+        // コンテンツ領域のサイズ見積もり
+        // left/right: コンテンツ列はタイル幅の半分、高さはフル
+        // それ以外でタイトルあり: タイル高さの65%（残り35%がタイトル分）
+        double availW = pos is "left" or "right" ? totalW / 2.0 : totalW;
+        double availH = (pos is "left" or "right" || !hasTitle) ? totalH : totalH * 0.65;
+
+        // 円グラフ形式はキャンバス固定レイアウトのため対象外
+        if (TextPanel.Visibility != Visibility.Visible)
+        {
+            double cfPx = cf.FontSizePt * 4.0 / 3.0;
+            CircleCenterText.FontSize = cfPx;
+            CircleLabel.FontSize      = Math.Max(8, cfPx - 4);
+            return;
+        }
+
+        // テキストが未設定（初回フェッチ前）は指定サイズをそのまま使う
+        if (string.IsNullOrEmpty(MainText.Text))
+        {
+            double cfPx = cf.FontSizePt * 4.0 / 3.0;
+            MainText.FontSize = cfPx;
+            SubText.FontSize  = Math.Max(10, cfPx - 4);
+            return;
+        }
+
+        // StackPanel Margin="8" が両側に付くため内部幅を縮小
+        double innerW  = Math.Max(0, availW - 16);
+        double startPt = Math.Clamp(cf.FontSizePt, 6, 72);
+        for (double size = startPt; size >= 6; size--)
+        {
+            double mainPx = size * 4.0 / 3.0;
+            double subPx  = Math.Max(10, mainPx - 4);
+
+            var mMain = new TextBlock
+            {
+                Text         = MainText.Text,
+                TextWrapping = TextWrapping.Wrap,
+                FontFamily   = MainText.FontFamily,
+                FontWeight   = FontWeights.SemiBold,
+                FontSize     = mainPx,
+            };
+            var mSub = new TextBlock
+            {
+                Text         = SubText.Text,
+                TextWrapping = TextWrapping.Wrap,
+                FontFamily   = SubText.FontFamily,
+                FontSize     = subPx,
+            };
+            mMain.Measure(new Size(innerW, double.PositiveInfinity));
+            mSub.Measure(new Size(innerW, double.PositiveInfinity));
+
+            // StackPanel の Margin=8(上下) + SubText の Margin="0,2,0,0" 分を加算
+            double totalNeeded = mMain.DesiredSize.Height + mSub.DesiredSize.Height + 18;
+            if (totalNeeded <= availH)
+            {
+                MainText.FontSize = mainPx;
+                SubText.FontSize  = subPx;
+                return;
+            }
+        }
+        MainText.FontSize = 6 * 4.0 / 3.0;
+        SubText.FontSize  = 10;
     }
 
     private void StartTimer()
@@ -417,6 +529,8 @@ public partial class SystemTileControl : UserControl
             SubText.Text           = data.SubText;
             MainText.Foreground    = textBrush;
             SubText.Foreground     = textBrush;
+            // テキスト内容が確定したタイミングでフォントサイズを再計算
+            UpdateContentFontSize();
         }
     }
 }

@@ -136,22 +136,45 @@ OnPropertyChanged(nameof(ContentFontSummary));
 
 ### 4. セクション展開状態のデフォルト
 
-ユーザーが操作するたびに全セクションが閉じていると不便なため、以下をデフォルト展開とする。
+> **設計変更（2026-05-30）**  
+> 当初は基本情報・起動コンテンツ・システム情報をデフォルト展開とする予定だったが、  
+> 実装後のユーザーフィードバックにより **全セクションを折りたたみ** に変更した。  
+> 理由：編集ダイアログを開くたびに必要なセクションだけ開く操作性の方が好ましいため。
+
+**変更後のルール：**
+
+- **全セクションを初期状態で折りたたみ**
+- 編集ダイアログを開くたびに（`SubscribeToTileVm` のタイミングで）全セクションをリセット
+- フォント詳細パネル等のサブ画面へ移動して戻ってきたときは、セクションの開閉状態を保持する
 
 | セクション | デフォルト |
 |---|---|
-| 基本情報 | 展開 |
-| 起動・コンテンツ | 展開（path や URL を最初に設定することが多いため） |
-| システム情報 | 展開（system タイルの場合）/ 非表示（他） |
+| 基本情報 | **折りたたみ** |
+| 起動・コンテンツ | **折りたたみ** |
+| システム情報 | **折りたたみ** |
 | 外観 | 折りたたみ |
 | フォント | 折りたたみ |
 
-```xml
-<Expander Header="基本情報" IsExpanded="True">
-<Expander Header="起動・コンテンツ" IsExpanded="True">
-<Expander Header="システム情報" IsExpanded="True" Visibility="...">
-<Expander Header="外観" IsExpanded="False">
-<Expander Header="フォント" IsExpanded="False">
+**実装方法**
+
+XAML で全セクションを `Visibility="Collapsed"` / `▼ ` テキストに設定し、  
+`TileEditControl.xaml.cs` の `SubscribeToTileVm()` 内で `ResetSections()` を呼び出す。
+
+```csharp
+private void ResetSections()
+{
+    BasicContent.Visibility      = Visibility.Collapsed;
+    LaunchContent.Visibility     = Visibility.Collapsed;
+    SystemContent.Visibility     = Visibility.Collapsed;
+    AppearanceContent.Visibility = Visibility.Collapsed;
+    FontContent.Visibility       = Visibility.Collapsed;
+
+    BasicArrow.Text      = "▼ 基本";
+    LaunchArrow.Text     = "▼ 起動・コンテンツ";
+    SystemArrow.Text     = "▼ システム情報";
+    AppearanceArrow.Text = "▼ 外観";
+    FontArrow.Text       = "▼ フォント";
+}
 ```
 
 ---
