@@ -51,14 +51,39 @@ public partial class SystemTileControl : UserControl
 
         if (_si == null) return;
 
-        var mainBrush = ColorPalette.GetBrush(_si.MainColor);
-        MainText.Foreground         = mainBrush;
-        SubText.Foreground          = mainBrush;
-        CircleCenterText.Foreground = mainBrush;
-        CircleLabel.Foreground      = mainBrush;
-        MainText.FontSize           = tile.FontSizePt * 4.0 / 3.0;
-        SubText.FontSize            = Math.Max(10, tile.FontSizePt * 4.0 / 3.0 - 4);
-        CircleArc.Stroke            = mainBrush;
+        var arcBrush   = ColorPalette.GetBrush(_si.MainColor);
+
+        // タイトルフォント設定
+        var titleBrush = new SolidColorBrush(ColorPalette.GetColor(tile.TitleFont.FontColor));
+        double titlePx = tile.TitleFont.FontSizePt * 4.0 / 3.0;
+        TitleText.Text       = tile.Title ?? "";
+        TitleText.FontSize   = titlePx;
+        TitleText.Foreground = titleBrush;
+        if (!string.IsNullOrEmpty(tile.TitleFont.FontName))
+            TitleText.FontFamily = new FontFamily(tile.TitleFont.FontName);
+
+        // コンテンツフォント設定（ContentFont があれば優先、なければ TitleFont を流用）
+        var cf        = tile.ContentFont ?? tile.TitleFont;
+        double cfPx   = cf.FontSizePt * 4.0 / 3.0;
+        var cfBrush   = new SolidColorBrush(ColorPalette.GetColor(cf.FontColor));
+        if (!string.IsNullOrEmpty(cf.FontName))
+        {
+            var cfFamily = new FontFamily(cf.FontName);
+            MainText.FontFamily         = cfFamily;
+            SubText.FontFamily          = cfFamily;
+            CircleCenterText.FontFamily = cfFamily;
+            CircleLabel.FontFamily      = cfFamily;
+        }
+        MainText.FontSize         = cfPx;
+        SubText.FontSize          = Math.Max(10, cfPx - 4);
+        CircleCenterText.FontSize = cfPx;
+        CircleLabel.FontSize      = Math.Max(8, cfPx - 4);
+        MainText.Foreground         = cfBrush;
+        UpdateContentFontSize();
+        SubText.Foreground          = cfBrush;
+        CircleCenterText.Foreground = cfBrush;
+        CircleLabel.Foreground      = cfBrush;
+        CircleArc.Stroke            = arcBrush;
 
         // 画像設定
         _imagePath = tile.ImagePath ?? "";
@@ -69,7 +94,9 @@ public partial class SystemTileControl : UserControl
     private void SetupImageAndLayout(TileViewModel tile)
     {
         bool hasImage = !string.IsNullOrEmpty(tile.ImagePath);
-        TileImage.Visibility = hasImage ? Visibility.Visible : Visibility.Collapsed;
+        bool hasTitle = !string.IsNullOrEmpty(tile.Title);
+        TileImage.Visibility  = hasImage ? Visibility.Visible  : Visibility.Collapsed;
+        TitleText.Visibility  = hasTitle ? Visibility.Visible  : Visibility.Collapsed;
 
         if (hasImage)
         {
@@ -78,10 +105,10 @@ public partial class SystemTileControl : UserControl
                 : 1.0;
         }
 
-        ArrangeImageAndContent(tile.ImagePosition ?? "top", hasImage);
+        ArrangeImageAndContent(tile.ImagePosition ?? "top", hasImage, hasTitle);
     }
 
-    private void ArrangeImageAndContent(string position, bool hasImage)
+    private void ArrangeImageAndContent(string position, bool hasImage, bool hasTitle)
     {
         // デフォルト：ContentGrid が全領域を占有
         LayoutGrid.RowDefinitions[0].Height    = new GridLength(1, GridUnitType.Star);
@@ -91,59 +118,74 @@ public partial class SystemTileControl : UserControl
         Grid.SetColumn(ContentGrid, 0); Grid.SetColumnSpan(ContentGrid, 2);
         Grid.SetRow(TileImage, 0);    Grid.SetRowSpan(TileImage, 1);
         Grid.SetColumn(TileImage, 0); Grid.SetColumnSpan(TileImage, 1);
+        Grid.SetRow(TitleText, 0);    Grid.SetRowSpan(TitleText, 1);
+        Grid.SetColumn(TitleText, 0); Grid.SetColumnSpan(TitleText, 1);
+        TitleText.HorizontalAlignment = HorizontalAlignment.Center;
+        TitleText.VerticalAlignment   = VerticalAlignment.Center;
 
-        if (!hasImage) return;
+        if (!hasImage && !hasTitle) return;
 
         Grid.SetRowSpan(ContentGrid, 1);
         Grid.SetColumnSpan(ContentGrid, 1);
 
+        // 画像エリアのサイズ: 画像ありなら*（画像優先）、タイトルのみならAuto
+        var imageAreaRowLen   = hasImage ? new GridLength(1, GridUnitType.Star) : GridLength.Auto;
+        var contentAreaRowLen = hasImage ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
+
         switch (position)
         {
             case "top":
-                LayoutGrid.RowDefinitions[1].Height    = GridLength.Auto;
-                LayoutGrid.ColumnDefinitions[1].Width  = new GridLength(0);
+                LayoutGrid.RowDefinitions[0].Height   = imageAreaRowLen;
+                LayoutGrid.RowDefinitions[1].Height   = contentAreaRowLen;
+                LayoutGrid.ColumnDefinitions[1].Width = new GridLength(0);
                 Grid.SetColumnSpan(TileImage, 2);
+                Grid.SetColumnSpan(TitleText, 2);
                 Grid.SetColumnSpan(ContentGrid, 2);
-                Grid.SetRow(TileImage, 0);
-                Grid.SetRow(ContentGrid, 1);
-                Grid.SetColumn(TileImage, 0);
-                Grid.SetColumn(ContentGrid, 0);
+                Grid.SetRow(TileImage, 0);    Grid.SetColumn(TileImage, 0);
+                Grid.SetRow(TitleText, 0);    Grid.SetColumn(TitleText, 0);
+                Grid.SetRow(ContentGrid, 1);  Grid.SetColumn(ContentGrid, 0);
                 break;
 
             case "bottom":
-                LayoutGrid.RowDefinitions[0].Height    = GridLength.Auto;
-                LayoutGrid.RowDefinitions[1].Height    = new GridLength(1, GridUnitType.Star);
-                LayoutGrid.ColumnDefinitions[1].Width  = new GridLength(0);
+                LayoutGrid.RowDefinitions[0].Height   = contentAreaRowLen;
+                LayoutGrid.RowDefinitions[1].Height   = imageAreaRowLen;
+                LayoutGrid.ColumnDefinitions[1].Width = new GridLength(0);
                 Grid.SetColumnSpan(TileImage, 2);
+                Grid.SetColumnSpan(TitleText, 2);
                 Grid.SetColumnSpan(ContentGrid, 2);
-                Grid.SetRow(ContentGrid, 0);
-                Grid.SetRow(TileImage, 1);
-                Grid.SetColumn(TileImage, 0);
-                Grid.SetColumn(ContentGrid, 0);
+                Grid.SetRow(ContentGrid, 0); Grid.SetColumn(ContentGrid, 0);
+                Grid.SetRow(TileImage, 1);   Grid.SetColumn(TileImage, 0);
+                Grid.SetRow(TitleText, 1);   Grid.SetColumn(TitleText, 0);
                 break;
 
             case "left":
             case "right":
-                LayoutGrid.RowDefinitions[1].Height    = new GridLength(0);
-                LayoutGrid.ColumnDefinitions[0].Width  = new GridLength(1, GridUnitType.Star);
-                LayoutGrid.ColumnDefinitions[1].Width  = new GridLength(1, GridUnitType.Star);
-                Grid.SetRowSpan(TileImage, 2);
-                Grid.SetRowSpan(ContentGrid, 2);
+                LayoutGrid.RowDefinitions[1].Height   = new GridLength(0);
                 bool imgLeft = position == "left";
-                Grid.SetColumn(TileImage, imgLeft ? 0 : 1);
+                LayoutGrid.ColumnDefinitions[imgLeft ? 0 : 1].Width = hasImage
+                    ? new GridLength(1, GridUnitType.Star)
+                    : GridLength.Auto;
+                LayoutGrid.ColumnDefinitions[imgLeft ? 1 : 0].Width = new GridLength(1, GridUnitType.Star);
+                Grid.SetRowSpan(TileImage, 2);
+                Grid.SetRowSpan(TitleText, 2);
+                Grid.SetRowSpan(ContentGrid, 2);
+                Grid.SetColumn(TileImage,   imgLeft ? 0 : 1);
+                Grid.SetColumn(TitleText,   imgLeft ? 0 : 1);
                 Grid.SetColumn(ContentGrid, imgLeft ? 1 : 0);
                 Grid.SetRow(TileImage, 0);
+                Grid.SetRow(TitleText, 0);
                 Grid.SetRow(ContentGrid, 0);
                 break;
 
             case "center":
-                // 画像が全体を覆い、ContentGrid (Panel.ZIndex=1) が前面
-                Grid.SetRowSpan(TileImage, 2);
-                Grid.SetColumnSpan(TileImage, 2);
-                Grid.SetRowSpan(ContentGrid, 2);
-                Grid.SetColumnSpan(ContentGrid, 2);
+                // 画像が全体を覆い ContentGrid(ZIndex=1) が前面、TitleText(ZIndex=2) は上部に
+                Grid.SetRowSpan(TileImage, 2);    Grid.SetColumnSpan(TileImage, 2);
+                Grid.SetRowSpan(ContentGrid, 2);  Grid.SetColumnSpan(ContentGrid, 2);
+                Grid.SetRowSpan(TitleText, 2);    Grid.SetColumnSpan(TitleText, 2);
                 Grid.SetRow(TileImage, 0);    Grid.SetColumn(TileImage, 0);
                 Grid.SetRow(ContentGrid, 0);  Grid.SetColumn(ContentGrid, 0);
+                Grid.SetRow(TitleText, 0);    Grid.SetColumn(TitleText, 0);
+                TitleText.VerticalAlignment = VerticalAlignment.Top;
                 break;
         }
     }
@@ -202,6 +244,8 @@ public partial class SystemTileControl : UserControl
             }
         }
 
+        SizeChanged += OnSizeChanged;
+        UpdateContentFontSize();
         FetchAndUpdate();
         StartTimer();
         SubscribeMode();
@@ -209,10 +253,24 @@ public partial class SystemTileControl : UserControl
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        SizeChanged -= OnSizeChanged;
         StopGif();
         _timer?.Stop();
         _timer = null;
         UnsubscribeMode();
+    }
+
+    private void OnSizeChanged(object sender, SizeChangedEventArgs e) => UpdateContentFontSize();
+
+    private void UpdateContentFontSize()
+    {
+        if (_tile?.ContentFont is not { AutoFontSize: true } cf) return;
+
+        double emPx = cf.FontSizePt * 4.0 / 3.0;
+        MainText.FontSize         = emPx;
+        SubText.FontSize          = Math.Max(10, emPx - 4);
+        CircleCenterText.FontSize = emPx;
+        CircleLabel.FontSize      = Math.Max(8, emPx - 4);
     }
 
     private void StartTimer()
@@ -314,9 +372,12 @@ public partial class SystemTileControl : UserControl
         bool isCircle = _si.DisplayFormat == "circle" &&
                         (_si.Category == "storage" || (_si.Category == "usage" && _si.DeviceType != "lan"));
 
-        // アクセント切替
-        var mainBrush = ColorPalette.GetBrush(
+        // アクセント切替（グラフ用色 / テキスト用色を分離）
+        var arcBrush  = ColorPalette.GetBrush(
             data.ThresholdExceeded ? _si.AccentColor : _si.MainColor);
+        // コンテンツフォントカラー（ContentFont 優先、なければ TitleFont を流用）
+        var cf        = _tile.ContentFont ?? _tile.TitleFont;
+        var textBrush = new SolidColorBrush(ColorPalette.GetColor(cf.FontColor));
 
         // タイル背景アクセント
         if (_tileBorder != null)
@@ -341,12 +402,12 @@ public partial class SystemTileControl : UserControl
             double used              = pct * circumference;
             double unused            = circumference - used;
 
-            CircleArc.Stroke          = mainBrush;
-            CircleArc.StrokeDashArray = new DoubleCollection([used, unused]);
-            CircleCenterText.Text     = $"{data.Percentage:F0}%";
-            CircleCenterText.Foreground = mainBrush;
-            CircleLabel.Text          = data.SubText;
-            CircleLabel.Foreground    = mainBrush;
+            CircleArc.Stroke            = arcBrush;
+            CircleArc.StrokeDashArray   = new DoubleCollection([used, unused]);
+            CircleCenterText.Text       = $"{data.Percentage:F0}%";
+            CircleCenterText.Foreground = textBrush;
+            CircleLabel.Text            = data.SubText;
+            CircleLabel.Foreground      = textBrush;
         }
         else
         {
@@ -354,7 +415,8 @@ public partial class SystemTileControl : UserControl
             CirclePanel.Visibility = Visibility.Collapsed;
             MainText.Text          = data.MainText;
             SubText.Text           = data.SubText;
-            MainText.Foreground    = mainBrush;
+            MainText.Foreground    = textBrush;
+            SubText.Foreground     = textBrush;
         }
     }
 }

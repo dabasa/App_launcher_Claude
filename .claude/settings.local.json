@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dotnet build *)"
+      "Bash(dotnet build *)",
+      "PowerShell(Get-Content \"$env:APPDATA\\\\AppLauncher\\\\config.json\" | Select-String \"autoFontSize|titleFont\" | Select-Object -First 30)"
     ]
   }
 }

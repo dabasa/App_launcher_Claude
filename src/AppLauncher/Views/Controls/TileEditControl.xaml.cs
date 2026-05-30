@@ -85,23 +85,22 @@ public partial class TileEditControl : UserControl
         SiAccentColorCombo.ItemsSource   = ColorItems;
         SiBgAccentColorCombo.ItemsSource = ColorItems;
         TileColorCombo.ItemsSource       = ColorItems;
-        FontColorCombo.ItemsSource       = ColorItems;
-
-        FontNameCombo.ItemsSource = new[] { "" }
-            .Concat(Fonts.SystemFontFamilies.Select(f => f.Source).OrderBy(n => n))
-            .ToList();
 
         ImagePositionCombo.ItemsSource       = ImagePositions;
         ImagePositionCombo.DisplayMemberPath = nameof(ValueItem.Display);
 
         BasicHeader.MouseLeftButtonUp      += (_, _) => ToggleSection(BasicContent,      BasicArrow,      "基本");
-        LaunchHeader.MouseLeftButtonUp     += (_, _) => ToggleSection(LaunchContent,     LaunchArrow,     "起動");
+        LaunchHeader.MouseLeftButtonUp     += (_, _) => ToggleSection(LaunchContent,     LaunchArrow,     "起動・コンテンツ");
         SystemHeader.MouseLeftButtonUp     += (_, _) => ToggleSection(SystemContent,     SystemArrow,     "システム情報");
-        AppearanceHeader.MouseLeftButtonUp += (_, _) => ToggleSection(AppearanceContent, AppearanceArrow, "見た目");
+        AppearanceHeader.MouseLeftButtonUp += (_, _) => ToggleSection(AppearanceContent, AppearanceArrow, "外観");
+        FontHeader.MouseLeftButtonUp       += (_, _) => ToggleSection(FontContent,       FontArrow,       "フォント");
 
         BrowsePathButton.MouseLeftButtonUp    += OnBrowsePath;
         BrowseWorkDirButton.MouseLeftButtonUp += OnBrowseWorkDir;
         BrowseImageButton.MouseLeftButtonUp   += OnBrowseImage;
+
+        TitleFontDetailButton.MouseLeftButtonUp   += OnTitleFontDetailClick;
+        ContentFontDetailButton.MouseLeftButtonUp += OnContentFontDetailClick;
 
         OkButton.MouseLeftButtonUp     += (_, _) => App.LauncherViewModel?.ConfirmTileEditCommand.Execute(null);
         CancelButton.MouseLeftButtonUp += (_, _) => App.LauncherViewModel?.CloseTileEditCommand.Execute(null);
@@ -159,8 +158,15 @@ public partial class TileEditControl : UserControl
         if (e.PropertyName is nameof(TileEditViewModel.Type)
                            or nameof(TileEditViewModel.SiCategory)
                            or nameof(TileEditViewModel.SiDeviceType)
-                           or nameof(TileEditViewModel.SiTarget))
+                           or nameof(TileEditViewModel.SiTarget)
+                           or nameof(TileEditViewModel.SiDisplayFormat))
             _ = RefreshSystemPreviewAsync();
+
+        if (e.PropertyName is nameof(TileEditViewModel.Title)
+                           or nameof(TileEditViewModel.ImagePosition)
+                           or nameof(TileEditViewModel.FontSizePt)
+                           or nameof(TileEditViewModel.FontColor))
+            UpdateSystemPreviewArrangement();
     }
 
     private void UpdateSiTargetCombo()
@@ -185,7 +191,9 @@ public partial class TileEditControl : UserControl
         var vm = _subscribedTileVm;
         if (vm?.Type != "system")
         {
-            SystemPreviewText.Visibility = Visibility.Collapsed;
+            SystemPreviewPanel.Visibility = Visibility.Collapsed;
+            SysTitleText.Visibility       = Visibility.Collapsed;
+            PreviewText.Visibility        = Visibility.Visible;
             return;
         }
         var cfg = new SystemInfoConfig
@@ -199,14 +207,150 @@ public partial class TileEditControl : UserControl
         {
             var data = await Task.Run(() => SystemInfoService.Instance.GetData(cfg));
             if (_subscribedTileVm != vm) return;
-            SystemPreviewText.Text       = data.MainText;
-            SystemPreviewText.Visibility = Visibility.Visible;
+            RenderSystemPreview(vm, data);
         }
         catch
         {
             if (_subscribedTileVm != vm) return;
-            SystemPreviewText.Text       = "─";
-            SystemPreviewText.Visibility = Visibility.Visible;
+            ArrangeSystemPreviewPanels(vm.ImagePosition, !string.IsNullOrEmpty(vm.Title));
+            SysMainText.Text       = "─";
+            SysSubText.Text        = "";
+            SysTextPanel.Visibility   = Visibility.Visible;
+            SysCirclePanel.Visibility = Visibility.Collapsed;
+            SystemPreviewPanel.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void RenderSystemPreview(TileEditViewModel vm, SystemData data)
+    {
+        ArrangeSystemPreviewPanels(vm.ImagePosition, !string.IsNullOrEmpty(vm.Title));
+
+        bool isCircle = vm.SiDisplayFormat == "circle" &&
+                        (vm.SiCategory == "storage" ||
+                         (vm.SiCategory == "usage" && vm.SiDeviceType != "lan"));
+
+        var fontBrush = vm.PreviewForeground;
+
+        if (isCircle)
+        {
+            SysTextPanel.Visibility   = Visibility.Collapsed;
+            SysCirclePanel.Visibility = Visibility.Visible;
+
+            var arcBrush = data.ThresholdExceeded
+                ? ColorPalette.GetBrush(vm.SiAccentColor)
+                : ColorPalette.GetBrush(vm.SiMainColor);
+
+            // 48px楕円の中心線半径=20、StrokeThickness=8
+            const double strokeT = 8.0;
+            const double radius  = 20.0;
+            double circ  = 2 * Math.PI * radius / strokeT;
+            double pct   = Math.Clamp(data.Percentage / 100.0, 0.0, 1.0);
+            double used  = pct * circ;
+            double unused = circ - used;
+
+            SysCircleArc.Stroke          = arcBrush;
+            SysCircleArc.StrokeDashArray = new DoubleCollection([used, unused]);
+            SysCircleCenterText.Text       = $"{data.Percentage:F0}%";
+            SysCircleCenterText.Foreground = fontBrush;
+            SysCircleLabel.Text            = data.SubText;
+            SysCircleLabel.Foreground      = fontBrush;
+        }
+        else
+        {
+            SysTextPanel.Visibility   = Visibility.Visible;
+            SysCirclePanel.Visibility = Visibility.Collapsed;
+
+            SysMainText.Text       = data.MainText;
+            SysMainText.Foreground = fontBrush;
+            SysSubText.Text        = data.SubText;
+            SysSubText.Foreground  = fontBrush;
+        }
+
+        SystemPreviewPanel.Visibility = Visibility.Visible;
+    }
+
+    private void UpdateSystemPreviewArrangement()
+    {
+        var vm = _subscribedTileVm;
+        if (vm?.Type != "system") return;
+        ArrangeSystemPreviewPanels(vm.ImagePosition, !string.IsNullOrEmpty(vm.Title));
+    }
+
+    private void ArrangeSystemPreviewPanels(string? position, bool hasTitle)
+    {
+        // システムタイルプレビュー中は通常タイトル TextBlock を隠す
+        PreviewText.Visibility = Visibility.Collapsed;
+
+        // デフォルトリセット：SystemPreviewPanel が全領域、SysTitleText は非表示
+        PreviewRow0.Height = new GridLength(1, GridUnitType.Star);
+        PreviewRow1.Height = new GridLength(0);
+        PreviewCol0.Width  = new GridLength(1, GridUnitType.Star);
+        PreviewCol1.Width  = new GridLength(0);
+        Grid.SetRow(SystemPreviewPanel, 0);    Grid.SetRowSpan(SystemPreviewPanel, 2);
+        Grid.SetColumn(SystemPreviewPanel, 0); Grid.SetColumnSpan(SystemPreviewPanel, 2);
+        Grid.SetRow(SysTitleText, 0);    Grid.SetRowSpan(SysTitleText, 1);
+        Grid.SetColumn(SysTitleText, 0); Grid.SetColumnSpan(SysTitleText, 1);
+        SysTitleText.HorizontalAlignment = HorizontalAlignment.Center;
+        SysTitleText.VerticalAlignment   = VerticalAlignment.Center;
+        SysTitleText.Visibility          = Visibility.Collapsed;
+
+        if (!hasTitle) return;
+
+        var vm = _subscribedTileVm;
+        SysTitleText.Text       = vm?.Title ?? "";
+        SysTitleText.Foreground = vm?.PreviewForeground ?? System.Windows.Media.Brushes.White;
+        SysTitleText.FontSize   = Math.Max(8, (vm?.PreviewFontSize ?? 12) * 0.75);
+        SysTitleText.Visibility = Visibility.Visible;
+
+        Grid.SetRowSpan(SystemPreviewPanel, 1);
+        Grid.SetColumnSpan(SystemPreviewPanel, 1);
+
+        switch (position ?? "top")
+        {
+            case "top":
+                PreviewRow0.Height = GridLength.Auto;
+                PreviewRow1.Height = new GridLength(1, GridUnitType.Star);
+                Grid.SetRow(SysTitleText, 0);    Grid.SetRowSpan(SysTitleText, 1);
+                Grid.SetColumn(SysTitleText, 0); Grid.SetColumnSpan(SysTitleText, 2);
+                Grid.SetRow(SystemPreviewPanel, 1);
+                Grid.SetColumn(SystemPreviewPanel, 0); Grid.SetColumnSpan(SystemPreviewPanel, 2);
+                break;
+
+            case "bottom":
+                PreviewRow0.Height = new GridLength(1, GridUnitType.Star);
+                PreviewRow1.Height = GridLength.Auto;
+                Grid.SetRow(SysTitleText, 1);    Grid.SetRowSpan(SysTitleText, 1);
+                Grid.SetColumn(SysTitleText, 0); Grid.SetColumnSpan(SysTitleText, 2);
+                Grid.SetRow(SystemPreviewPanel, 0);
+                Grid.SetColumn(SystemPreviewPanel, 0); Grid.SetColumnSpan(SystemPreviewPanel, 2);
+                break;
+
+            case "left":
+                PreviewRow1.Height = new GridLength(0);
+                PreviewCol0.Width  = GridLength.Auto;
+                PreviewCol1.Width  = new GridLength(1, GridUnitType.Star);
+                Grid.SetRow(SysTitleText, 0);    Grid.SetRowSpan(SysTitleText, 2);
+                Grid.SetColumn(SysTitleText, 0); Grid.SetColumnSpan(SysTitleText, 1);
+                Grid.SetRow(SystemPreviewPanel, 0);    Grid.SetRowSpan(SystemPreviewPanel, 2);
+                Grid.SetColumn(SystemPreviewPanel, 1); Grid.SetColumnSpan(SystemPreviewPanel, 1);
+                break;
+
+            case "right":
+                PreviewRow1.Height = new GridLength(0);
+                PreviewCol0.Width  = new GridLength(1, GridUnitType.Star);
+                PreviewCol1.Width  = GridLength.Auto;
+                Grid.SetRow(SysTitleText, 0);    Grid.SetRowSpan(SysTitleText, 2);
+                Grid.SetColumn(SysTitleText, 1); Grid.SetColumnSpan(SysTitleText, 1);
+                Grid.SetRow(SystemPreviewPanel, 0);    Grid.SetRowSpan(SystemPreviewPanel, 2);
+                Grid.SetColumn(SystemPreviewPanel, 0); Grid.SetColumnSpan(SystemPreviewPanel, 1);
+                break;
+
+            default: // "center" - タイトルを上部に重ねて表示
+                Grid.SetRowSpan(SystemPreviewPanel, 2); Grid.SetColumnSpan(SystemPreviewPanel, 2);
+                Grid.SetRow(SysTitleText, 0);    Grid.SetRowSpan(SysTitleText, 2);
+                Grid.SetColumn(SysTitleText, 0); Grid.SetColumnSpan(SysTitleText, 2);
+                SysTitleText.VerticalAlignment = VerticalAlignment.Top;
+                break;
         }
     }
 
@@ -219,7 +363,18 @@ public partial class TileEditControl : UserControl
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
         {
             PreviewImage.Visibility = Visibility.Collapsed;
-            ArrangePreviewImageAndText("top");
+            if (vm.Type != "system")
+            {
+                // 画像なし: テキストが全体を占有
+                PreviewRow0.Height = new GridLength(1, GridUnitType.Star);
+                PreviewRow1.Height = new GridLength(0);
+                PreviewCol0.Width  = new GridLength(1, GridUnitType.Star);
+                PreviewCol1.Width  = new GridLength(0);
+                Grid.SetRow(PreviewText, 0);    Grid.SetRowSpan(PreviewText, 2);
+                Grid.SetColumn(PreviewText, 0); Grid.SetColumnSpan(PreviewText, 2);
+                Grid.SetRow(PreviewImage, 0);   Grid.SetRowSpan(PreviewImage, 1);
+                Grid.SetColumn(PreviewImage, 0); Grid.SetColumnSpan(PreviewImage, 1);
+            }
             return;
         }
 
@@ -239,7 +394,9 @@ public partial class TileEditControl : UserControl
             PreviewImage.Visibility = Visibility.Collapsed;
         }
 
-        ArrangePreviewImageAndText(vm.ImagePosition ?? "top");
+        if (vm.Type != "system")
+            ArrangePreviewImageAndText(vm.ImagePosition ?? "top");
+        // system タイルの場合は ArrangeSystemPreviewPanels で処理
     }
 
     private void ArrangePreviewImageAndText(string position)
@@ -309,11 +466,14 @@ public partial class TileEditControl : UserControl
         LaunchHeader.BorderBrush     = uiBrush;
         SystemHeader.BorderBrush     = uiBrush;
         AppearanceHeader.BorderBrush = uiBrush;
+        FontHeader.BorderBrush       = uiBrush;
         CancelButton.Background      = uiBrush;
         OkButton.Background          = uiBrush;
         BrowsePathButton.Background    = uiBrush;
         BrowseWorkDirButton.Background = uiBrush;
         BrowseImageButton.Background   = uiBrush;
+        TitleFontDetailButton.Background   = uiBrush;
+        ContentFontDetailButton.Background = uiBrush;
     }
 
     private static void ToggleSection(UIElement content, TextBlock arrow, string label)
@@ -353,5 +513,44 @@ public partial class TileEditControl : UserControl
             Filter = "画像ファイル (*.png;*.jpg;*.gif;*.ico)|*.png;*.jpg;*.gif;*.ico|すべてのファイル (*.*)|*.*",
         };
         if (dlg.ShowDialog() == true) vm.ImagePath = dlg.FileName;
+    }
+
+    // ─── フォント詳細ダイアログ ───────────────────────────────────────────
+    private void OnTitleFontDetailClick(object sender, MouseButtonEventArgs e)
+    {
+        var vm = _subscribedTileVm;
+        if (vm == null) return;
+        var previewText = string.IsNullOrEmpty(vm.Title) ? "Aa" : vm.Title;
+        var uiColor     = GetUiColor();
+        FontDetailPanel.Open(
+            vm.GetTitleFontCopy(), previewText, "タイトルフォント設定詳細",
+            result =>
+            {
+                vm.ApplyTitleFont(result);
+                if (vm.Type == "system") UpdateSystemPreviewArrangement();
+            },
+            uiColor);
+    }
+
+    private void OnContentFontDetailClick(object sender, MouseButtonEventArgs e)
+    {
+        var vm = _subscribedTileVm;
+        if (vm == null) return;
+        var uiColor = GetUiColor();
+        FontDetailPanel.Open(
+            vm.GetContentFontCopy(), "99%\nCPU", "コンテンツフォント設定詳細",
+            result =>
+            {
+                vm.ApplyContentFont(result);
+                _ = RefreshSystemPreviewAsync();
+            },
+            uiColor);
+    }
+
+    private Color GetUiColor()
+    {
+        var vm = App.LauncherViewModel;
+        if (vm == null) return Colors.Gray;
+        return ColorHelper.ComputeUiElementColor(ColorPalette.GetColor(vm.CurrentPage.BackgroundColor));
     }
 }

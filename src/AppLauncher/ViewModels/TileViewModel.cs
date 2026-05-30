@@ -10,19 +10,27 @@ public partial class TileViewModel : ObservableObject
     [ObservableProperty] private int _colSpan;
     [ObservableProperty] private int _rowSpan;
 
-    public string Type           { get; }
-    public string Title          { get; }
-    public string Path           { get; }
-    public string Args           { get; }
-    public string WorkDir        { get; }
-    public string Color          { get; }
-    public int    Opacity        { get; }
-    public string FontName       { get; }
-    public int    FontSizePt     { get; }
-    public string FontColor      { get; }
-    public string ImagePath      { get; }
-    public string ImagePosition  { get; }
+    public string Type             { get; }
+    public string Title            { get; }
+    public string Path             { get; }
+    public string Args             { get; }
+    public string WorkDir          { get; }
+    public string Color            { get; }
+    public int    Opacity          { get; }
+    public string ImagePath        { get; }
+    public string ImagePosition    { get; }
     public bool   ImageTransparent { get; }
+
+    // ─── フォント設定 ────────────────────────────────────────────────────
+    public FontConfig  TitleFont   { get; }
+    public FontConfig? ContentFont { get; }
+
+    // 既存コード（TileControl / SystemTileControl）との後方互換プロパティ
+    public string FontName     => TitleFont.FontName;
+    public int    FontSizePt   => TitleFont.FontSizePt;
+    public string FontColor    => TitleFont.FontColor;
+    public bool   AutoFontSize => TitleFont.AutoFontSize;
+
     public SystemInfoConfig? SystemInfo { get; }
 
     public TileViewModel(TileConfig config)
@@ -38,13 +46,12 @@ public partial class TileViewModel : ObservableObject
         WorkDir       = config.WorkDir;
         Color         = config.Color;
         Opacity       = config.Opacity;
-        FontName      = config.FontName;
-        FontSizePt    = config.FontSizePt;
-        FontColor     = config.FontColor;
-        ImagePath     = config.ImagePath;
-        ImagePosition = config.ImagePosition;
+        ImagePath        = config.ImagePath;
+        ImagePosition    = config.ImagePosition;
         ImageTransparent = config.ImageTransparent;
-        SystemInfo    = config.SystemInfo;
+        TitleFont        = config.TitleFont   ?? new FontConfig();
+        ContentFont      = config.ContentFont;
+        SystemInfo       = config.SystemInfo;
     }
 
     public static TileViewModel CreateNew(int col, int row) => new(new TileConfig
@@ -53,7 +60,7 @@ public partial class TileViewModel : ObservableObject
         ColSpan = 1,    RowSpan = 1,
         Type    = "app",
         Color   = "blue", Opacity = 20,
-        FontSizePt = 16, FontColor = "white",
+        TitleFont     = new FontConfig { FontSizePt = 16, FontColor = "white" },
         ImagePosition = "top",
     });
 
@@ -64,8 +71,11 @@ public partial class TileViewModel : ObservableObject
         Type   = Type,    Title  = Title,
         Path   = Path,    Args   = Args,    WorkDir = WorkDir,
         Color  = Color,   Opacity = Opacity,
-        FontName = FontName, FontSizePt = FontSizePt, FontColor = FontColor,
-        ImagePath = ImagePath, ImagePosition = ImagePosition,
-        ImageTransparent = ImageTransparent, SystemInfo = SystemInfo,
+        ImagePath        = ImagePath,
+        ImagePosition    = ImagePosition,
+        ImageTransparent = ImageTransparent,
+        TitleFont        = TitleFont,
+        ContentFont      = ContentFont,
+        SystemInfo       = SystemInfo,
     };
 }

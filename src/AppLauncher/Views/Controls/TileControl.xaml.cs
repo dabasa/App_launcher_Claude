@@ -56,10 +56,12 @@ public partial class TileControl : UserControl
         TileBorder.CornerRadius = new CornerRadius(cornerRadius);
 
         TitleText.Text       = tile.Title;
-        TitleText.FontSize   = tile.FontSizePt * 4.0 / 3.0;
         TitleText.Foreground = new SolidColorBrush(ColorPalette.GetColor(tile.FontColor));
         if (!string.IsNullOrEmpty(tile.FontName))
             TitleText.FontFamily = new FontFamily(tile.FontName);
+        else
+            TitleText.ClearValue(TextBlock.FontFamilyProperty);
+        UpdateFontSize();
 
         // 画像表示・レイアウト設定
         _imagePath = tile.ImagePath ?? "";
@@ -155,6 +157,11 @@ public partial class TileControl : UserControl
     // ─── GIF タイマー ─────────────────────────────────────────────────────
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        SizeChanged += OnSizeChanged;
+        UpdateFontSize();
+        if (_tile?.AutoFontSize == true && TileBorder.ActualWidth <= 0)
+            Dispatcher.BeginInvoke(UpdateFontSize, DispatcherPriority.Loaded);
+
         if (string.IsNullOrEmpty(_imagePath)) return;
 
         string ext = Path.GetExtension(_imagePath).ToLowerInvariant();
@@ -169,7 +176,82 @@ public partial class TileControl : UserControl
         }
     }
 
-    private void OnUnloaded(object sender, RoutedEventArgs e) => StopGif();
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        SizeChanged -= OnSizeChanged;
+        StopGif();
+    }
+
+    private void OnSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_tile?.AutoFontSize == true) UpdateFontSize();
+    }
+
+    private void UpdateFontSize()
+    {
+        if (_tile == null) return;
+        if (!_tile.AutoFontSize)
+        {
+            TitleText.FontSize = _tile.FontSizePt * 4.0 / 3.0;
+            return;
+        }
+        // AutoFontSize=true: set specified size as initial placeholder so the tile
+        // never shows at the inherited default before layout completes.
+        TitleText.FontSize = _tile.FontSizePt * 4.0 / 3.0;
+        if (TileBorder.ActualWidth <= 0 || TileBorder.ActualHeight <= 0) return;
+
+        const double pad = 16.0;
+        double w = TileBorder.ActualWidth  - pad;
+        double h = TileBorder.ActualHeight - pad;
+        bool hasImage = !string.IsNullOrEmpty(_tile.ImagePath);
+        if (hasImage)
+        {
+            switch (_tile.ImagePosition ?? "top")
+            {
+                case "top":
+                case "bottom":
+                    h = (TileBorder.ActualHeight - pad) * 0.35;
+                    break;
+                case "left":
+                case "right":
+                    w = TileBorder.ActualWidth / 2.0 - pad;
+                    break;
+                // "center": 画像とテキストが重なるため全領域をそのまま使う
+            }
+        }
+
+        TitleText.FontSize = CalcOverflowFontSize(_tile.Title, w, h) * 4.0 / 3.0;
+    }
+
+    private double CalcOverflowFontSize(string text, double w, double h)
+    {
+        if (string.IsNullOrEmpty(text) || w <= 0 || h <= 0) return 6;
+
+        // FormattedText は WPF TextBlock の実描画より行高が小さく出るため（FontFamily.LineSpacing 分の誤差）、
+        // TextBlock を直接 Measure して正確に収まりを判定する
+        var measure = new TextBlock
+        {
+            Text         = text,
+            TextWrapping = TextWrapping.Wrap,
+            FontFamily   = TitleText.FontFamily,
+            FontStyle    = TitleText.FontStyle,
+            FontWeight   = TitleText.FontWeight,
+            FontStretch  = TitleText.FontStretch,
+            Padding      = new Thickness(8),
+        };
+        // w/h はパディング(8×2=16)を除いたコンテンツ領域。+16 で TextBlock 全体幅・高さに戻す
+        double availW = w + 16;
+        double availH = h + 16;
+
+        double startPt = _tile != null ? Math.Clamp(_tile.FontSizePt, 6, 72) : 72;
+        for (double size = startPt; size >= 6; size--)
+        {
+            measure.FontSize = size * 4.0 / 3.0;
+            measure.Measure(new Size(availW, double.PositiveInfinity));
+            if (measure.DesiredSize.Height <= availH) return size;
+        }
+        return 6;
+    }
 
     private void StartGif(string path)
     {

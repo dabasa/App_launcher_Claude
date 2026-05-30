@@ -40,6 +40,11 @@ public class ConfigService
 
         string json = File.ReadAllText(ConfigPath);
         Current = JsonSerializer.Deserialize<AppConfig>(json, JsonOptions) ?? CreateDefault();
+
+        // 旧フォーマット（フラットフィールド）を FontConfig オブジェクトへ移行
+        foreach (var page in Current.Pages)
+            foreach (var tile in page.Tiles)
+                tile.MigrateFont();
     }
 
     public void Save()
@@ -111,18 +116,22 @@ public class ConfigService
                     }},
             new() { Col=3, Row=0, ColSpan=1, RowSpan=1, Type="app",
                     Title="README", Path="notepad.exe", Args=$"\"{readmePath}\"",
-                    Color="yellow", Opacity=20, FontSizePt=14 },
+                    Color="yellow", Opacity=20,
+                    TitleFont=new FontConfig { FontSizePt=14, FontColor="white" } },
 
             // 下段：フォルダ・アプリ
             new() { Col=0, Row=1, ColSpan=1, RowSpan=1, Type="folder",
                     Title="デスクトップ", Path=@"%USERPROFILE%\Desktop",
-                    Color="teal", Opacity=20, FontSizePt=14 },
+                    Color="teal", Opacity=20,
+                    TitleFont=new FontConfig { FontSizePt=14, FontColor="white" } },
             new() { Col=1, Row=1, ColSpan=1, RowSpan=1, Type="folder",
                     Title="ダウンロード", Path=@"%USERPROFILE%\Downloads",
-                    Color="blue", Opacity=20, FontSizePt=14 },
+                    Color="blue", Opacity=20,
+                    TitleFont=new FontConfig { FontSizePt=14, FontColor="white" } },
             new() { Col=2, Row=1, ColSpan=1, RowSpan=1, Type="app",
                     Title="メモ帳", Path="notepad.exe",
-                    Color="purple", Opacity=20, FontSizePt=14 },
+                    Color="purple", Opacity=20,
+                    TitleFont=new FontConfig { FontSizePt=14, FontColor="white" } },
         ];
     }
 
@@ -167,7 +176,8 @@ public class ConfigService
 
         // (0,1) 2×2 app — 電卓（大タイル確認）
         new() { Col=0, Row=1, ColSpan=2, RowSpan=2, Type="app",
-                Title="電卓", Path="calc.exe", Color="orange", FontSizePt=20 },
+                Title="電卓", Path="calc.exe", Color="orange",
+                TitleFont=new FontConfig { FontSizePt=20, FontColor="white" } },
 
         // (2,1) 2×1 webview — Google
         new() { Col=2, Row=1, ColSpan=2, RowSpan=1, Type="webview",
