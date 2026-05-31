@@ -302,6 +302,7 @@ public partial class TileEditControl : UserControl
             SysTextPanel.Visibility   = Visibility.Visible;
             SysCirclePanel.Visibility = Visibility.Collapsed;
             SystemPreviewPanel.Visibility = Visibility.Visible;
+            FitPreviewSystemTextFont();
         }
     }
 
@@ -355,6 +356,7 @@ public partial class TileEditControl : UserControl
             SysMainText.Foreground = fontBrush;
             SysSubText.Text        = data.SubText;
             SysSubText.Foreground  = fontBrush;
+            FitPreviewSystemTextFont();
         }
 
         SystemPreviewPanel.Visibility = Visibility.Visible;
@@ -365,6 +367,8 @@ public partial class TileEditControl : UserControl
         var vm = _subscribedTileVm;
         if (vm?.Type != "system") return;
         ArrangeSystemPreviewPanels(vm.ImagePosition, !string.IsNullOrEmpty(vm.Title));
+        if (SysTextPanel.Visibility == Visibility.Visible)
+            FitPreviewSystemTextFont();
     }
 
     private void ArrangeSystemPreviewPanels(string? position, bool hasTitle)
@@ -677,6 +681,96 @@ public partial class TileEditControl : UserControl
         }
         SysCircleCenterText.FontSize = 6 * 4.0 / 3.0;
         SysCircleLabel.FontSize      = 7.0;
+    }
+
+    // ─── プレビュー システムテキストのフォントサイズ自動調整 ──────────────────
+    // プレビュー Border は 200×96px。タイトルが占有する高さを実測し、残りを
+    // コンテンツフォント設定に従って自動調整する。UpdateContentFontSize() と同じロジック。
+    private void FitPreviewSystemTextFont()
+    {
+        if (_subscribedTileVm is not { } vm) return;
+
+        const double previewW = 200.0;
+        const double previewH = 96.0;
+
+        string pos      = vm.ImagePosition ?? "top";
+        bool   hasTitle = !string.IsNullOrEmpty(vm.Title) && SysTitleText.Visibility == Visibility.Visible;
+
+        double availW = pos is "left" or "right" ? previewW / 2.0 : previewW;
+        double availH = previewH;
+
+        if (hasTitle && pos is not "left" and not "right")
+        {
+            var titleMeasure = new TextBlock
+            {
+                Text         = SysTitleText.Text,
+                FontSize     = SysTitleText.FontSize,
+                FontFamily   = SysTitleText.FontFamily,
+                TextWrapping = TextWrapping.Wrap,
+                Padding      = SysTitleText.Padding,
+            };
+            titleMeasure.Measure(new Size(previewW, double.PositiveInfinity));
+            availH = Math.Max(0, previewH - titleMeasure.DesiredSize.Height);
+        }
+
+        var cf = vm.GetContentFontCopy();
+
+        if (!cf.AutoFontSize)
+        {
+            double fixedPx = cf.FontSizePt * 4.0 / 3.0;
+            SysMainText.FontSize = fixedPx;
+            SysSubText.FontSize  = Math.Max(8, fixedPx - 4);
+            return;
+        }
+
+        if (string.IsNullOrEmpty(SysMainText.Text))
+        {
+            double cfPx = cf.FontSizePt * 4.0 / 3.0;
+            SysMainText.FontSize = cfPx;
+            SysSubText.FontSize  = Math.Max(8, cfPx - 4);
+            return;
+        }
+
+        double innerW     = Math.Max(0, availW - 16);
+        double startPt    = Math.Clamp(cf.FontSizePt, 6, 72);
+        bool   subVisible = SysSubText.Visibility == Visibility.Visible;
+
+        for (double size = startPt; size >= 6; size--)
+        {
+            double mainPx = size * 4.0 / 3.0;
+            double subPx  = Math.Max(8, mainPx - 4);
+
+            var mMain = new TextBlock
+            {
+                Text         = SysMainText.Text,
+                TextWrapping = TextWrapping.Wrap,
+                FontWeight   = FontWeights.SemiBold,
+                FontSize     = mainPx,
+            };
+            mMain.Measure(new Size(innerW, double.PositiveInfinity));
+
+            double totalNeeded = mMain.DesiredSize.Height + 16;
+            if (subVisible && !string.IsNullOrEmpty(SysSubText.Text))
+            {
+                var mSub = new TextBlock
+                {
+                    Text         = SysSubText.Text,
+                    TextWrapping = TextWrapping.Wrap,
+                    FontSize     = subPx,
+                };
+                mSub.Measure(new Size(innerW, double.PositiveInfinity));
+                totalNeeded += mSub.DesiredSize.Height + 2;
+            }
+
+            if (totalNeeded <= availH)
+            {
+                SysMainText.FontSize = mainPx;
+                SysSubText.FontSize  = subPx;
+                return;
+            }
+        }
+        SysMainText.FontSize = 6 * 4.0 / 3.0;
+        SysSubText.FontSize  = 8;
     }
 
     private Color GetUiColor()

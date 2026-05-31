@@ -28,6 +28,9 @@ public partial class SystemTileControl : UserControl
     private Border?        _topProcessPanel;
     private TextBlock[,]?  _topProcCells;  // [row 0=header / 1-3=data, col 0-3]
 
+    // タイトルの推定高さ（UpdateTitleFontSize で計算 → コンテンツ系メソッドで参照）
+    private double _estimatedTitleH;
+
     // 画像・GIF 再生用
     private string            _imagePath = "";
     private GifBitmapDecoder? _gifDecoder;
@@ -287,20 +290,20 @@ public partial class SystemTileControl : UserControl
     }
 
     // ─── タイトルフォント自動調整 ──────────────────────────────────────────
+    // AutoFontSize=false の場合もタイトルの実測高さを _estimatedTitleH に保存し、
+    // コンテンツ系メソッドが正確な残り高さを把握できるようにする。
     private void UpdateTitleFontSize()
     {
-        if (_tile == null || !_tile.TitleFont.AutoFontSize) return;
-        if (TitleText.Visibility != Visibility.Visible) return;
+        _estimatedTitleH = 0;
+        if (_tile == null || TitleText.Visibility != Visibility.Visible) return;
 
         double totalW = ActualWidth;
         double totalH = ActualHeight;
         if (totalW <= 0 || totalH <= 0) return;
 
-        string pos = _tile.ImagePosition ?? "top";
-        // left/right: タイトル列はタイル幅の半分、高さはフル
-        // それ以外:   タイトル行はタイル高さの35%、幅はフル
-        double availW = pos is "left" or "right" ? totalW / 2.0 : totalW;
-        double availH = pos is "left" or "right" ? totalH       : totalH * 0.35;
+        string pos          = _tile.ImagePosition ?? "top";
+        bool   isHorizontal = pos is "left" or "right";
+        double measureW     = isHorizontal ? totalW / 2.0 : totalW;
 
         var measure = new TextBlock
         {
@@ -312,18 +315,39 @@ public partial class SystemTileControl : UserControl
             FontStretch  = TitleText.FontStretch,
             Padding      = TitleText.Padding,
         };
-        double startPt = Math.Clamp(_tile.TitleFont.FontSizePt, 6, 72);
-        for (double size = startPt; size >= 6; size--)
+
+        double titlePx;
+        if (_tile.TitleFont.AutoFontSize)
         {
-            measure.FontSize = size * 4.0 / 3.0;
-            measure.Measure(new Size(availW, double.PositiveInfinity));
-            if (measure.DesiredSize.Height <= availH)
+            // left/right: 高さ上限はフル / 上下: タイル高さの 35% を上限
+            double availH  = isHorizontal ? totalH : totalH * 0.35;
+            double startPt = Math.Clamp(_tile.TitleFont.FontSizePt, 6, 72);
+            titlePx = 6 * 4.0 / 3.0;
+            for (double size = startPt; size >= 6; size--)
             {
-                TitleText.FontSize = size * 4.0 / 3.0;
-                return;
+                measure.FontSize = size * 4.0 / 3.0;
+                measure.Measure(new Size(measureW, double.PositiveInfinity));
+                if (measure.DesiredSize.Height <= availH)
+                {
+                    titlePx = size * 4.0 / 3.0;
+                    break;
+                }
             }
+            TitleText.FontSize = titlePx;
         }
-        TitleText.FontSize = 6 * 4.0 / 3.0;
+        else
+        {
+            titlePx = _tile.TitleFont.FontSizePt * 4.0 / 3.0;
+        }
+
+        // 上下配置のみ: タイトルが実際に占有する高さを計測して保存
+        // → コンテンツ系メソッドはこの値を使って正確な残り高さを算出する
+        if (!isHorizontal)
+        {
+            measure.FontSize = titlePx;
+            measure.Measure(new Size(measureW, double.PositiveInfinity));
+            _estimatedTitleH = measure.DesiredSize.Height;
+        }
     }
 
     // ─── コンテンツフォント自動調整 ────────────────────────────────────────
@@ -351,9 +375,11 @@ public partial class SystemTileControl : UserControl
 
         // コンテンツ領域のサイズ見積もり
         // left/right: コンテンツ列はタイル幅の半分、高さはフル
-        // それ以外でタイトルあり: タイル高さの65%（残り35%がタイトル分）
+        // 上下でタイトルあり: タイル高さ - タイトル実測高さ（UpdateTitleFontSize で計算済み）
         double availW = pos is "left" or "right" ? totalW / 2.0 : totalW;
-        double availH = (pos is "left" or "right" || !hasTitle) ? totalH : totalH * 0.65;
+        double availH = (pos is "left" or "right" || !hasTitle)
+            ? totalH
+            : Math.Max(0, totalH - _estimatedTitleH);
 
         // テキストが未設定（初回フェッチ前）は指定サイズをそのまま使う
         if (string.IsNullOrEmpty(MainText.Text))
@@ -586,8 +612,10 @@ public partial class SystemTileControl : UserControl
         string pos      = _tile.ImagePosition ?? "top";
 
         // タイトル高さを差し引いてコンテンツエリアを算出
-        double titleH  = hasTitle && pos is not "left" and not "right"
-            ? Math.Max(TitleText.ActualHeight, 20.0) : 0.0;
+        // _estimatedTitleH は UpdateTitleFontSize で計算済み。未計算の場合は ActualHeight で代替。
+        double titleH = hasTitle && pos is not "left" and not "right"
+            ? (_estimatedTitleH > 0 ? _estimatedTitleH : TitleText.ActualHeight)
+            : 0.0;
         double contentH = tileH > 0 ? tileH - titleH : 80.0;
         double contentW = pos is "left" or "right" ? (tileW > 0 ? tileW * 0.5 : 80.0) : (tileW > 0 ? tileW : 80.0);
 
@@ -644,29 +672,42 @@ public partial class SystemTileControl : UserControl
         if (_tile == null || _topProcCells == null) return;
         if (_topProcessPanel?.Visibility != Visibility.Visible) return;
 
-        double totalH = ActualHeight;
-        if (totalH <= 0) return;
+        // ContentGrid の実測値を使う（ActualHeight - _estimatedTitleH より正確）
+        double availH = ContentGrid.ActualHeight;
+        if (availH <= 0) return;
 
-        // タイトルが上下にある場合はコンテンツ領域を 65% と見積もる
-        bool hasTitle = TitleText.Visibility == Visibility.Visible;
-        string pos = _tile.ImagePosition ?? "top";
-        double availH = hasTitle && pos is not "left" and not "right"
-            ? totalH * 0.65 : totalH;
+        // Margin T(4)+B(8)=12 + BorderThickness(1×2=2) + 行区切り線(3本) + 底面余白(4)  ※左右は別途 6px 確保
+        availH -= 21;
+        if (availH <= 0) return;
 
-        // 外枠 Margin(4×2=8) + Border(1×2=2) + 行区切り線(3本) を除いた高さ
-        availH -= 13;
-
-        // 4行に均等割り: 1行高さ = fontPx × 1.2(行高係数) + 縦パディング 2px
-        double rowH   = availH / 4.0;
-        double fontPx = Math.Max(6, (rowH - 2) / 1.2);
-
-        // 設定値より大きくしない
         var cf = _tile.ContentFont ?? _tile.TitleFont;
-        fontPx = Math.Min(fontPx, cf.FontSizePt * 4.0 / 3.0);
+        double maxPt = Math.Clamp(cf.FontSizePt, 6, 72);
 
+        // ヘッダー行は SemiBold → probe も SemiBold で計測して保守的な高さを得る
+        var probe = new TextBlock
+        {
+            Text       = "Ag",
+            Padding    = new Thickness(3, 1, 3, 1),
+            FontFamily = _topProcCells[0, 0].FontFamily,
+            FontWeight = FontWeights.SemiBold,
+        };
+        for (double size = maxPt; size >= 6; size--)
+        {
+            probe.FontSize = size * 4.0 / 3.0;
+            probe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            if (probe.DesiredSize.Height * 4 <= availH)
+            {
+                double px = size * 4.0 / 3.0;
+                for (int r = 0; r < 4; r++)
+                for (int c = 0; c < 4; c++)
+                    _topProcCells[r, c].FontSize = px;
+                return;
+            }
+        }
+        double minPx = 6 * 4.0 / 3.0;
         for (int r = 0; r < 4; r++)
         for (int c = 0; c < 4; c++)
-            _topProcCells[r, c].FontSize = fontPx;
+            _topProcCells[r, c].FontSize = minPx;
     }
 
     private void EnsureTopProcessPanel()
@@ -716,11 +757,12 @@ public partial class SystemTileControl : UserControl
 
         _topProcessPanel = new Border
         {
-            Child            = innerGrid,
-            BorderBrush      = lineBrush,
-            BorderThickness  = new Thickness(1),
-            Margin           = new Thickness(4),
-            VerticalAlignment = VerticalAlignment.Center,
+            Child             = innerGrid,
+            BorderBrush       = lineBrush,
+            BorderThickness   = new Thickness(1),
+            Margin            = new Thickness(6, 4, 6, 8),   // L:6 T:4 R:6 B:8（下側余白を確保）
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment   = VerticalAlignment.Center,
         };
         ContentGrid.Children.Add(_topProcessPanel);
     }

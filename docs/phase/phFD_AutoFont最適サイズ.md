@@ -77,6 +77,20 @@ private double CalcOverflowFontSize(string text, double w, double h)
 
 **実装ファイル**：`src/AppLauncher/Views/Controls/SystemTileControl.xaml.cs`
 
+> **設計変更（2026-05-31）**  
+> 当初はタイトルとコンテンツの高さ割合を固定比率（タイトル 35%・コンテンツ 65%）で分割していたが、  
+> この方式では両者が相互参照しないため、タイトルが小さくてもコンテンツが 65% に制限される問題があった。  
+> **改善後**：`UpdateTitleFontSize()` でタイトルの実測高さを `_estimatedTitleH` フィールドに保存し、  
+> コンテンツ系メソッド（`UpdateContentFontSize` / `UpdateCircleLayout` / `UpdateTopProcFontSize`）が  
+> `_estimatedTitleH` を参照して正確な残り高さを算出する設計に変更した。
+
+#### フィールド追加
+
+```csharp
+// タイトルの推定高さ（UpdateTitleFontSize で計算 → コンテンツ系メソッドで参照）
+private double _estimatedTitleH;
+```
+
 #### タイトルフォント自動調整（`UpdateTitleFontSize`）
 
 `TitleFont.AutoFontSize = true` の場合に `TitleText.FontSize` を自動調整する。  
@@ -87,6 +101,19 @@ private double CalcOverflowFontSize(string text, double w, double h)
 | top / bottom / center | `ActualWidth`（全幅） | `ActualHeight * 0.35` |
 | left / right | `ActualWidth / 2.0` | `ActualHeight`（全高） |
 
+**実測値の保存（`AutoFontSize` の値によらず常に実行）**  
+上下配置のとき、決定したフォントサイズで `TextBlock.Measure()` を行い `_estimatedTitleH` へ保存する。  
+これにより `AutoFontSize = false` のタイルでも正確な残り高さをコンテンツ系メソッドへ渡せる。
+
+```csharp
+if (!isHorizontal)
+{
+    measure.FontSize = titlePx;
+    measure.Measure(new Size(measureW, double.PositiveInfinity));
+    _estimatedTitleH = measure.DesiredSize.Height;
+}
+```
+
 #### コンテンツフォント自動調整（`UpdateContentFontSize`）
 
 `ContentFont.AutoFontSize = true` の場合にテキスト形式のコンテンツフォントを自動調整する。  
@@ -95,11 +122,62 @@ private double CalcOverflowFontSize(string text, double w, double h)
 | 条件 | 幅予算 | 高さ予算 |
 |---|---|---|
 | left / right 配置 | `ActualWidth / 2.0` | `ActualHeight` |
-| タイトルあり（top / bottom） | `ActualWidth` | `ActualHeight * 0.65` |
+| タイトルあり（top / bottom） | `ActualWidth` | `ActualHeight - _estimatedTitleH`（実測値） |
 | タイトルなし | `ActualWidth` | `ActualHeight` |
 
+- 固定比率 `0.65` を廃止し `_estimatedTitleH` を使用する（精度向上）
 - 円グラフ形式（キャンバス固定レイアウト）は対象外
 - テキスト更新のたびに `Render()` 末尾で再計算（テキスト内容が変わるため）
+
+#### 円グラフレイアウト（`UpdateCircleLayout`）
+
+`_estimatedTitleH` を使ってコンテンツ高さを算出する。  
+`_estimatedTitleH = 0`（未計算）の場合は `TitleText.ActualHeight` でフォールバック。
+
+```csharp
+double titleH = hasTitle && pos is not "left" and not "right"
+    ? (_estimatedTitleH > 0 ? _estimatedTitleH : TitleText.ActualHeight)
+    : 0.0;
+double contentH = tileH - titleH;
+```
+
+#### TOPプロセステーブルのフォントサイズ（`UpdateTopProcFontSize`）
+
+`ContentGrid.ActualHeight` を直接参照することで、`_estimatedTitleH` の推定誤差を完全に排除する。  
+フォントサイズは `TextBlock.Measure()` による実測（`1.2` 倍近似を廃止）。
+
+```csharp
+double availH = ContentGrid.ActualHeight;
+
+// Margin T(4)+B(8)=12 + BorderThickness(1×2=2) + 行区切り線(3) + 底面余白(4)
+availH -= 21;
+
+// ヘッダー行は SemiBold → probe も SemiBold で計測（保守的な高さ）
+var probe = new TextBlock
+{
+    Text       = "Ag",
+    Padding    = new Thickness(3, 1, 3, 1),
+    FontFamily = _topProcCells[0, 0].FontFamily,
+    FontWeight = FontWeights.SemiBold,
+};
+for (double size = maxPt; size >= 6; size--)
+{
+    probe.FontSize = size * 4.0 / 3.0;
+    probe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+    if (probe.DesiredSize.Height * 4 <= availH) { /* 採用 */ break; }
+}
+```
+
+**`_topProcessPanel` のレイアウト設定（`EnsureTopProcessPanel`）**
+
+| プロパティ | 値 | 備考 |
+|---|---|---|
+| `BorderThickness` | `new Thickness(1)` | 外枠 1px |
+| `Margin` | `new Thickness(6, 4, 6, 8)` | L:6 T:4 R:6 B:8（両端 6px・下 8px で余裕確保） |
+| `HorizontalAlignment` | `Stretch` | ContentGrid 幅に合わせて拡張 |
+| `VerticalAlignment` | `Center` | コンテンツエリア内で縦中央 |
+
+`availH -= 21` の内訳：Margin T/B(4+8=12) + Border T/B(2) + 行区切り線(3) + 底面余白(4)
 
 ---
 
@@ -168,11 +246,53 @@ private static double ComputeEffectivePreviewFontSizePx(TileEditViewModel vm)
 | タイル種別 | 適用先 |
 |---|---|
 | 非 system タイル | `PreviewText.FontSize` |
-| system タイル | `SysTitleText.FontSize`（`ArrangeSystemPreviewPanels` 内で適用） |
+| system タイル（タイトル） | `SysTitleText.FontSize`（`ArrangeSystemPreviewPanels` 内で適用） |
+| system タイル（コンテンツ） | `SysMainText.FontSize` / `SysSubText.FontSize`（後述 `FitPreviewSystemTextFont`） |
 
 呼び出しタイミング：
 - 編集ダイアログを開いたとき（`SubscribeToTileVm`）
 - フォント詳細ダイアログの OK 押下後（`OnTitleFontDetailClick` コールバック）
+
+#### system タイルコンテンツのプレビュー自動調整（`FitPreviewSystemTextFont`）
+
+> **追加（2026-05-31）**  
+> 当初実装では `SysMainText` / `SysSubText` のフォントサイズは XAML 固定値（13 / 10）のままだった。  
+> 実タイルは `UpdateContentFontSize()` で自動調整されるのにプレビューが追従しないため、  
+> `FitPreviewSystemTextFont()` を追加してプレビューにも自動調整を反映させた。
+
+プレビュー Border は `Width="200" Height="96"` 固定。  
+タイトル有の場合は `SysTitleText.FontSize` + `SysTitleText.Padding` で実測し、残り高さを算出する。
+
+```csharp
+private void FitPreviewSystemTextFont()
+{
+    // タイトル高さを実測
+    if (hasTitle && pos is not "left" and not "right")
+    {
+        var titleMeasure = new TextBlock { Text=SysTitleText.Text, FontSize=SysTitleText.FontSize,
+            FontFamily=SysTitleText.FontFamily, TextWrapping=TextWrapping.Wrap,
+            Padding=SysTitleText.Padding };
+        titleMeasure.Measure(new Size(previewW, double.PositiveInfinity));
+        availH = previewH - titleMeasure.DesiredSize.Height;
+    }
+
+    // ContentFont の AutoFontSize に従って SysMainText / SysSubText を調整
+    var cf = vm.GetContentFontCopy();
+    if (!cf.AutoFontSize) { /* 固定値を適用 */ return; }
+    for (double size = startPt; size >= 6; size--)
+    {
+        // MainText + SubText の合計高さが availH 以下に収まるサイズを選択
+    }
+}
+```
+
+**呼び出しタイミング**：
+
+| イベント | 呼び出し元 |
+|---|---|
+| データ取得成功後（テキストモード） | `RenderSystemPreview()` の else ブロック末尾 |
+| タイトル・レイアウト変更時 | `UpdateSystemPreviewArrangement()` の末尾（テキストパネル表示中のみ） |
+| データ取得失敗時 | `RefreshSystemPreviewAsync()` の catch ブロック末尾 |
 
 ---
 
@@ -188,3 +308,6 @@ private static double ComputeEffectivePreviewFontSizePx(TileEditViewModel vm)
 | 6 | FontDetailPanel のプレビューが自動調整結果を反映する | ✅ |
 | 7 | TileEditControl のプレビューが自動調整結果を反映する（通常タイル） | ✅ |
 | 8 | TileEditControl のプレビューが自動調整結果を反映する（system タイル） | ✅ |
+| 9 | タイトルが小さい場合、コンテンツが 35% に制限されず余白を有効活用する | ✅ |
+| 10 | TOP プロセステーブルの下端に十分な余白がある（最低 8px） | ✅ |
+| 11 | TileEditControl の system タイルプレビューがコンテンツフォント自動調整を反映する | ✅ |

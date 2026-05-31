@@ -107,6 +107,55 @@ public async Task<IReadOnlyList<TopProcessEntry>> FetchTopProcessesAsync()
 
 ---
 
+### 6. テーブルレイアウトとフォントサイズ自動調整
+
+**対象ファイル**
+
+- `src/AppLauncher/Views/Controls/SystemTileControl.xaml.cs`
+
+#### テーブル外枠（`_topProcessPanel`）のレイアウト設定
+
+| プロパティ | 値 | 備考 |
+|---|---|---|
+| `BorderThickness` | `new Thickness(1)` | 外枠線 1px |
+| `Margin` | `new Thickness(6, 4, 6, 8)` | L:6 T:4 R:6 B:8（両端 6px・下端 8px 確保） |
+| `HorizontalAlignment` | `HorizontalAlignment.Stretch` | ContentGrid 幅いっぱいに拡張 |
+| `VerticalAlignment` | `VerticalAlignment.Center` | コンテンツ領域内で縦中央配置 |
+
+セルの `Padding = new Thickness(3, 1, 3, 1)`（L:3 T:1 R:3 B:1）。
+
+#### フォントサイズ自動調整（`UpdateTopProcFontSize`）
+
+`ContentGrid.ActualHeight` を直接参照して利用可能高さを算出する（`ActualHeight - _estimatedTitleH` ではなくレイアウト実測値を使用）。
+
+```
+availH = ContentGrid.ActualHeight
+
+availH -= 21   // Margin T(4)+B(8)=12 + Border T/B(2) + 行区切り線(3) + 底面余白バッファ(4)
+
+for size = ContentFont.FontSizePt downto 6:
+    probe（SemiBold・Padding 3,1,3,1）で TextBlock.Measure
+    probe.DesiredSize.Height × 4 ≤ availH なら採用
+```
+
+- ヘッダー行（row 0）が `FontWeights.SemiBold` のため、probe も `SemiBold` で計測して保守的な高さを得る
+- `1.2` 倍近似を廃止し `TextBlock.Measure()` の実測値を使用することでフォントファミリー依存の誤差を解消
+- `availH -= 21` の内訳：余白バッファ 4px を含むため最大フォント選択時も下端に実質 8px 以上の空きが残る
+
+#### `UpdateAllFontSizes` での呼び出し順序
+
+```csharp
+UpdateTitleFontSize();       // _estimatedTitleH を更新
+if (category == "top_process")
+    UpdateTopProcFontSize(); // ContentGrid.ActualHeight を直接参照するため独立
+else if (circleVisible)
+    UpdateCircleLayout();    // _estimatedTitleH を参照
+else
+    UpdateContentFontSize(); // _estimatedTitleH を参照
+```
+
+---
+
 ## テスト観点
 
 | # | 確認内容 | 期待結果 |
@@ -117,3 +166,7 @@ public async Task<IReadOnlyList<TopProcessEntry>> FetchTopProcessesAsync()
 | 4 | プロセス名が長い場合 | 末尾が「…」で省略される |
 | 5 | GPU 情報取得不可の環境 | GPU 列に「0%」が表示される |
 | 6 | config.json に `top_process` を保存し再起動する | 設定が復元される |
+| 7 | テーブルの左右に 6px 以上の余白がある | タイル端に密着しない |
+| 8 | テーブルの下端に 8px 以上の余白がある | テキストが下端に接しない |
+| 9 | タイトルあり・タイル縦リサイズ時にフォントが再計算される | ContentGrid 実測値で正確に調整される |
+| 10 | ContentFont.FontSizePt を変更するとテーブルフォントが追従する | 設定値を上限として収まるサイズが選択される |

@@ -21,3 +21,17 @@ build/
 # ç’°å¢ƒå¤‰æ•°ï¼ˆã‚»ã‚­ãƒ¥ãƒªãƒ†ã‚£çš„ã«ã‚‚é™¤å¤–æ¨å¥¨ï¼‰
 .env
 .env.local
+# C#/WPF ƒrƒ‹ƒh¬‰Ê•¨
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+*.old
+*.props
+*.targets
+# ƒƒO’Ç‰Á
+*.log
+# NuGet
+packages/
+*.nupkg
