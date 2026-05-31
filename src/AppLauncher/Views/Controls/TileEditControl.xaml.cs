@@ -34,9 +34,10 @@ public partial class TileEditControl : UserControl
 
     private static readonly IReadOnlyList<ValueItem> SiCategories =
     [
-        new("os",      "OS情報"),
-        new("storage", "ストレージ"),
-        new("usage",   "使用率"),
+        new("os",          "OS情報"),
+        new("storage",     "ストレージ"),
+        new("usage",       "使用率"),
+        new("top_process", "TOPプロセス"),
     ];
 
     private static readonly IReadOnlyList<ValueItem> SiDeviceTypes =
@@ -337,11 +338,18 @@ public partial class TileEditControl : UserControl
             SysCircleCenterText.Foreground = fontBrush;
             SysCircleLabel.Text            = data.SubText;
             SysCircleLabel.Foreground      = fontBrush;
+            FitPreviewCircleFont();
         }
         else
         {
             SysTextPanel.Visibility   = Visibility.Visible;
             SysCirclePanel.Visibility = Visibility.Collapsed;
+
+            bool isTopProc = vm.SiCategory == "top_process";
+            SysMainText.TextAlignment    = isTopProc ? TextAlignment.Left   : TextAlignment.Center;
+            SysSubText.Visibility        = isTopProc ? Visibility.Collapsed : Visibility.Visible;
+            SysTextPanel.HorizontalAlignment = isTopProc
+                ? HorizontalAlignment.Stretch : HorizontalAlignment.Center;
 
             SysMainText.Text       = data.MainText;
             SysMainText.Foreground = fontBrush;
@@ -632,6 +640,43 @@ public partial class TileEditControl : UserControl
                 _ = RefreshSystemPreviewAsync();
             },
             uiColor);
+    }
+
+    // ─── プレビュー円グラフのフォントサイズ調整 ───────────────────────────────
+    // プレビュー Canvas は 64×64（実タイル 80×80 の 0.8 倍）。
+    // 実タイルの UpdateCircleLayout と同様に "100%" 基準で全パターン統一サイズ。
+    private void FitPreviewCircleFont()
+    {
+        if (string.IsNullOrEmpty(SysCircleCenterText.Text)) return;
+
+        // 内側リング内径 40px → 視覚余裕を持たせた制約
+        const double maxW = 30.0;
+        const double maxH = 16.0;
+
+        var typeface = new Typeface(
+            SysCircleCenterText.FontFamily,
+            FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
+
+        double ppd = 1.0;
+        try { ppd = VisualTreeHelper.GetDpi(this).PixelsPerDip; } catch { }
+
+        for (double pt = 36; pt >= 6; pt--)
+        {
+            double px = pt * 4.0 / 3.0;
+            var ft = new FormattedText(
+                "100%",
+                System.Globalization.CultureInfo.CurrentUICulture,
+                FlowDirection.LeftToRight, typeface, px, Brushes.White, ppd);
+
+            if (ft.Width <= maxW && ft.Height <= maxH)
+            {
+                SysCircleCenterText.FontSize = px;
+                SysCircleLabel.FontSize      = Math.Max(7.0, px * 0.75);
+                return;
+            }
+        }
+        SysCircleCenterText.FontSize = 6 * 4.0 / 3.0;
+        SysCircleLabel.FontSize      = 7.0;
     }
 
     private Color GetUiColor()

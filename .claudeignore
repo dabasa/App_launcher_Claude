@@ -1,0 +1,23 @@
+# 依存パッケージ
+node_modules/
+.venv/
+__pycache__/
+
+# ビルド成果物
+dist/
+build/
+*.min.js
+
+# ログ・キャッシュ
+*.log
+.cache/
+.next/
+
+# 画像・動画などのバイナリ
+*.png
+*.jpg
+*.mp4
+
+# 環境変数（セキュリティ的にも除外推奨）
+.env
+.env.local

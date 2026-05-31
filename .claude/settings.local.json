@@ -7,7 +7,8 @@
       "Bash(Start-Process \"c:\\\\Locarization\\\\Programing\\\\アプリランチャー_Claude版\\\\src\\\\AppLauncher\\\\bin\\\\Debug\\\\net10.0-windows\\\\AppLauncher.exe\")",
       "PowerShell(Start-Process \"c:\\\\Locarization\\\\Programing\\\\�A�v�������`���[_Claude��\\\\src\\\\AppLauncher\\\\bin\\\\Debug\\\\net10.0-windows\\\\AppLauncher.exe\")",
       "PowerShell(Get-Process AppLauncher -ErrorAction SilentlyContinue)",
-      "PowerShell(Stop-Process -Force)"
+      "PowerShell(Stop-Process -Force)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Locarization\\\\Programing\\\\アプリランチャー_Claude版\\\\src\\\\AppLauncher\" -Recurse -File | Where-Object { $_.Name -match \"\\(SystemInfoService|SystemInfoConfig|SystemData|TileEditViewModel|TileEditControl\\)\" } | Select-Object FullName)"
     ]
   }
 }

@@ -20,6 +20,9 @@ public sealed class SystemInfoService : IDisposable
     // GPU 名キャッシュ
     private string[]? _gpuNames;
 
+    // TOPプロセス: PID → (前回 CPU 時間, 前回計測時刻)
+    private readonly Dictionary<int, (TimeSpan prevCpu, DateTime prevTime)> _processCpuCache = new();
+
     private SystemInfoService()
     {
         _cpuTotal = new PerformanceCounter("Processor", "% Processor Time", "_Total");
@@ -28,10 +31,11 @@ public sealed class SystemInfoService : IDisposable
 
     public SystemData GetData(SystemInfoConfig cfg) => cfg.Category switch
     {
-        "os"      => GetOsData(),
-        "storage" => GetStorageData(cfg),
-        "usage"   => GetUsageData(cfg),
-        _         => new SystemData("N/A", "", 0, false),
+        "os"          => GetOsData(),
+        "storage"     => GetStorageData(cfg),
+        "usage"       => GetUsageData(cfg),
+        "top_process" => GetTopProcessData(),
+        _             => new SystemData("N/A", "", 0, false),
     };
 
     // ─── OS 情報 ─────────────────────────────────────────────────────────────
@@ -283,6 +287,131 @@ public sealed class SystemInfoService : IDisposable
         return result;
     }
 
+    // ─── TOPプロセス ─────────────────────────────────────────────────────────
+    // TileEditControl プレビュー用（テキスト形式）
+    private SystemData GetTopProcessData()
+    {
+        var entries = FetchTopProcesses();
+        return new SystemData(FormatTopProcessTable(entries), "", 0, false);
+    }
+
+    // SystemTileControl 本体用（Grid レイアウトで表示するため生データを返す）
+    public IReadOnlyList<TopProcessEntry> GetTopProcessEntries()
+        => FetchTopProcesses();
+
+    private IReadOnlyList<TopProcessEntry> FetchTopProcesses()
+    {
+        var now      = DateTime.UtcNow;
+        var procs    = Process.GetProcesses();
+        var active   = new HashSet<int>();
+        var gpuByPid = GetGpuUsageByPid();
+        var results  = new List<(string Name, double CpuPct, bool Primed, double GpuPct, double RamMb)>();
+
+        foreach (var proc in procs)
+        {
+            try
+            {
+                int    pid   = proc.Id;
+                active.Add(pid);
+                double ramMb = proc.WorkingSet64 / 1_048_576.0;
+
+                TimeSpan cpuTime;
+                try { cpuTime = proc.TotalProcessorTime; }
+                catch { continue; }
+
+                double cpuPct  = 0;
+                bool   primed  = false;
+                lock (_lock)
+                {
+                    if (_processCpuCache.TryGetValue(pid, out var prev))
+                    {
+                        double elapsed = (now - prev.prevTime).TotalSeconds;
+                        if (elapsed > 0)
+                        {
+                            double delta = (cpuTime - prev.prevCpu).TotalSeconds;
+                            cpuPct  = Math.Clamp(delta / (elapsed * Environment.ProcessorCount) * 100.0, 0, 100);
+                            primed  = true;
+                        }
+                    }
+                    _processCpuCache[pid] = (cpuTime, now);
+                }
+
+                double gpuPct = gpuByPid.TryGetValue(pid, out double g) ? Math.Min(100, g) : 0;
+                results.Add((proc.ProcessName, cpuPct, primed, gpuPct, ramMb));
+            }
+            catch { }
+            finally { proc.Dispose(); }
+        }
+
+        lock (_lock)
+        {
+            foreach (var pid in _processCpuCache.Keys.Except(active).ToList())
+                _processCpuCache.Remove(pid);
+        }
+
+        return results
+            .OrderByDescending(r => r.CpuPct)
+            .Take(3)
+            .Select(r => new TopProcessEntry(r.Name, r.Primed ? r.CpuPct : -1, r.GpuPct, r.RamMb))
+            .ToList();
+    }
+
+    private static Dictionary<int, double> GetGpuUsageByPid()
+    {
+        var result = new Dictionary<int, double>();
+        try
+        {
+            using var s = new ManagementObjectSearcher(
+                "SELECT Name, UtilizationPercentage " +
+                "FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine");
+            foreach (ManagementObject o in s.Get())
+            {
+                string? name = o["Name"]?.ToString();
+                if (name == null) continue;
+                var m = Regex.Match(name, @"pid_(\d+)_");
+                if (!m.Success) continue;
+                int    pid   = int.Parse(m.Groups[1].Value);
+                double usage = Convert.ToDouble(o["UtilizationPercentage"]);
+                result[pid]  = result.TryGetValue(pid, out double cur) ? cur + usage : usage;
+            }
+        }
+        catch { }
+        return result;
+    }
+
+    private static string FormatTopProcessTable(IReadOnlyList<TopProcessEntry> entries)
+    {
+        const int nameW = 10, cpuW = 5, gpuW = 5, ramW = 6;
+
+        string HLine(char l, char m, char r)
+            => $"{l}{new string('─', nameW)}{m}{new string('─', cpuW)}{m}{new string('─', gpuW)}{m}{new string('─', ramW)}{r}";
+
+        string Row(string name, string cpu, string gpu, string ram)
+            => $"│{name.PadRight(nameW)}│{cpu.PadLeft(cpuW)}│{gpu.PadLeft(gpuW)}│{ram.PadLeft(ramW)}│";
+
+        string TruncName(string n)
+            => n.Length > nameW ? n[..(nameW - 1)] + "…" : n;
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine(HLine('┌', '┬', '┐'));
+        sb.AppendLine(Row("Name", "CPU", "GPU", "RAM"));
+        sb.AppendLine(HLine('├', '┼', '┤'));
+
+        foreach (var e in entries)
+        {
+            string cpu = e.CpuPercent < 0 ? "─" : $"{e.CpuPercent:F1}%";
+            string gpu = $"{e.GpuPercent:F1}%";
+            string ram = $"{e.RamMb:F0}MB";
+            sb.AppendLine(Row(TruncName(e.Name), cpu, gpu, ram));
+        }
+
+        for (int i = entries.Count; i < 3; i++)
+            sb.AppendLine(Row("─", "─", "─", "─"));
+
+        sb.Append(HLine('└', '┴', '┘'));
+        return sb.ToString();
+    }
+
     public void Dispose()
     {
         _cpuTotal.Dispose();
@@ -302,3 +431,9 @@ public record SystemData(
     string SubText,
     double Percentage,
     bool   ThresholdExceeded);
+
+public record TopProcessEntry(
+    string Name,
+    double CpuPercent,
+    double GpuPercent,
+    double RamMb);

@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>07 タイルレイアウト モックアップ</title>
+<style>
+:root {
+  --c-blue:   #3a6fd8;
+  --c-red:    #c0392b;
+  --c-orange: #d35400;
+  --c-green:  #1e8449;
+  --c-dark:   #2c3e50;
+  --c-gray:   #5d6d7e;
+  --c-purple: #7d3c98;
+  --dim: rgba(0,0,0,0.18);
+  --sep: rgba(255,255,255,0.28);
+  --r: 10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI','Yu Gothic UI',sans-serif;background:#0f172a;color:#e2e8f0;padding:28px 24px;}
+
+h1{font-size:20px;font-weight:700;color:#f8fafc;border-bottom:2px solid var(--c-blue);padding-bottom:10px;margin-bottom:6px;}
+.desc{font-size:12px;color:#64748b;margin-bottom:36px;}
+h2{font-size:15px;font-weight:700;color:#93c5fd;margin:40px 0 14px;border-left:4px solid var(--c-blue);padding-left:10px;}
+h3{font-size:12px;font-weight:600;color:#94a3b8;margin:20px 0 8px;}
+
+/* ── Table ── */
+.lt{border-collapse:collapse;margin-bottom:6px;}
+.lt th{font-size:11px;color:#94a3b8;background:rgba(255,255,255,0.04);
+       border-bottom:1px solid rgba(255,255,255,0.1);padding:6px 14px;white-space:nowrap;}
+.lt td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.05);vertical-align:middle;}
+.lt td:first-child{font-size:11px;color:#94a3b8;text-align:left;white-space:pre-line;min-width:90px;padding-left:4px;}
+.lt td:not(:first-child){text-align:center;}
+.lt tr:hover td{background:rgba(255,255,255,0.02);}
+
+/* ── Tile base ── */
+.tile{display:inline-flex;position:relative;border-radius:var(--r);
+      background:var(--c-blue);overflow:hidden;color:#fff;vertical-align:top;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12);}
+.t1x1{width:100px;height:100px;}
+.t2x1{width:210px;height:100px;}
+.t2x2{width:210px;height:210px;}
+
+.tile.red   {background:var(--c-red);}
+.tile.orange{background:var(--c-orange);}
+.tile.green {background:var(--c-green);}
+.tile.dark  {background:var(--c-dark);}
+.tile.gray  {background:var(--c-gray);}
+.tile.purple{background:var(--c-purple);}
+
+/* ── full-fill ── */
+.full{display:flex;flex-direction:column;align-items:center;justify-content:center;
+      width:100%;height:100%;padding:8px;gap:4px;}
+
+/* ── split layout ── */
+.sp{display:flex;width:100%;height:100%;}
+.sp.col  {flex-direction:column;}
+.sp.colr {flex-direction:column-reverse;}
+.sp.row  {flex-direction:row;}
+.sp.rowr {flex-direction:row-reverse;}
+
+.img-a{display:flex;align-items:center;justify-content:center;
+       background:var(--dim);flex-shrink:0;overflow:hidden;}
+.ttl-a{display:flex;align-items:center;justify-content:center;
+       padding:3px 5px;flex-shrink:0;}
+.cnt-a{display:flex;flex-direction:column;align-items:center;justify-content:center;
+       flex:1;min-width:0;min-height:0;padding:5px;gap:3px;}
+
+/* col size */
+.sp.col  .img-a,.sp.colr .img-a  {height:65%;width:100%;}
+.sp.col  .cnt-a,.sp.colr .cnt-a  {height:35%;}
+.sp.col  .ttl-a,.sp.colr .ttl-a  {height:auto;width:100%;}
+/* row size */
+.sp.row  .img-a,.sp.rowr .img-a  {width:50%;height:100%;}
+.sp.row  .cnt-a,.sp.rowr .cnt-a  {width:50%;height:100%;}
+.sp.row  .ttl-a,.sp.rowr .ttl-a  {width:38%;height:100%;}
+
+/* center overlay */
+.ctr-lay{position:relative;width:100%;height:100%;}
+.ctr-lay .img-a {position:absolute;inset:0;height:100%;width:100%;}
+.ctr-lay .ttl-a {position:absolute;top:0;left:0;right:0;z-index:2;
+                 background:rgba(0,0,0,0.35);padding:4px 6px;justify-content:center;}
+.ctr-lay .cnt-a {position:absolute;bottom:0;left:0;right:0;z-index:2;
+                 padding:4px;justify-content:center;}
+
+/* ── Typography ── */
+.tt{font-size:10px;font-weight:700;color:rgba(255,255,255,.85);
+    text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
+.tt.lg{font-size:13px;}
+.tt.sm{font-size:8px;}
+
+.mn{font-size:12px;font-weight:700;color:#fff;text-align:center;line-height:1.2;}
+.mn.lg{font-size:16px;}
+.mn.xl{font-size:20px;}
+.mn.sm{font-size:10px;}
+.mn.xs{font-size:8px;}
+
+.sb{font-size:9px;color:rgba(255,255,255,.65);text-align:center;line-height:1.2;}
+.sb.sm{font-size:8px;}
+
+/* ── Image placeholder ── */
+.ico{font-size:26px;opacity:.75;}
+.ico.sm{font-size:18px;}
+.ico.xs{font-size:12px;}
+
+/* ── Circle ── */
+.circ-wrap{display:flex;flex-direction:column;align-items:center;
+           justify-content:center;gap:4px;width:100%;height:100%;}
+.circ-lbl{font-size:9px;color:rgba(255,255,255,.7);text-align:center;}
+
+/* ── TOP Process table ── */
+.pt-wrap{display:flex;width:100%;height:100%;align-items:center;
+         justify-content:center;padding:3px 2px;}
+.pt{width:100%;border-collapse:collapse;font-size:9px;color:#fff;}
+.pt th,.pt td{padding:1px 3px;border:1px solid rgba(255,255,255,.32);}
+.pt th{font-weight:700;background:rgba(0,0,0,.25);text-align:right;}
+.pt th:first-child,.pt td:first-child{text-align:left;max-width:48px;
+   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pt td{text-align:right;}
+
+/* font-size scale for 2x2 */
+.t2x2 .mn{font-size:18px;}
+.t2x2 .mn.sm{font-size:13px;}
+.t2x2 .sb{font-size:11px;}
+.t2x2 .tt{font-size:12px;}
+.t2x2 .ico{font-size:36px;}
+.t2x2 .pt{font-size:11px;}
+.t2x2 .circ-lbl{font-size:11px;}
+
+/* legend */
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;}
+.lg-item{display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8;}
+.lg-swatch{width:14px;height:14px;border-radius:3px;}
+</style>
+</head>
+<body>
+
+<h1>AppLauncher タイルレイアウト モックアップ</h1>
+<p class="desc">設定切替時のテキスト・グラフ位置関係の確認用 ／ サイズ: 1×1(100×100) / 2×1(210×100) / 2×2(210×210)</p>
+
+<!-- ════════════════════════════════════════════════════
+     ① アプリ / URL / フォルダ タイル
+     ════════════════════════════════════════════════════ -->
+<h2>① アプリ / URL / フォルダ タイル</h2>
+
+<table class="lt">
+<tr><th>設定</th><th>1×1</th><th>2×1</th><th>2×2</th></tr>
+
+<!-- 画像なし -->
+<tr>
+<td>画像なし\nタイトルのみ</td>
+<td><div class="tile t1x1"><div class="full"><div class="mn">Chrome</div></div></div></td>
+<td><div class="tile t2x1"><div class="full"><div class="mn lg">Visual Studio Code</div></div></div></td>
+<td><div class="tile t2x2"><div class="full"><div class="mn xl">Visual Studio Code</div></div></div></td>
+</tr>
+
+<!-- 画像上 -->
+<tr>
+<td>ImagePosition: 上\n（画像上65% / タイトル下35%）</td>
+<td><div class="tile t1x1"><div class="sp col">
+  <div class="img-a"><div class="ico sm">🌐</div></div>
+  <div class="cnt-a"><div class="mn sm">Chrome</div></div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="sp col">
+  <div class="img-a"><div class="ico">🌐</div></div>
+  <div class="cnt-a"><div class="mn">Chrome</div></div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="sp col">
+  <div class="img-a"><div class="ico">🌐</div></div>
+  <div class="cnt-a"><div class="mn">Chrome</div></div>
+</div></div></td>
+</tr>
+
+<!-- 画像下 -->
+<tr>
+<td>ImagePosition: 下\n（タイトル上35% / 画像下65%）</td>
+<td><div class="tile t1x1"><div class="sp colr">
+  <div class="img-a"><div class="ico sm">📊</div></div>
+  <div class="cnt-a"><div class="mn sm">Excel</div></div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="sp colr">
+  <div class="img-a"><div class="ico">📊</div></div>
+  <div class="cnt-a"><div class="mn">Excel</div></div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="sp colr">
+  <div class="img-a"><div class="ico">📊</div></div>
+  <div class="cnt-a"><div class="mn">Excel</div></div>
+</div></div></td>
+</tr>
+
+<!-- 画像左 -->
+<tr>
+<td>ImagePosition: 左\n（画像左50% / タイトル右50%）</td>
+<td><div class="tile t1x1"><div class="sp row">
+  <div class="img-a"><div class="ico xs">🎮</div></div>
+  <div class="cnt-a"><div class="mn xs">Elden Ring</div></div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="sp row">
+  <div class="img-a"><div class="ico sm">🎮</div></div>
+  <div class="cnt-a"><div class="mn sm">Elden Ring</div></div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="sp row">
+  <div class="img-a"><div class="ico">🎮</div></div>
+  <div class="cnt-a"><div class="mn">Elden Ring</div></div>
+</div></div></td>
+</tr>
+
+<!-- 画像右 -->
+<tr>
+<td>ImagePosition: 右\n（タイトル左50% / 画像右50%）</td>
+<td><div class="tile t1x1"><div class="sp rowr">
+  <div class="img-a"><div class="ico xs">💻</div></div>
+  <div class="cnt-a"><div class="mn xs">VS Code</div></div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="sp rowr">
+  <div class="img-a"><div class="ico sm">💻</div></div>
+  <div class="cnt-a"><div class="mn sm">VS Code</div></div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="sp rowr">
+  <div class="img-a"><div class="ico">💻</div></div>
+  <div class="cnt-a"><div class="mn">VS Code</div></div>
+</div></div></td>
+</tr>
+
+<!-- 画像中心 -->
+<tr>
+<td>ImagePosition: 中心\n（画像全面 / タイトル上重ね）</td>
+<td><div class="tile t1x1"><div class="ctr-lay">
+  <div class="img-a"><div class="ico">🏰</div></div>
+  <div class="ttl-a"><div class="tt sm">Elden Ring</div></div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="ctr-lay">
+  <div class="img-a"><div class="ico">🏰</div></div>
+  <div class="ttl-a"><div class="tt">Elden Ring</div></div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="ctr-lay">
+  <div class="img-a"><div class="ico">🏰</div></div>
+  <div class="ttl-a"><div class="tt lg">Elden Ring</div></div>
+</div></div></td>
+</tr>
+</table>
+
+
+<!-- ════════════════════════════════════════════════════
+     ② システム情報 – テキスト表示
+     ════════════════════════════════════════════════════ -->
+<h2>② システム情報 – テキスト表示</h2>
+
+<h3>カテゴリ別（タイトルなし）</h3>
+<table class="lt">
+<tr><th>カテゴリ / 状態</th><th>1×1</th><th>2×1</th><th>2×2</th></tr>
+
+<!-- OS -->
+<tr>
+<td>OS情報</td>
+<td><div class="tile t1x1 dark"><div class="full">
+  <div class="mn sm">Windows 11 Pro</div>
+  <div class="sb sm">10.0.26200</div>
+</div></div></td>
+<td><div class="tile t2x1 dark"><div class="full">
+  <div class="mn">Windows 11 Pro</div>
+  <div class="sb">10.0.26200</div>
+</div></div></td>
+<td><div class="tile t2x2 dark"><div class="full">
+  <div class="mn">Windows 11 Pro</div>
+  <div class="sb">10.0.26200</div>
+</div></div></td>
+</tr>
+
+<!-- ストレージ 通常 -->
+<tr>
+<td>ストレージ\n（通常）</td>
+<td><div class="tile t1x1"><div class="full">
+  <div class="mn sm">C: 45/476 GB</div>
+  <div class="sb sm">9.5 %</div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="full">
+  <div class="mn">C: 45.2/476.1 GB</div>
+  <div class="sb">9.5 %</div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="full">
+  <div class="mn">C: 45.2/476.1 GB</div>
+  <div class="sb">9.5 %</div>
+</div></div></td>
+</tr>
+
+<!-- ストレージ 閾値超過 -->
+<tr>
+<td>ストレージ\n（閾値超過・背景変色）</td>
+<td><div class="tile t1x1 red"><div class="full">
+  <div class="mn sm">C: 472/476 GB</div>
+  <div class="sb sm">99.1 %</div>
+</div></div></td>
+<td><div class="tile t2x1 red"><div class="full">
+  <div class="mn">C: 472.3/476.1 GB</div>
+  <div class="sb">99.1 %</div>
+</div></div></td>
+<td><div class="tile t2x2 red"><div class="full">
+  <div class="mn">C: 472.3/476.1 GB</div>
+  <div class="sb">99.1 %</div>
+</div></div></td>
+</tr>
+
+<!-- CPU -->
+<tr>
+<td>使用率 CPU</td>
+<td><div class="tile t1x1"><div class="full">
+  <div class="mn sm">CPU 23.5 %</div>
+  <div class="sb sm">CPU(0)</div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="full">
+  <div class="mn">CPU 23.5 %</div>
+  <div class="sb">CPU(0)</div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="full">
+  <div class="mn">CPU 23.5 %</div>
+  <div class="sb">CPU(0)</div>
+</div></div></td>
+</tr>
+
+<!-- メモリ -->
+<tr>
+<td>使用率 メモリ\n（閾値超過）</td>
+<td><div class="tile t1x1 red"><div class="full">
+  <div class="mn sm">MEM 25.4/32 GB</div>
+  <div class="sb sm">79.4 %</div>
+</div></div></td>
+<td><div class="tile t2x1 red"><div class="full">
+  <div class="mn">MEM 25.4/32.0 GB</div>
+  <div class="sb">79.4 %</div>
+</div></div></td>
+<td><div class="tile t2x2 red"><div class="full">
+  <div class="mn">MEM 25.4/32.0 GB</div>
+  <div class="sb">79.4 %</div>
+</div></div></td>
+</tr>
+
+<!-- GPU -->
+<tr>
+<td>使用率 GPU</td>
+<td><div class="tile t1x1 green"><div class="full">
+  <div class="mn sm">GPU 12.0 %</div>
+  <div class="sb sm">RTX 4070</div>
+</div></div></td>
+<td><div class="tile t2x1 green"><div class="full">
+  <div class="mn">GPU 12.0 %</div>
+  <div class="sb">NVIDIA RTX 4070</div>
+</div></div></td>
+<td><div class="tile t2x2 green"><div class="full">
+  <div class="mn">GPU 12.0 %</div>
+  <div class="sb">NVIDIA RTX 4070</div>
+</div></div></td>
+</tr>
+
+<!-- LAN -->
+<tr>
+<td>使用率 LAN</td>
+<td><div class="tile t1x1 gray"><div class="full">
+  <div class="mn sm">↓124 KB/s ↑24 KB/s</div>
+  <div class="sb sm">Ethernet</div>
+</div></div></td>
+<td><div class="tile t2x1 gray"><div class="full">
+  <div class="mn">↓124 KB/s  ↑24 KB/s</div>
+  <div class="sb">Ethernet</div>
+</div></div></td>
+<td><div class="tile t2x2 gray"><div class="full">
+  <div class="mn">↓124 KB/s  ↑24 KB/s</div>
+  <div class="sb">Ethernet</div>
+</div></div></td>
+</tr>
+</table>
+
+<h3>タイトル位置バリエーション（CPU 使用率）</h3>
+<table class="lt">
+<tr><th>タイトル位置</th><th>1×1</th><th>2×1</th><th>2×2</th></tr>
+
+<!-- タイトル上 -->
+<tr>
+<td>タイトル上\n（Auto高さ / コンテンツ残り）</td>
+<td><div class="tile t1x1"><div class="sp col">
+  <div class="ttl-a" style="height:22px;width:100%"><div class="tt">CPU</div></div>
+  <div class="cnt-a"><div class="mn sm">23.5 %</div><div class="sb sm">CPU(0)</div></div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="sp col">
+  <div class="ttl-a" style="height:24px;width:100%"><div class="tt">CPU</div></div>
+  <div class="cnt-a"><div class="mn">23.5 %</div><div class="sb">CPU(0)</div></div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="sp col">
+  <div class="ttl-a" style="height:28px;width:100%"><div class="tt lg">CPU</div></div>
+  <div class="cnt-a"><div class="mn">23.5 %</div><div class="sb">CPU(0)</div></div>
+</div></div></td>
+</tr>
+
+<!-- タイトル下 -->
+<tr>
+<td>タイトル下\n（コンテンツ上 / タイトル下）</td>
+<td><div class="tile t1x1"><div class="sp colr">
+  <div class="ttl-a" style="height:22px;width:100%"><div class="tt">CPU</div></div>
+  <div class="cnt-a"><div class="mn sm">23.5 %</div><div class="sb sm">CPU(0)</div></div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="sp colr">
+  <div class="ttl-a" style="height:24px;width:100%"><div class="tt">CPU</div></div>
+  <div class="cnt-a"><div class="mn">23.5 %</div><div class="sb">CPU(0)</div></div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="sp colr">
+  <div class="ttl-a" style="height:28px;width:100%"><div class="tt lg">CPU</div></div>
+  <div class="cnt-a"><div class="mn">23.5 %</div><div class="sb">CPU(0)</div></div>
+</div></div></td>
+</tr>
+
+<!-- タイトル左 -->
+<tr>
+<td>タイトル左\n（タイトル左38% / コンテンツ右62%）</td>
+<td><div class="tile t1x1"><div class="sp row">
+  <div class="ttl-a" style="width:38%;height:100%;background:rgba(0,0,0,.15)"><div class="tt sm">CPU</div></div>
+  <div class="cnt-a"><div class="mn sm">23.5%</div><div class="sb sm">CPU(0)</div></div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="sp row">
+  <div class="ttl-a" style="width:38%;height:100%;background:rgba(0,0,0,.15)"><div class="tt">CPU</div></div>
+  <div class="cnt-a"><div class="mn sm">23.5 %</div><div class="sb sm">CPU(0)</div></div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="sp row">
+  <div class="ttl-a" style="width:38%;height:100%;background:rgba(0,0,0,.15)"><div class="tt">CPU</div></div>
+  <div class="cnt-a"><div class="mn">23.5 %</div><div class="sb">CPU(0)</div></div>
+</div></div></td>
+</tr>
+
+<!-- タイトル右 -->
+<tr>
+<td>タイトル右\n（コンテンツ左62% / タイトル右38%）</td>
+<td><div class="tile t1x1"><div class="sp rowr">
+  <div class="ttl-a" style="width:38%;height:100%;background:rgba(0,0,0,.15)"><div class="tt sm">CPU</div></div>
+  <div class="cnt-a"><div class="mn sm">23.5%</div><div class="sb sm">CPU(0)</div></div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="sp rowr">
+  <div class="ttl-a" style="width:38%;height:100%;background:rgba(0,0,0,.15)"><div class="tt">CPU</div></div>
+  <div class="cnt-a"><div class="mn sm">23.5 %</div><div class="sb sm">CPU(0)</div></div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="sp rowr">
+  <div class="ttl-a" style="width:38%;height:100%;background:rgba(0,0,0,.15)"><div class="tt">CPU</div></div>
+  <div class="cnt-a"><div class="mn">23.5 %</div><div class="sb">CPU(0)</div></div>
+</div></div></td>
+</tr>
+
+<!-- タイトル中心（重ね） -->
+<tr>
+<td>タイトル中心重ね\n（コンテンツ全面 / タイトル上部に重ね）</td>
+<td><div class="tile t1x1"><div class="ctr-lay">
+  <div class="cnt-a" style="position:absolute;inset:0;justify-content:center">
+    <div class="mn sm">23.5 %</div><div class="sb sm">CPU(0)</div></div>
+  <div class="ttl-a" style="background:rgba(0,0,0,.35)"><div class="tt sm">CPU</div></div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="ctr-lay">
+  <div class="cnt-a" style="position:absolute;inset:0;justify-content:center">
+    <div class="mn">23.5 %</div><div class="sb">CPU(0)</div></div>
+  <div class="ttl-a" style="background:rgba(0,0,0,.35)"><div class="tt">CPU</div></div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="ctr-lay">
+  <div class="cnt-a" style="position:absolute;inset:0;justify-content:center">
+    <div class="mn">23.5 %</div><div class="sb">CPU(0)</div></div>
+  <div class="ttl-a" style="background:rgba(0,0,0,.35)"><div class="tt lg">CPU</div></div>
+</div></div></td>
+</tr>
+</table>
+
+
+<!-- ════════════════════════════════════════════════════
+     ③ システム情報 – 円グラフ表示
+     ════════════════════════════════════════════════════ -->
+<h2>③ システム情報 – 円グラフ表示</h2>
+<!-- circumference = 2π×26 ≈ 163.36
+     dash = pct/100 × 163.36 -->
+
+<h3>カテゴリ別（タイトルなし）</h3>
+<table class="lt">
+<tr><th>カテゴリ / 値 / 状態</th><th>1×1</th><th>2×1</th><th>2×2</th></tr>
+
+<!-- Storage 9.5% -->
+<tr>
+<td>ストレージ 9.5%\n（通常）</td>
+<td><div class="tile t1x1"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="60" height="60">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#f39c12" stroke-width="8"
+            stroke-dasharray="15.5 147.9" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="44" text-anchor="middle" font-size="12" fill="white" font-weight="bold" font-family="Segoe UI">9%</text>
+  </svg>
+  <div class="circ-lbl">C:</div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="70" height="70">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#f39c12" stroke-width="8"
+            stroke-dasharray="15.5 147.9" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="45" text-anchor="middle" font-size="13" fill="white" font-weight="bold" font-family="Segoe UI">9.5%</text>
+  </svg>
+  <div class="circ-lbl">C:</div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="80" height="80">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#f39c12" stroke-width="8"
+            stroke-dasharray="15.5 147.9" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="45" text-anchor="middle" font-size="14" fill="white" font-weight="bold" font-family="Segoe UI">9.5%</text>
+  </svg>
+  <div class="circ-lbl">C: 45.2/476.1 GB</div>
+</div></div></td>
+</tr>
+
+<!-- Storage 99.1% threshold -->
+<tr>
+<td>ストレージ 99.1%\n（閾値超過・背景+アーク変色）</td>
+<td><div class="tile t1x1 red"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="60" height="60">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#ff6b35" stroke-width="8"
+            stroke-dasharray="161.9 1.5" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="44" text-anchor="middle" font-size="11" fill="white" font-weight="bold" font-family="Segoe UI">99%</text>
+  </svg>
+  <div class="circ-lbl">C:</div>
+</div></div></td>
+<td><div class="tile t2x1 red"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="70" height="70">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#ff6b35" stroke-width="8"
+            stroke-dasharray="161.9 1.5" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="45" text-anchor="middle" font-size="13" fill="white" font-weight="bold" font-family="Segoe UI">99.1%</text>
+  </svg>
+  <div class="circ-lbl">C:</div>
+</div></div></td>
+<td><div class="tile t2x2 red"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="80" height="80">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#ff6b35" stroke-width="8"
+            stroke-dasharray="161.9 1.5" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="45" text-anchor="middle" font-size="14" fill="white" font-weight="bold" font-family="Segoe UI">99.1%</text>
+  </svg>
+  <div class="circ-lbl">C: 472.3/476.1 GB</div>
+</div></div></td>
+</tr>
+
+<!-- CPU 22% -->
+<tr>
+<td>CPU 22%</td>
+<td><div class="tile t1x1"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="60" height="60">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#3498db" stroke-width="8"
+            stroke-dasharray="35.9 127.5" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="44" text-anchor="middle" font-size="12" fill="white" font-weight="bold" font-family="Segoe UI">22%</text>
+  </svg>
+  <div class="circ-lbl">CPU(0)</div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="70" height="70">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#3498db" stroke-width="8"
+            stroke-dasharray="35.9 127.5" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="45" text-anchor="middle" font-size="13" fill="white" font-weight="bold" font-family="Segoe UI">22%</text>
+  </svg>
+  <div class="circ-lbl">CPU(0)</div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="80" height="80">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#3498db" stroke-width="8"
+            stroke-dasharray="35.9 127.5" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="45" text-anchor="middle" font-size="14" fill="white" font-weight="bold" font-family="Segoe UI">22%</text>
+  </svg>
+  <div class="circ-lbl">CPU(0)</div>
+</div></div></td>
+</tr>
+
+<!-- Memory 54% -->
+<tr>
+<td>メモリ 54%</td>
+<td><div class="tile t1x1"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="60" height="60">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+            stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="44" text-anchor="middle" font-size="12" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+  </svg>
+  <div class="circ-lbl">MEM</div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="70" height="70">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+            stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="45" text-anchor="middle" font-size="13" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+  </svg>
+  <div class="circ-lbl">15.3/32.0 GB</div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="80" height="80">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+            stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="45" text-anchor="middle" font-size="14" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+  </svg>
+  <div class="circ-lbl">15.3/32.0 GB</div>
+</div></div></td>
+</tr>
+
+<!-- Memory 80% threshold -->
+<tr>
+<td>メモリ 80%\n（閾値超過）</td>
+<td><div class="tile t1x1 red"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="60" height="60">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#f39c12" stroke-width="8"
+            stroke-dasharray="130.7 32.7" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="44" text-anchor="middle" font-size="12" fill="white" font-weight="bold" font-family="Segoe UI">80%</text>
+  </svg>
+  <div class="circ-lbl">MEM</div>
+</div></div></td>
+<td><div class="tile t2x1 red"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="70" height="70">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#f39c12" stroke-width="8"
+            stroke-dasharray="130.7 32.7" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="45" text-anchor="middle" font-size="13" fill="white" font-weight="bold" font-family="Segoe UI">80%</text>
+  </svg>
+  <div class="circ-lbl">25.6/32.0 GB</div>
+</div></div></td>
+<td><div class="tile t2x2 red"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="80" height="80">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#f39c12" stroke-width="8"
+            stroke-dasharray="130.7 32.7" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="45" text-anchor="middle" font-size="14" fill="white" font-weight="bold" font-family="Segoe UI">80%</text>
+  </svg>
+  <div class="circ-lbl">25.6/32.0 GB</div>
+</div></div></td>
+</tr>
+
+<!-- GPU 12% -->
+<tr>
+<td>GPU 12%</td>
+<td><div class="tile t1x1 green"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="60" height="60">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#f1c40f" stroke-width="8"
+            stroke-dasharray="19.6 143.8" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="44" text-anchor="middle" font-size="12" fill="white" font-weight="bold" font-family="Segoe UI">12%</text>
+  </svg>
+  <div class="circ-lbl">RTX 4070</div>
+</div></div></td>
+<td><div class="tile t2x1 green"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="70" height="70">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#f1c40f" stroke-width="8"
+            stroke-dasharray="19.6 143.8" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="45" text-anchor="middle" font-size="13" fill="white" font-weight="bold" font-family="Segoe UI">12%</text>
+  </svg>
+  <div class="circ-lbl">RTX 4070</div>
+</div></div></td>
+<td><div class="tile t2x2 green"><div class="circ-wrap">
+  <svg viewBox="0 0 80 80" width="80" height="80">
+    <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+    <circle cx="40" cy="40" r="26" fill="none" stroke="#f1c40f" stroke-width="8"
+            stroke-dasharray="19.6 143.8" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+    <text x="40" y="45" text-anchor="middle" font-size="14" fill="white" font-weight="bold" font-family="Segoe UI">12%</text>
+  </svg>
+  <div class="circ-lbl">NVIDIA RTX 4070</div>
+</div></div></td>
+</tr>
+</table>
+
+<h3>タイトル位置バリエーション（メモリ 54%）</h3>
+<table class="lt">
+<tr><th>タイトル位置</th><th>1×1</th><th>2×1</th><th>2×2</th></tr>
+
+<!-- タイトル上 -->
+<tr>
+<td>タイトル上</td>
+<td><div class="tile t1x1"><div class="sp col">
+  <div class="ttl-a" style="height:22px;width:100%"><div class="tt">メモリ</div></div>
+  <div class="cnt-a"><div class="circ-wrap" style="height:100%">
+    <svg viewBox="0 0 80 80" width="52" height="52">
+      <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+      <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+              stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+      <text x="40" y="44" text-anchor="middle" font-size="13" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+    </svg>
+  </div></div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="sp col">
+  <div class="ttl-a" style="height:24px;width:100%"><div class="tt">メモリ</div></div>
+  <div class="cnt-a"><div class="circ-wrap" style="height:100%">
+    <svg viewBox="0 0 80 80" width="60" height="60">
+      <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+      <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+              stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+      <text x="40" y="45" text-anchor="middle" font-size="14" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+    </svg>
+    <div class="circ-lbl">15.3/32.0 GB</div>
+  </div></div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="sp col">
+  <div class="ttl-a" style="height:28px;width:100%"><div class="tt lg">メモリ</div></div>
+  <div class="cnt-a"><div class="circ-wrap" style="height:100%">
+    <svg viewBox="0 0 80 80" width="76" height="76">
+      <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+      <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+              stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+      <text x="40" y="45" text-anchor="middle" font-size="14" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+    </svg>
+    <div class="circ-lbl">15.3/32.0 GB</div>
+  </div></div>
+</div></div></td>
+</tr>
+
+<!-- タイトル下 -->
+<tr>
+<td>タイトル下</td>
+<td><div class="tile t1x1"><div class="sp colr">
+  <div class="ttl-a" style="height:22px;width:100%"><div class="tt">メモリ</div></div>
+  <div class="cnt-a"><div class="circ-wrap" style="height:100%">
+    <svg viewBox="0 0 80 80" width="52" height="52">
+      <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+      <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+              stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+      <text x="40" y="44" text-anchor="middle" font-size="13" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+    </svg>
+  </div></div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="sp colr">
+  <div class="ttl-a" style="height:24px;width:100%"><div class="tt">メモリ</div></div>
+  <div class="cnt-a"><div class="circ-wrap" style="height:100%">
+    <svg viewBox="0 0 80 80" width="60" height="60">
+      <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+      <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+              stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+      <text x="40" y="45" text-anchor="middle" font-size="14" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+    </svg>
+    <div class="circ-lbl">15.3/32.0 GB</div>
+  </div></div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="sp colr">
+  <div class="ttl-a" style="height:28px;width:100%"><div class="tt lg">メモリ</div></div>
+  <div class="cnt-a"><div class="circ-wrap" style="height:100%">
+    <svg viewBox="0 0 80 80" width="76" height="76">
+      <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+      <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+              stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+      <text x="40" y="45" text-anchor="middle" font-size="14" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+    </svg>
+    <div class="circ-lbl">15.3/32.0 GB</div>
+  </div></div>
+</div></div></td>
+</tr>
+
+<!-- タイトル左 -->
+<tr>
+<td>タイトル左</td>
+<td><div class="tile t1x1"><div class="sp row">
+  <div class="ttl-a" style="width:38%;height:100%;background:rgba(0,0,0,.15)"><div class="tt sm">メモリ</div></div>
+  <div class="cnt-a"><div class="circ-wrap" style="height:100%">
+    <svg viewBox="0 0 80 80" width="50" height="50">
+      <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+      <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+              stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+      <text x="40" y="44" text-anchor="middle" font-size="13" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+    </svg>
+  </div></div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="sp row">
+  <div class="ttl-a" style="width:30%;height:100%;background:rgba(0,0,0,.15)"><div class="tt">メモリ</div></div>
+  <div class="cnt-a"><div class="circ-wrap" style="height:100%">
+    <svg viewBox="0 0 80 80" width="60" height="60">
+      <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+      <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+              stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+      <text x="40" y="45" text-anchor="middle" font-size="14" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+    </svg>
+    <div class="circ-lbl">15.3/32.0 GB</div>
+  </div></div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="sp row">
+  <div class="ttl-a" style="width:30%;height:100%;background:rgba(0,0,0,.15)"><div class="tt">メモリ</div></div>
+  <div class="cnt-a"><div class="circ-wrap" style="height:100%">
+    <svg viewBox="0 0 80 80" width="76" height="76">
+      <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+      <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+              stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+      <text x="40" y="45" text-anchor="middle" font-size="14" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+    </svg>
+    <div class="circ-lbl">15.3/32.0 GB</div>
+  </div></div>
+</div></div></td>
+</tr>
+
+<!-- タイトル右 -->
+<tr>
+<td>タイトル右</td>
+<td><div class="tile t1x1"><div class="sp rowr">
+  <div class="ttl-a" style="width:38%;height:100%;background:rgba(0,0,0,.15)"><div class="tt sm">メモリ</div></div>
+  <div class="cnt-a"><div class="circ-wrap" style="height:100%">
+    <svg viewBox="0 0 80 80" width="50" height="50">
+      <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+      <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+              stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+      <text x="40" y="44" text-anchor="middle" font-size="13" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+    </svg>
+  </div></div>
+</div></div></td>
+<td><div class="tile t2x1"><div class="sp rowr">
+  <div class="ttl-a" style="width:30%;height:100%;background:rgba(0,0,0,.15)"><div class="tt">メモリ</div></div>
+  <div class="cnt-a"><div class="circ-wrap" style="height:100%">
+    <svg viewBox="0 0 80 80" width="60" height="60">
+      <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+      <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+              stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+      <text x="40" y="45" text-anchor="middle" font-size="14" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+    </svg>
+    <div class="circ-lbl">15.3/32.0 GB</div>
+  </div></div>
+</div></div></td>
+<td><div class="tile t2x2"><div class="sp rowr">
+  <div class="ttl-a" style="width:30%;height:100%;background:rgba(0,0,0,.15)"><div class="tt">メモリ</div></div>
+  <div class="cnt-a"><div class="circ-wrap" style="height:100%">
+    <svg viewBox="0 0 80 80" width="76" height="76">
+      <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="8"/>
+      <circle cx="40" cy="40" r="26" fill="none" stroke="#2ecc71" stroke-width="8"
+              stroke-dasharray="88.2 75.2" stroke-linecap="round" transform="rotate(-90,40,40)"/>
+      <text x="40" y="45" text-anchor="middle" font-size="14" fill="white" font-weight="bold" font-family="Segoe UI">54%</text>
+    </svg>
+    <div class="circ-lbl">15.3/32.0 GB</div>
+  </div></div>
+</div></div></td>
+</tr>
+</table>
+
+
+<!-- ════════════════════════════════════════════════════
+     ④ TOPプロセス
+     ════════════════════════════════════════════════════ -->
+<h2>④ システム情報 – TOPプロセス</h2>
+<table class="lt">
+<tr><th>設定</th><th>1×1</th><th>2×1</th><th>2×2</th></tr>
+
+<!-- タイトルなし -->
+<tr>
+<td>タイトルなし</td>
+<td><div class="tile t1x1 dark"><div class="pt-wrap">
+  <table class="pt">
+    <tr><th>Name</th><th>CPU</th><th>GPU</th><th>RAM</th></tr>
+    <tr><td>chrome</td><td>3.1%</td><td>0.0%</td><td>456MB</td></tr>
+    <tr><td>svchost</td><td>1.5%</td><td>0.0%</td><td>23MB</td></tr>
+    <tr><td>explorer</td><td>0.8%</td><td>0.0%</td><td>128MB</td></tr>
+  </table>
+</div></div></td>
+<td><div class="tile t2x1 dark"><div class="pt-wrap">
+  <table class="pt" style="font-size:10px">
+    <tr><th>Name</th><th>CPU</th><th>GPU</th><th>RAM</th></tr>
+    <tr><td>chrome</td><td>3.1%</td><td>0.0%</td><td>456MB</td></tr>
+    <tr><td>svchost</td><td>1.5%</td><td>0.0%</td><td>23MB</td></tr>
+    <tr><td>explorer</td><td>0.8%</td><td>0.0%</td><td>128MB</td></tr>
+  </table>
+</div></div></td>
+<td><div class="tile t2x2 dark"><div class="pt-wrap">
+  <table class="pt" style="font-size:12px">
+    <tr><th>Name</th><th>CPU</th><th>GPU</th><th>RAM</th></tr>
+    <tr><td>chrome</td><td>3.1%</td><td>0.0%</td><td>456MB</td></tr>
+    <tr><td>svchost</td><td>1.5%</td><td>0.0%</td><td>23MB</td></tr>
+    <tr><td>explorer</td><td>0.8%</td><td>0.0%</td><td>128MB</td></tr>
+  </table>
+</div></div></td>
+</tr>
+
+<!-- タイトル上 -->
+<tr>
+<td>タイトル上</td>
+<td><div class="tile t1x1 dark"><div class="sp col">
+  <div class="ttl-a" style="height:20px;width:100%"><div class="tt" style="font-size:9px">TOPプロセス</div></div>
+  <div class="cnt-a" style="padding:2px"><div class="pt-wrap" style="padding:0">
+    <table class="pt" style="font-size:8px">
+      <tr><th>Name</th><th>CPU</th><th>GPU</th><th>RAM</th></tr>
+      <tr><td>chrome</td><td>3.1%</td><td>0%</td><td>456M</td></tr>
+      <tr><td>svch…</td><td>1.5%</td><td>0%</td><td>23M</td></tr>
+      <tr><td>expl…</td><td>0.8%</td><td>0%</td><td>128M</td></tr>
+    </table>
+  </div></div>
+</div></div></td>
+<td><div class="tile t2x1 dark"><div class="sp col">
+  <div class="ttl-a" style="height:22px;width:100%"><div class="tt">TOPプロセス</div></div>
+  <div class="cnt-a" style="padding:2px"><div class="pt-wrap" style="padding:0">
+    <table class="pt" style="font-size:9px">
+      <tr><th>Name</th><th>CPU</th><th>GPU</th><th>RAM</th></tr>
+      <tr><td>chrome</td><td>3.1%</td><td>0.0%</td><td>456MB</td></tr>
+      <tr><td>svchost</td><td>1.5%</td><td>0.0%</td><td>23MB</td></tr>
+      <tr><td>explorer</td><td>0.8%</td><td>0.0%</td><td>128MB</td></tr>
+    </table>
+  </div></div>
+</div></div></td>
+<td><div class="tile t2x2 dark"><div class="sp col">
+  <div class="ttl-a" style="height:26px;width:100%"><div class="tt lg">TOPプロセス</div></div>
+  <div class="cnt-a" style="padding:3px"><div class="pt-wrap" style="padding:0">
+    <table class="pt" style="font-size:12px">
+      <tr><th>Name</th><th>CPU</th><th>GPU</th><th>RAM</th></tr>
+      <tr><td>chrome</td><td>3.1%</td><td>0.0%</td><td>456MB</td></tr>
+      <tr><td>svchost</td><td>1.5%</td><td>0.0%</td><td>23MB</td></tr>
+      <tr><td>explorer</td><td>0.8%</td><td>0.0%</td><td>128MB</td></tr>
+    </table>
+  </div></div>
+</div></div></td>
+</tr>
+
+<!-- タイトル左 -->
+<tr>
+<td>タイトル左</td>
+<td><div class="tile t1x1 dark"><div class="sp row">
+  <div class="ttl-a" style="width:28%;height:100%;background:rgba(0,0,0,.2)"><div class="tt" style="font-size:8px;writing-mode:vertical-rl">TOP</div></div>
+  <div class="cnt-a" style="padding:2px"><div class="pt-wrap" style="padding:0">
+    <table class="pt" style="font-size:7.5px">
+      <tr><th>Name</th><th>CPU</th></tr>
+      <tr><td>chrome</td><td>3.1%</td></tr>
+      <tr><td>svch…</td><td>1.5%</td></tr>
+      <tr><td>expl…</td><td>0.8%</td></tr>
+    </table>
+  </div></div>
+</div></div></td>
+<td><div class="tile t2x1 dark"><div class="sp row">
+  <div class="ttl-a" style="width:22%;height:100%;background:rgba(0,0,0,.2)"><div class="tt" style="font-size:9px">TOP<br>プロセス</div></div>
+  <div class="cnt-a" style="padding:2px"><div class="pt-wrap" style="padding:0">
+    <table class="pt" style="font-size:9px">
+      <tr><th>Name</th><th>CPU</th><th>RAM</th></tr>
+      <tr><td>chrome</td><td>3.1%</td><td>456M</td></tr>
+      <tr><td>svch…</td><td>1.5%</td><td>23M</td></tr>
+      <tr><td>expl…</td><td>0.8%</td><td>128M</td></tr>
+    </table>
+  </div></div>
+</div></div></td>
+<td><div class="tile t2x2 dark"><div class="sp row">
+  <div class="ttl-a" style="width:22%;height:100%;background:rgba(0,0,0,.2)"><div class="tt">TOP<br>プロセス</div></div>
+  <div class="cnt-a" style="padding:3px"><div class="pt-wrap" style="padding:0">
+    <table class="pt" style="font-size:12px">
+      <tr><th>Name</th><th>CPU</th><th>GPU</th><th>RAM</th></tr>
+      <tr><td>chrome</td><td>3.1%</td><td>0.0%</td><td>456MB</td></tr>
+      <tr><td>svchost</td><td>1.5%</td><td>0.0%</td><td>23MB</td></tr>
+      <tr><td>explorer</td><td>0.8%</td><td>0.0%</td><td>128MB</td></tr>
+    </table>
+  </div></div>
+</div></div></td>
+</tr>
+</table>
+
+<p style="font-size:11px;color:#4b5563;margin-top:32px;">
+  ※ このモックアップは WPF タイルのレイアウト構造を HTML で近似したもので、実際のアプリのフォントサイズ自動調整・アニメーション等とは一致しない場合があります。<br>
+  ※ 円グラフの stroke-dasharray: circumference = 2π × 26 ≈ 163.36px（stroke center radius = 26, stroke-width = 8）
+</p>
+</body>
+</html>
