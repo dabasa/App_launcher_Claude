@@ -80,17 +80,23 @@ public partial class SystemTileControl : UserControl
             SubText.FontFamily          = cfFamily;
             CircleCenterText.FontFamily = cfFamily;
             CircleLabel.FontFamily      = cfFamily;
+            BarValueText.FontFamily     = cfFamily;
+            BarLabel.FontFamily         = cfFamily;
         }
         MainText.FontSize         = cfPx;
         SubText.FontSize          = Math.Max(10, cfPx - 4);
         CircleCenterText.FontSize = cfPx;
         CircleLabel.FontSize      = Math.Max(8, cfPx - 4);
+        BarValueText.FontSize     = cfPx;
+        BarLabel.FontSize         = Math.Max(8, cfPx - 4);
         MainText.Foreground         = cfBrush;
         UpdateContentFontSize();
         SubText.Foreground          = cfBrush;
         CircleCenterText.Foreground = cfBrush;
         CircleLabel.Foreground      = cfBrush;
         CircleArc.Stroke            = arcBrush;
+        BarValueText.Foreground     = cfBrush;
+        BarLabel.Foreground         = cfBrush;
 
         // 画像設定
         _imagePath = tile.ImagePath ?? "";
@@ -282,7 +288,9 @@ public partial class SystemTileControl : UserControl
             UpdateTopProcFontSize();
         else
         {
-            if (CirclePanel.Visibility == Visibility.Visible)
+            if (BarPanel.Visibility == Visibility.Visible)
+                UpdateBarLayout();
+            else if (CirclePanel.Visibility == Visibility.Visible)
                 UpdateCircleLayout();
             else
                 UpdateContentFontSize();
@@ -539,6 +547,8 @@ public partial class SystemTileControl : UserControl
 
         bool isCircle = _si.DisplayFormat == "circle" &&
                         (_si.Category == "storage" || (_si.Category == "usage" && _si.DeviceType != "lan"));
+        bool isBar    = _si.DisplayFormat == "bar" &&
+                        _si.Category == "usage" && _si.DeviceType is "cpu" or "memory" or "gpu";
 
         // アクセント切替（グラフ用色 / テキスト用色を分離）
         var arcBrush  = ColorPalette.GetBrush(
@@ -557,10 +567,33 @@ public partial class SystemTileControl : UserControl
                 Color.FromArgb((byte)(255 * alpha), bgColor.R, bgColor.G, bgColor.B));
         }
 
-        if (isCircle)
+        if (isBar)
+        {
+            TextPanel.Visibility   = Visibility.Collapsed;
+            CirclePanel.Visibility = Visibility.Collapsed;
+            BarPanel.Visibility    = Visibility.Visible;
+
+            double pct       = Math.Clamp(data.Percentage / 100.0, 0.0, 1.0);
+            const double barAreaTop = 12.0;
+            const double barAreaH   = 56.0;
+            double fillH   = barAreaH * pct;
+            double fillTop = barAreaTop + barAreaH - fillH;
+
+            BarFill.Fill   = arcBrush;
+            Canvas.SetTop(BarFill, fillTop);
+            BarFill.Height = fillH;
+
+            BarValueText.Text       = $"{data.Percentage:F0}%";
+            BarValueText.Foreground = textBrush;
+            BarLabel.Text           = data.SubText;
+            BarLabel.Foreground     = textBrush;
+            UpdateBarLayout();
+        }
+        else if (isCircle)
         {
             TextPanel.Visibility   = Visibility.Collapsed;
             CirclePanel.Visibility = Visibility.Visible;
+            BarPanel.Visibility    = Visibility.Collapsed;
 
             // 円弧計算：Ellipse Width=60, StrokeThickness=8 → 中心線 radius=26
             const double strokeT     = 8.0;
@@ -582,6 +615,7 @@ public partial class SystemTileControl : UserControl
         {
             TextPanel.Visibility   = Visibility.Visible;
             CirclePanel.Visibility = Visibility.Collapsed;
+            BarPanel.Visibility    = Visibility.Collapsed;
 
             MainText.TextAlignment        = TextAlignment.Center;
             SubText.Visibility            = Visibility.Visible;
@@ -664,6 +698,38 @@ public partial class SystemTileControl : UserControl
         }
         CircleCenterText.FontSize = 6 * 4.0 / 3.0;
         CircleLabel.FontSize      = 8.0;
+    }
+
+    // ─── 縦棒グラフ Canvas スケール調整 ────────────────────────────────────────
+    // CirclePanel と同様に LayoutTransform でスケールしてコンテンツエリアに収める。
+    // フォントサイズは Canvas 座標系で固定し、スケールとともに縮小する。
+    private void UpdateBarLayout()
+    {
+        if (_tile == null) return;
+
+        double tileH = ActualHeight;
+        double tileW = ActualWidth;
+        string pos   = _tile.ImagePosition ?? "top";
+
+        bool   hasTitle = TitleText.Visibility == Visibility.Visible;
+        double titleH   = hasTitle && pos is not "left" and not "right"
+            ? (_estimatedTitleH > 0 ? _estimatedTitleH : TitleText.ActualHeight)
+            : 0.0;
+        double contentH = tileH > 0 ? tileH - titleH : 80.0;
+        double contentW = pos is "left" or "right"
+            ? (tileW > 0 ? tileW * 0.5 : 40.0)
+            : (tileW > 0 ? tileW : 80.0);
+
+        const double nativeH = 80.0;
+        const double nativeW = 120.0;
+        const double margin  = 8.0;
+        double scaleH = contentH > margin ? (contentH - margin) / nativeH : 0;
+        double scaleW = contentW > margin ? (contentW - margin) / nativeW : 0;
+        double scale  = Math.Max(0, Math.Min(1.0, Math.Min(scaleH, scaleW)));
+
+        BarPanel.LayoutTransform = scale < 1.0
+            ? new ScaleTransform(scale, scale)
+            : Transform.Identity;
     }
 
     // ─── TOPプロセス Grid テーブル ─────────────────────────────────────────

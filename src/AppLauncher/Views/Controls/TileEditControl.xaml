@@ -65,6 +65,26 @@
                                        FontSize="10" Opacity="0.75" Margin="0,2,0,0"
                                        TextAlignment="Center" TextWrapping="Wrap"/>
                         </StackPanel>
+                        <!-- 縦棒グラフ形式（実タイル 120×80 の 0.8 倍 = 96×64） -->
+                        <Canvas x:Name="SysBarPanel" Visibility="Collapsed"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Width="96" Height="64">
+                            <Rectangle Canvas.Left="6" Canvas.Top="10"
+                                       Width="84" Height="44"
+                                       Stroke="#30F0F0F0" StrokeThickness="1" Fill="Transparent"/>
+                            <Rectangle x:Name="SysBarFill"
+                                       Canvas.Left="6" Canvas.Top="54"
+                                       Width="84" Height="0"/>
+                            <TextBlock x:Name="SysBarValueText"
+                                       Canvas.Left="0" Canvas.Top="1"
+                                       Width="96" TextAlignment="Center"
+                                       FontSize="9" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="SysBarLabel"
+                                       Canvas.Left="0" Canvas.Top="56"
+                                       Width="96" TextAlignment="Center"
+                                       FontSize="7" Opacity="0.8"/>
+                        </Canvas>
+
                         <!-- 円形グラフ形式 -->
                         <StackPanel x:Name="SysCirclePanel" Visibility="Collapsed"
                                     VerticalAlignment="Center" HorizontalAlignment="Center">

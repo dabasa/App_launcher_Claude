@@ -70,6 +70,30 @@
                                Width="80" TextAlignment="Center"
                                FontSize="10" Opacity="0.8"/>
                 </Canvas>
+
+                <!-- 縦棒グラフ表示（Canvas 120×80、棒幅 104px） -->
+                <Canvas x:Name="BarPanel" Visibility="Collapsed"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Width="120" Height="80">
+                    <!-- グラフ背景枠（0〜100% 全域） -->
+                    <Rectangle Canvas.Left="8" Canvas.Top="12"
+                               Width="104" Height="56"
+                               Stroke="#30F0F0F0" StrokeThickness="1" Fill="Transparent"/>
+                    <!-- 使用率塗り矩形（下から上へ伸びる） -->
+                    <Rectangle x:Name="BarFill"
+                               Canvas.Left="8" Canvas.Top="68"
+                               Width="104" Height="0"/>
+                    <!-- 使用率テキスト（グラフ上部） -->
+                    <TextBlock x:Name="BarValueText"
+                               Canvas.Left="0" Canvas.Top="1"
+                               Width="120" TextAlignment="Center"
+                               FontSize="11" FontWeight="SemiBold"/>
+                    <!-- デバイスラベル（グラフ下部） -->
+                    <TextBlock x:Name="BarLabel"
+                               Canvas.Left="0" Canvas.Top="70"
+                               Width="120" TextAlignment="Center"
+                               FontSize="9" Opacity="0.8"/>
+                </Canvas>
             </Grid>
         </Grid>
 

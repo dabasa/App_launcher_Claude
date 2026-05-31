@@ -54,6 +54,14 @@ public partial class TileEditControl : UserControl
         new("circle", "円形グラフ"),
     ];
 
+    // usage & (cpu|memory|gpu) のときのみ縦棒グラフを追加
+    private static readonly IReadOnlyList<ValueItem> SiDisplayFormatsWithBar =
+    [
+        new("text",   "テキスト表示"),
+        new("circle", "円形グラフ"),
+        new("bar",    "縦棒グラフ"),
+    ];
+
     private static readonly IReadOnlyList<ValueItem> ImagePositions =
     [
         new("top",    "上"),
@@ -143,6 +151,7 @@ public partial class TileEditControl : UserControl
             UpdatePreviewFontSize(vm);
             UpdatePreviewImage();
             UpdateSiTargetCombo();
+            UpdateSiDisplayFormatCombo();
             _ = RefreshSystemPreviewAsync();
         }
     }
@@ -172,7 +181,10 @@ public partial class TileEditControl : UserControl
 
         if (e.PropertyName is nameof(TileEditViewModel.SiCategory)
                            or nameof(TileEditViewModel.SiDeviceType))
+        {
             UpdateSiTargetCombo();
+            UpdateSiDisplayFormatCombo();
+        }
 
         if (e.PropertyName is nameof(TileEditViewModel.Type)
                            or nameof(TileEditViewModel.SiCategory)
@@ -270,6 +282,14 @@ public partial class TileEditControl : UserControl
             SiTargetCombo.ItemsSource = items.ToList();
     }
 
+    private void UpdateSiDisplayFormatCombo()
+    {
+        var vm = _subscribedTileVm;
+        if (vm == null) return;
+        bool hasBar = vm.SiCategory == "usage" && vm.SiDeviceType is "cpu" or "memory" or "gpu";
+        SiDisplayFormatCombo.ItemsSource = hasBar ? SiDisplayFormatsWithBar : SiDisplayFormats;
+    }
+
     private async Task RefreshSystemPreviewAsync()
     {
         var vm = _subscribedTileVm;
@@ -301,6 +321,7 @@ public partial class TileEditControl : UserControl
             SysSubText.Text        = "";
             SysTextPanel.Visibility   = Visibility.Visible;
             SysCirclePanel.Visibility = Visibility.Collapsed;
+            SysBarPanel.Visibility    = Visibility.Collapsed;
             SystemPreviewPanel.Visibility = Visibility.Visible;
             FitPreviewSystemTextFont();
         }
@@ -313,17 +334,40 @@ public partial class TileEditControl : UserControl
         bool isCircle = vm.SiDisplayFormat == "circle" &&
                         (vm.SiCategory == "storage" ||
                          (vm.SiCategory == "usage" && vm.SiDeviceType != "lan"));
+        bool isBar    = vm.SiDisplayFormat == "bar" &&
+                        vm.SiCategory == "usage" && vm.SiDeviceType is "cpu" or "memory" or "gpu";
 
         var fontBrush = vm.PreviewForeground;
+        var arcBrush  = data.ThresholdExceeded
+            ? ColorPalette.GetBrush(vm.SiAccentColor)
+            : ColorPalette.GetBrush(vm.SiMainColor);
 
-        if (isCircle)
+        if (isBar)
+        {
+            SysTextPanel.Visibility   = Visibility.Collapsed;
+            SysCirclePanel.Visibility = Visibility.Collapsed;
+            SysBarPanel.Visibility    = Visibility.Visible;
+
+            double pct = Math.Clamp(data.Percentage / 100.0, 0.0, 1.0);
+            const double barAreaTop = 10.0;
+            const double barAreaH   = 44.0;
+            double fillH   = barAreaH * pct;
+            double fillTop = barAreaTop + barAreaH - fillH;
+
+            SysBarFill.Fill   = arcBrush;
+            Canvas.SetTop(SysBarFill, fillTop);
+            SysBarFill.Height = fillH;
+
+            SysBarValueText.Text       = $"{data.Percentage:F0}%";
+            SysBarValueText.Foreground = fontBrush;
+            SysBarLabel.Text           = data.SubText;
+            SysBarLabel.Foreground     = fontBrush;
+        }
+        else if (isCircle)
         {
             SysTextPanel.Visibility   = Visibility.Collapsed;
             SysCirclePanel.Visibility = Visibility.Visible;
-
-            var arcBrush = data.ThresholdExceeded
-                ? ColorPalette.GetBrush(vm.SiAccentColor)
-                : ColorPalette.GetBrush(vm.SiMainColor);
+            SysBarPanel.Visibility    = Visibility.Collapsed;
 
             // 48px楕円の中心線半径=20、StrokeThickness=8
             const double strokeT = 8.0;
@@ -345,6 +389,7 @@ public partial class TileEditControl : UserControl
         {
             SysTextPanel.Visibility   = Visibility.Visible;
             SysCirclePanel.Visibility = Visibility.Collapsed;
+            SysBarPanel.Visibility    = Visibility.Collapsed;
 
             bool isTopProc = vm.SiCategory == "top_process";
             SysMainText.TextAlignment    = isTopProc ? TextAlignment.Left   : TextAlignment.Center;
