@@ -1,8 +1,10 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using AppLauncher.Models;
 using AppLauncher.ViewModels;
@@ -13,6 +15,42 @@ namespace AppLauncher.Views;
 public partial class LauncherWindow : Window
 {
     public LauncherWindow() => InitializeComponent();
+
+    // ─── DPI 変更抑制 ─────────────────────────────────────────────────────────
+    // HwndSource.AddHook はWPF内部処理の後に呼ばれるため WM_DPICHANGED を抑制できない。
+    // SetWindowLongPtr でWPFのウィンドウプロシージャの前段に割り込む（Win32サブクラス化）。
+    internal bool SuppressDpiChange { get; set; }
+
+    private const int WM_DPICHANGED  = 0x02E0;
+    private const int GWLP_WNDPROC   = -4;
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+    private static extern IntPtr SetWindowLongPtr(IntPtr hwnd, int nIndex, IntPtr newProc);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr CallWindowProc(IntPtr prevProc, IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    private delegate IntPtr WndProcDelegate(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
+    private WndProcDelegate? _wndProcDelegate; // GC に回収されないよう保持
+    private IntPtr _prevWndProc = IntPtr.Zero;
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        _wndProcDelegate = SubclassWndProc;
+        _prevWndProc = SetWindowLongPtr(
+            new WindowInteropHelper(this).Handle,
+            GWLP_WNDPROC,
+            Marshal.GetFunctionPointerForDelegate(_wndProcDelegate));
+    }
+
+    private IntPtr SubclassWndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam)
+    {
+        // WPF より先に実行されるため WM_DPICHANGED をここで止めれば WPF に届かない
+        if (msg == WM_DPICHANGED && SuppressDpiChange)
+            return IntPtr.Zero;
+        return CallWindowProc(_prevWndProc, hwnd, msg, wParam, lParam);
+    }
 
     /// <summary>
     /// 吸着方向に合わせてハンドルとフレームの列・行を入れ替える。
@@ -95,6 +133,55 @@ public partial class LauncherWindow : Window
                 break;
         }
     }
+
+    // ─── マルチディスプレイ クリッピング ──────────────────────────────────────
+    // AllowsTransparency=True のため SetWindowRgn は機能しない。
+    // RootGrid.Clip を使用する。透明ピクセルは WPF が自動的にクリックスルーにする。
+    // RectangleGeometry を使い回してフレーム毎の GC を回避する。
+    private RectangleGeometry? _clipGeo;
+    private readonly TranslateTransform _snapTransform = new();
+
+    public void SetMonitorClip(Rect clipRect)
+    {
+        if (clipRect.Width > 0 && clipRect.Height > 0)
+        {
+            if (_clipGeo == null)
+            {
+                _clipGeo = new RectangleGeometry(clipRect);
+                WindowRoot.Clip = _clipGeo;
+            }
+            else
+            {
+                _clipGeo.Rect = clipRect;
+                if (WindowRoot.Clip != _clipGeo)
+                    WindowRoot.Clip = _clipGeo;
+            }
+        }
+        else if (WindowRoot.Clip != null)
+        {
+            WindowRoot.Clip = null;
+        }
+    }
+
+    public void SetSnapContentSize(double width, double height)
+    {
+        RootGrid.HorizontalAlignment = HorizontalAlignment.Left;
+        RootGrid.VerticalAlignment = VerticalAlignment.Top;
+        RootGrid.Width = width;
+        RootGrid.Height = height;
+        if (RootGrid.RenderTransform != _snapTransform)
+            RootGrid.RenderTransform = _snapTransform;
+    }
+
+    public void SetSnapContentOffset(double x, double y)
+    {
+        if (RootGrid.RenderTransform != _snapTransform)
+            RootGrid.RenderTransform = _snapTransform;
+        _snapTransform.X = x;
+        _snapTransform.Y = y;
+    }
+
+    public Point GetSnapContentOffset() => new(_snapTransform.X, _snapTransform.Y);
 
     public void SetViewModel(LauncherViewModel vm)
     {

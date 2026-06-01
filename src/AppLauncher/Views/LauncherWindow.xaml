@@ -16,7 +16,11 @@
         左右吸着: 列0=ハンドル or フレーム, 列1=ギャップ, 列2=フレーム or ハンドル
         上下吸着: 行0=フレーム or ハンドル, 行1=ギャップ, 行2=ハンドル or フレーム
     -->
-    <Grid x:Name="RootGrid">
+    <Grid x:Name="WindowRoot"
+          ClipToBounds="True">
+    <Grid x:Name="RootGrid"
+          HorizontalAlignment="Left"
+          VerticalAlignment="Top">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="20"/> <!-- handle (right/left snap) / full width (top/bottom snap) -->
             <ColumnDefinition Width="8"/>  <!-- gap -->
@@ -118,5 +122,6 @@
                 </Grid>
             </Grid>
         </Border>
+    </Grid>
     </Grid>
 </Window>

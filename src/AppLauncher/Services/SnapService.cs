@@ -1,8 +1,8 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using AppLauncher.Helpers;
 using AppLauncher.Models;
@@ -15,7 +15,7 @@ public class SnapService
 {
     private LauncherWindow _window = null!;
 
-    // ─── ドラッグ ─────────────────────────────────────────────────────────
+    // Drag
     private double _dragStartTop;
     private double _dragStartLeft;
     private double _dragStartMouseY;
@@ -23,27 +23,36 @@ public class SnapService
     private bool _isDragging;
     private const double DragThresholdPhysical = 5.0;
 
-    // ─── 収納位置（左右吸着用） ───────────────────────────────────────────
+    // Window position for left/right snaps
     private double _normalLeft;
     private double _storedLeft;
 
-    // ─── 収納位置（上下吸着用） ───────────────────────────────────────────
+    // Window position for top/bottom snaps
     private double _normalTop;
     private double _storedTop;
+    private double _normalOffset;
+    private double _storedOffset;
 
-    // ─── タイマー・アニメーション ───────────────────────────────────────────
+    // Timer and animation state
     private DispatcherTimer? _storageTimer;
-    private bool _isAnimating;
-    private int  _animGeneration;
+    private bool    _isAnimating;
+    private int     _animGeneration;
+    private double  _animFrom, _animTo;
+    private long    _animStartTs;   // Stopwatch.GetTimestamp() at animation start
+    private int     _animDurMs;     // duration in ms
+    private Action? _animOnComplete;
 
-    // ─── フレーム高さ ─────────────────────────────────────────────────────
+    // Frame height
     private double _baseFrameH;
 
-    // ─── 吸着方向 ─────────────────────────────────────────────────────────
+    // Snap direction
     private string _direction = "right";
 
     private bool IsVerticalSnap => _direction is "top" or "bottom";
 
+    // Monitor clipping
+    private bool   _hasSnap;        // ApplySnap() 螳御ｺ・ｾ・true
+    private double _monBoundary;
     public void Attach(LauncherWindow window)
     {
         _window = window;
@@ -52,8 +61,11 @@ public class SnapService
         _window.MouseMove += OnMouseMove;
         _window.AddHandler(UIElement.MouseLeftButtonUpEvent,
             new MouseButtonEventHandler(OnMouseUp), handledEventsToo: true);
-        _window.MouseEnter += OnWindowMouseEnter;
-        _window.MouseLeave += OnWindowMouseLeave;
+        _window.MouseEnter    += OnWindowMouseEnter;
+        _window.MouseLeave    += OnWindowMouseLeave;
+        System.Windows.Media.CompositionTarget.Rendering += OnCompositionRendering;
+        _window.Closed += (_, _) =>
+            System.Windows.Media.CompositionTarget.Rendering -= OnCompositionRendering;
 
         App.LauncherViewModel?.PropertyChanged += OnViewModelPropertyChanged;
     }
@@ -69,8 +81,6 @@ public class SnapService
             OnIsPinnedChanged();
     }
 
-    // 収納禁止モードを抜けた際、マウスが既にウィンドウ外にいれば収納タイマーを起動する。
-    // MouseLeave はウィンドウが移動したとき・モード変更時には再発火しないため手動チェックが必要。
     private void CheckStorageAfterModeChange()
     {
         _window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
@@ -96,16 +106,32 @@ public class SnapService
         var layout = App.ConfigService.Current.Layout;
         bool isExpanded = App.LauncherViewModel?.Mode is AppMode.Edit or AppMode.TileEdit or AppMode.PageEdit;
         double baseH = _baseFrameH + (isExpanded ? 33 : 0);
+        double contentH = IsVerticalSnap
+            ? baseH + layout.HandleFrameMargin + layout.HandleShortSide
+            : baseH;
+        double windowH = IsVerticalSnap
+            ? contentH + layout.ScreenEdgeDistance
+            : contentH;
 
-        if (IsVerticalSnap)
-            _window.Height = baseH + layout.HandleFrameMargin + layout.HandleShortSide;
+        if (_direction == "bottom")
+        {
+            double bottom = _window.Top + _window.Height;
+            _window.Height = windowH;
+            _window.Top = bottom - _window.Height;
+            _normalTop = _window.Top;
+            _storedTop = _window.Top;
+        }
         else
-            _window.Height = baseH;
+        {
+            _window.Height = windowH;
+        }
+
+        double contentW = double.IsNaN(_window.RootGrid.Width) ? _window.Width : _window.RootGrid.Width;
+        _window.SetSnapContentSize(contentW, contentH);
     }
 
     /// <summary>
-    /// 設定に基づきウィンドウ列レイアウト・位置・サイズを再計算する。
-    /// アニメーションを停止して通常位置（展開状態）に再配置する。
+    /// Recalculate layout, window bounds, and content offsets from the current snap settings.
     /// </summary>
     public void ApplySnap(bool preserveOrthogonal = false)
     {
@@ -114,9 +140,9 @@ public class SnapService
         double? configSavedTop  = App.ConfigService.Current.Global.SavedWindowTop;
         double? configSavedLeft = App.ConfigService.Current.Global.SavedWindowLeft;
 
-        StopAnimation(); // 実行中アニメーションを先に停止
+        StopAnimation();
 
-        // 展開状態にリセット
+        // Reset to expanded state.
         if (App.LauncherViewModel != null)
             App.LauncherViewModel.IsStored = false;
 
@@ -125,7 +151,6 @@ public class SnapService
         var global  = config.Global;
         _direction  = global.SnapPosition;
 
-        // 吸着方向に応じてハンドル・フレームの列/行を切り替え
         _window.ApplySnapLayout(_direction);
 
         var (frameW, frameH) = WindowSizeCalculator.Calculate(global, layout);
@@ -137,15 +162,38 @@ public class SnapService
         double screenBottom = screenTop + screenH;
         double screenRight  = screenLeft + screenW;
 
-        _baseFrameH = frameH;
+        _baseFrameH  = frameH;
+        _monBoundary = _direction switch
+        {
+            "right"  => screenRight,
+            "left"   => screenLeft,
+            "top"    => screenTop,
+            "bottom" => monitor.WorkBottom,
+            _        => screenRight,
+        };
+        _hasSnap = true;
+
+        double edgeDistance = layout.ScreenEdgeDistance;
+        double contentW = IsVerticalSnap
+            ? frameW
+            : layout.HandleShortSide + layout.HandleFrameMargin + frameW;
+        double contentH = IsVerticalSnap
+            ? frameH + layout.HandleFrameMargin + layout.HandleShortSide
+            : frameH;
 
         switch (_direction)
         {
             case "top":
                 _window.Width = frameW;
+                _window.Height = contentH + edgeDistance;
+                _window.SetSnapContentSize(contentW, contentH);
+                _normalOffset = edgeDistance;
+                _storedOffset = -frameH - layout.HandleFrameMargin;
                 UpdateWindowHeight();
-                _normalTop = screenTop + layout.ScreenEdgeDistance;
-                _storedTop = screenTop - frameH - layout.HandleFrameMargin;
+                _window.Height = contentH + edgeDistance;
+                _window.SetSnapContentSize(contentW, contentH);
+                _normalTop = screenTop;
+                _storedTop = screenTop;
                 _window.Top  = _normalTop;
                 _window.Left = preserveOrthogonal
                     ? Math.Clamp(savedLeft, screenLeft, screenRight - _window.Width)
@@ -156,10 +204,15 @@ public class SnapService
 
             case "bottom":
                 _window.Width = frameW;
+                _window.Height = contentH + edgeDistance;
+                _window.SetSnapContentSize(contentW, contentH);
+                _normalOffset = 0;
+                _storedOffset = frameH + layout.HandleFrameMargin + edgeDistance;
                 UpdateWindowHeight();
-                _normalTop = monitor.WorkBottom - layout.ScreenEdgeDistance - frameH
-                             - layout.HandleFrameMargin - layout.HandleShortSide;
-                _storedTop = monitor.WorkBottom - layout.HandleShortSide;
+                _window.Height = contentH + edgeDistance;
+                _window.SetSnapContentSize(contentW, contentH);
+                _normalTop = monitor.WorkBottom - _window.Height;
+                _storedTop = _normalTop;
                 _window.Top  = _normalTop;
                 _window.Left = preserveOrthogonal
                     ? Math.Clamp(savedLeft, screenLeft, screenRight - _window.Width)
@@ -169,11 +222,13 @@ public class SnapService
                 break;
 
             case "left":
-                _window.Width = layout.HandleShortSide + layout.HandleFrameMargin + frameW;
+                _window.Width = contentW + edgeDistance;
                 UpdateWindowHeight();
-                _normalLeft = screenLeft + layout.ScreenEdgeDistance;
-                // Stored: handle (col2) at screen left edge → window.Left = screenLeft - frameW - gap
-                _storedLeft = screenLeft - frameW - layout.HandleFrameMargin;
+                _window.SetSnapContentSize(contentW, _window.Height);
+                _normalOffset = edgeDistance;
+                _storedOffset = -frameW - layout.HandleFrameMargin;
+                _normalLeft = screenLeft;
+                _storedLeft = screenLeft;
                 _window.Left = _normalLeft;
                 _window.Top  = preserveOrthogonal
                     ? Math.Clamp(savedTop, screenTop, screenBottom - _window.Height)
@@ -184,12 +239,13 @@ public class SnapService
 
             case "right":
             default:
-                _window.Width = layout.HandleShortSide + layout.HandleFrameMargin + frameW;
+                _window.Width = contentW + edgeDistance;
                 UpdateWindowHeight();
-                _normalLeft = screenRight - layout.ScreenEdgeDistance - frameW
-                              - layout.HandleFrameMargin - layout.HandleShortSide;
-                // Stored: handle (col0) at screen right edge → window.Left = screenRight - handleW
-                _storedLeft = screenRight - layout.HandleShortSide;
+                _window.SetSnapContentSize(contentW, _window.Height);
+                _normalOffset = 0;
+                _storedOffset = frameW + layout.HandleFrameMargin + edgeDistance;
+                _normalLeft = screenRight - _window.Width;
+                _storedLeft = _normalLeft;
                 _window.Left = _normalLeft;
                 _window.Top  = preserveOrthogonal
                     ? Math.Clamp(savedTop, screenTop, screenBottom - _window.Height)
@@ -199,7 +255,8 @@ public class SnapService
                 break;
         }
 
-        // ウィンドウ移動後、マウスが窓外ならLeaveイベントが来ないので収納タイマーを手動起動
+        SetSnapOffset(_normalOffset);
+
         _window.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
         {
             var vm = App.LauncherViewModel;
@@ -208,9 +265,12 @@ public class SnapService
             if (!IsMouseInWindowOrGap())
                 StartStorageTimer();
         });
+
+        _window.SuppressDpiChange = false;
+        UpdateMonitorClip();
     }
 
-    // ─── ドラッグ ──────────────────────────────────────────────────────────
+    // Drag
 
     private void OnMouseDown(object sender, MouseButtonEventArgs e)
     {
@@ -301,7 +361,7 @@ public class SnapService
         App.ConfigService.Save();
     }
 
-    // ─── 収納 / 展開 ──────────────────────────────────────────────────────
+    // Store / expand
 
     private void OnWindowMouseEnter(object sender, MouseEventArgs e)
     {
@@ -353,24 +413,13 @@ public class SnapService
         if (App.LauncherViewModel != null)
             App.LauncherViewModel.IsStored = false;
 
-        if (IsVerticalSnap)
+        AnimateOffset(GetSnapOffset(), _normalOffset, () =>
         {
-            AnimateTop(_window.Top, _normalTop, () =>
-            {
-                if (!IsMouseInWindowOrGap())
-                    StartStorageTimer();
-                callback?.Invoke();
-            });
-        }
-        else
-        {
-            AnimateLeft(_window.Left, _normalLeft, () =>
-            {
-                if (!IsMouseInWindowOrGap())
-                    StartStorageTimer();
-                callback?.Invoke();
-            });
-        }
+            _window.SuppressDpiChange = false;
+            if (!IsMouseInWindowOrGap())
+                StartStorageTimer();
+            callback?.Invoke();
+        });
     }
 
     [DllImport("user32.dll")]
@@ -380,13 +429,15 @@ public class SnapService
     private struct POINT { public int X; public int Y; }
 
     /// <summary>
-    /// 吸着方向に応じてギャップ側を判定。
+    /// Checks the window and snap-edge gap in content-local coordinates.
     /// </summary>
     private bool IsMouseInWindowOrGap()
     {
         if (PresentationSource.FromVisual(_window) == null) return true;
         GetCursorPos(out var screenPt);
         var pos  = _window.PointFromScreen(new Point(screenPt.X, screenPt.Y));
+        var offset = _window.GetSnapContentOffset();
+        pos = new Point(pos.X - offset.X, pos.Y - offset.Y);
         double gap = App.ConfigService.Current.Layout.ScreenEdgeDistance;
 
         bool inX = _direction switch
@@ -407,22 +458,11 @@ public class SnapService
 
     private void AnimateToStored()
     {
-        if (IsVerticalSnap)
+        AnimateOffset(GetSnapOffset(), _storedOffset, () =>
         {
-            AnimateTop(_window.Top, _storedTop, () =>
-            {
-                if (App.LauncherViewModel != null)
-                    App.LauncherViewModel.IsStored = true;
-            });
-        }
-        else
-        {
-            AnimateLeft(_window.Left, _storedLeft, () =>
-            {
-                if (App.LauncherViewModel != null)
-                    App.LauncherViewModel.IsStored = true;
-            });
-        }
+            if (App.LauncherViewModel != null)
+                App.LauncherViewModel.IsStored = true;
+        });
     }
 
     private void AnimateToNormal()
@@ -430,77 +470,105 @@ public class SnapService
         if (App.LauncherViewModel != null)
             App.LauncherViewModel.IsStored = false;
 
+        AnimateOffset(GetSnapOffset(), _normalOffset, () =>
+        {
+            _window.SuppressDpiChange = false;
+            if (!IsMouseInWindowOrGap())
+                StartStorageTimer();
+        });
+    }
+
+    private double GetSnapOffset()
+    {
+        var offset = _window.GetSnapContentOffset();
+        return IsVerticalSnap ? offset.Y : offset.X;
+    }
+
+    private void SetSnapOffset(double offset)
+    {
         if (IsVerticalSnap)
-        {
-            AnimateTop(_window.Top, _normalTop, () =>
-            {
-                if (!IsMouseInWindowOrGap())
-                    StartStorageTimer();
-            });
-        }
+            _window.SetSnapContentOffset(0, offset);
         else
-        {
-            AnimateLeft(_window.Left, _normalLeft, () =>
-            {
-                if (!IsMouseInWindowOrGap())
-                    StartStorageTimer();
-            });
-        }
+            _window.SetSnapContentOffset(offset, 0);
     }
 
-    private void AnimateLeft(double from, double to, Action? onComplete)
+    private void AnimateOffset(double from, double to, Action? onComplete)
     {
         StopAnimation();
-        _isAnimating = true;
-        int gen = ++_animGeneration;
-
-        int dur = App.ConfigService.Current.Global.AnimationDurationMs;
-        var anim = new DoubleAnimation(from, to, new Duration(TimeSpan.FromMilliseconds(dur == 0 ? 1 : dur)))
-        {
-            FillBehavior = FillBehavior.HoldEnd,
-        };
-        anim.Completed += (_, _) =>
-        {
-            if (_animGeneration != gen) return;
-            _isAnimating = false;
-            onComplete?.Invoke();
-        };
-        _window.BeginAnimation(Window.LeftProperty, anim);
-    }
-
-    private void AnimateTop(double from, double to, Action? onComplete)
-    {
-        StopAnimation();
-        _isAnimating = true;
-        int gen = ++_animGeneration;
-
-        int dur = App.ConfigService.Current.Global.AnimationDurationMs;
-        var anim = new DoubleAnimation(from, to, new Duration(TimeSpan.FromMilliseconds(dur == 0 ? 1 : dur)))
-        {
-            FillBehavior = FillBehavior.HoldEnd,
-        };
-        anim.Completed += (_, _) =>
-        {
-            if (_animGeneration != gen) return;
-            _isAnimating = false;
-            onComplete?.Invoke();
-        };
-        _window.BeginAnimation(Window.TopProperty, anim);
+        _animFrom       = from;
+        _animTo         = to;
+        _window.SuppressDpiChange = true;
+        _animDurMs      = App.ConfigService.Current.Global.AnimationDurationMs;
+        if (_animDurMs == 0) _animDurMs = 1;
+        _animStartTs    = Stopwatch.GetTimestamp();
+        _animOnComplete = onComplete;
+        _isAnimating    = true;
+        ++_animGeneration;
     }
 
     private void StopAnimation()
     {
+        _isAnimating    = false;
+        _animOnComplete = null;
         _animGeneration++;
-        _isAnimating = false;
-        double left = _window.Left;
-        double top  = _window.Top;
-        _window.BeginAnimation(Window.LeftProperty, null);
-        _window.BeginAnimation(Window.TopProperty,  null);
-        _window.Left = left;
-        _window.Top  = top;
     }
 
-    // ─── マルチモニター ────────────────────────────────────────────────────
+    // Monitor clipping
+
+    private void OnCompositionRendering(object? sender, EventArgs e)
+    {
+        if (!_hasSnap) return;
+
+        double winL = _window.Left;
+        double winT = _window.Top;
+        double winW = _window.Width;
+        double winH = _window.Height;
+
+        if (_isAnimating)
+        {
+            double elapsed = (Stopwatch.GetTimestamp() - _animStartTs)
+                             / (double)Stopwatch.Frequency * 1000.0;
+            double t   = Math.Clamp(elapsed / _animDurMs, 0.0, 1.0);
+            double pos = _animFrom + (_animTo - _animFrom) * t;
+
+            // Move only the content; the HWND stays inside the selected monitor.
+            SetSnapOffset(pos);
+
+            if (t >= 1.0)
+            {
+                _isAnimating = false;
+                var cb = _animOnComplete;
+                _animOnComplete = null;
+                cb?.Invoke();
+            }
+        }
+
+        UpdateMonitorClip(winL, winT, winW, winH);
+    }
+
+    private void UpdateMonitorClip(double winL, double winT, double winW, double winH)
+    {
+        double b = _monBoundary;
+        double clipL = 0, clipT = 0, clipW = winW, clipH = winH;
+
+        switch (_direction)
+        {
+            case "right":  clipW = Math.Clamp(b - winL, 0, winW); break;
+            case "left":   clipL = Math.Clamp(b - winL, 0, winW); clipW = winW - clipL; break;
+            case "top":    clipT = Math.Clamp(b - winT, 0, winH); clipH = winH - clipT; break;
+            case "bottom": clipH = Math.Clamp(b - winT, 0, winH); break;
+        }
+
+        _window.SetMonitorClip(new Rect(clipL, clipT, clipW, clipH));
+    }
+
+    private void UpdateMonitorClip()
+    {
+        if (!_hasSnap) return;
+        UpdateMonitorClip(_window.Left, _window.Top, _window.Width, _window.Height);
+    }
+
+    // Monitors
 
     [DllImport("user32.dll")]
     private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip,
