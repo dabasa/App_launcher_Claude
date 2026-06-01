@@ -18,9 +18,9 @@
     -->
     <Grid x:Name="WindowRoot"
           ClipToBounds="True">
-    <Grid x:Name="RootGrid"
-          HorizontalAlignment="Left"
-          VerticalAlignment="Top">
+        <Grid x:Name="RootGrid"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Top">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="20"/> <!-- handle (right/left snap) / full width (top/bottom snap) -->
             <ColumnDefinition Width="8"/>  <!-- gap -->
@@ -120,8 +120,15 @@
                         </StackPanel>
                     </Border>
                 </Grid>
+
+                <Border x:Name="TransitionOverlay"
+                        Grid.RowSpan="7"
+                        CornerRadius="{Binding CornerRadius, ElementName=Frame}"
+                        Visibility="Collapsed"
+                        Panel.ZIndex="999"
+                        IsHitTestVisible="True"/>
             </Grid>
         </Border>
-    </Grid>
+        </Grid>
     </Grid>
 </Window>

@@ -16,6 +16,8 @@ public partial class LauncherViewModel : ObservableObject
     [ObservableProperty]
     private AppMode _mode = AppMode.Normal;
 
+    public event Action? ModeChanging;
+
     [ObservableProperty]
     private bool _isPinned;
 
@@ -93,6 +95,11 @@ public partial class LauncherViewModel : ObservableObject
         Pages = new ObservableCollection<PageViewModel>(
             config.Pages.Select(p => new PageViewModel(p)));
         BuildSettingsPages();
+    }
+
+    partial void OnModeChanging(AppMode value)
+    {
+        ModeChanging?.Invoke();
     }
 
     partial void OnModeChanged(AppMode value)

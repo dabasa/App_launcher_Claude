@@ -6,6 +6,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 using AppLauncher.Models;
 using AppLauncher.ViewModels;
 using AppLauncher.Views.Controls;
@@ -33,6 +34,7 @@ public partial class LauncherWindow : Window
     private delegate IntPtr WndProcDelegate(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
     private WndProcDelegate? _wndProcDelegate; // GC に回収されないよう保持
     private IntPtr _prevWndProc = IntPtr.Zero;
+    private int _modeTransitionGeneration;
 
     protected override void OnSourceInitialized(EventArgs e)
     {
@@ -196,6 +198,8 @@ public partial class LauncherWindow : Window
         DataContext = vm;
         ApplyPageColors(vm.CurrentPage);
         ApplyPinBorder(vm);
+        vm.ModeChanging += ShowTransitionOverlay;
+        Closed += (_, _) => vm.ModeChanging -= ShowTransitionOverlay;
 
         // 削除確認ダイアログボタン配線
         DeleteOkButton.MouseLeftButtonUp     += (_, _) => vm.ConfirmDeleteTileCommand.Execute(null);
@@ -229,16 +233,31 @@ public partial class LauncherWindow : Window
                 GlobalSettingsPanel.Visibility = isGlobalSettings ? Visibility.Visible : Visibility.Collapsed;
                 if (isGlobalSettings)
                     GlobalSettingsPanel.ApplyUiElementColor();
+
+                int generation = _modeTransitionGeneration;
+                Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(() =>
+                {
+                    if (generation == _modeTransitionGeneration)
+                        TransitionOverlay.Visibility = Visibility.Collapsed;
+                }));
             }
         };
+    }
+
+    private void ShowTransitionOverlay()
+    {
+        _modeTransitionGeneration++;
+        TransitionOverlay.Visibility = Visibility.Visible;
     }
 
     private void ApplyPageColors(PageViewModel page)
     {
         var bgColor = ColorPalette.GetColor(page.BackgroundColor);
         double bgAlpha = ColorPalette.OpacityToDouble(page.BackgroundOpacity);
-        Frame.Background = new SolidColorBrush(
+        var background = new SolidColorBrush(
             Color.FromArgb((byte)(255 * bgAlpha), bgColor.R, bgColor.G, bgColor.B));
+        Frame.Background = background;
+        TransitionOverlay.Background = background;
         Handle.SetAppearance(page.HandleColor, page.HandleOpacity);
     }
 

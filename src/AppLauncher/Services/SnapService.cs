@@ -32,6 +32,8 @@ public class SnapService
     private double _storedTop;
     private double _normalOffset;
     private double _storedOffset;
+    private double _contentWidth;
+    private double _contentHeight;
 
     // Timer and animation state
     private DispatcherTimer? _storageTimer;
@@ -127,7 +129,7 @@ public class SnapService
         }
 
         double contentW = double.IsNaN(_window.RootGrid.Width) ? _window.Width : _window.RootGrid.Width;
-        _window.SetSnapContentSize(contentW, contentH);
+        SetSnapContentSize(contentW, contentH);
     }
 
     /// <summary>
@@ -186,12 +188,12 @@ public class SnapService
             case "top":
                 _window.Width = frameW;
                 _window.Height = contentH + edgeDistance;
-                _window.SetSnapContentSize(contentW, contentH);
+                SetSnapContentSize(contentW, contentH);
                 _normalOffset = edgeDistance;
                 _storedOffset = -frameH - layout.HandleFrameMargin;
                 UpdateWindowHeight();
                 _window.Height = contentH + edgeDistance;
-                _window.SetSnapContentSize(contentW, contentH);
+                SetSnapContentSize(contentW, contentH);
                 _normalTop = screenTop;
                 _storedTop = screenTop;
                 _window.Top  = _normalTop;
@@ -205,12 +207,12 @@ public class SnapService
             case "bottom":
                 _window.Width = frameW;
                 _window.Height = contentH + edgeDistance;
-                _window.SetSnapContentSize(contentW, contentH);
+                SetSnapContentSize(contentW, contentH);
                 _normalOffset = 0;
                 _storedOffset = frameH + layout.HandleFrameMargin + edgeDistance;
                 UpdateWindowHeight();
                 _window.Height = contentH + edgeDistance;
-                _window.SetSnapContentSize(contentW, contentH);
+                SetSnapContentSize(contentW, contentH);
                 _normalTop = monitor.WorkBottom - _window.Height;
                 _storedTop = _normalTop;
                 _window.Top  = _normalTop;
@@ -224,7 +226,7 @@ public class SnapService
             case "left":
                 _window.Width = contentW + edgeDistance;
                 UpdateWindowHeight();
-                _window.SetSnapContentSize(contentW, _window.Height);
+                SetSnapContentSize(contentW, _window.Height);
                 _normalOffset = edgeDistance;
                 _storedOffset = -frameW - layout.HandleFrameMargin;
                 _normalLeft = screenLeft;
@@ -241,7 +243,7 @@ public class SnapService
             default:
                 _window.Width = contentW + edgeDistance;
                 UpdateWindowHeight();
-                _window.SetSnapContentSize(contentW, _window.Height);
+                SetSnapContentSize(contentW, _window.Height);
                 _normalOffset = 0;
                 _storedOffset = frameW + layout.HandleFrameMargin + edgeDistance;
                 _normalLeft = screenRight - _window.Width;
@@ -442,18 +444,25 @@ public class SnapService
 
         bool inX = _direction switch
         {
-            "left"   => pos.X >= -gap && pos.X <= _window.Width,
-            "top"    => pos.X >= 0    && pos.X <= _window.Width,
-            "bottom" => pos.X >= 0    && pos.X <= _window.Width,
-            _        => pos.X >= 0    && pos.X <= _window.Width + gap,  // right
+            "left"   => pos.X >= -gap && pos.X <= _contentWidth,
+            "top"    => pos.X >= 0    && pos.X <= _contentWidth,
+            "bottom" => pos.X >= 0    && pos.X <= _contentWidth,
+            _        => pos.X >= 0    && pos.X <= _contentWidth + gap,
         };
         bool inY = _direction switch
         {
-            "top"    => pos.Y >= -gap && pos.Y <= _window.Height,        // gap above (between screen top and frame)
-            "bottom" => pos.Y >= 0    && pos.Y <= _window.Height + gap,  // gap below (between frame and work area bottom)
-            _        => pos.Y >= 0    && pos.Y <= _window.Height,        // left/right
+            "top"    => pos.Y >= -gap && pos.Y <= _contentHeight,
+            "bottom" => pos.Y >= 0    && pos.Y <= _contentHeight + gap,
+            _        => pos.Y >= 0    && pos.Y <= _contentHeight,
         };
         return inX && inY;
+    }
+
+    private void SetSnapContentSize(double width, double height)
+    {
+        _contentWidth = width;
+        _contentHeight = height;
+        _window.SetSnapContentSize(width, height);
     }
 
     private void AnimateToStored()
